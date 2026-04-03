@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/admin/(.*)",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/((?!admin|static|.*\\..*|_next|favicon.ico).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
