@@ -549,7 +549,7 @@ img { display: block; max-width: 100%; }
     <div class="auth-brand">
       <div class="auth-logo">🛒</div>
       <div>
-        <div class="auth-brand-text">ap<em>ykart</em></div>
+        <div class="auth-brand-text">Apy<em>kart</em></div>
         <div class="auth-brand-sub">Admin Panel</div>
       </div>
     </div>
@@ -562,20 +562,20 @@ img { display: block; max-width: 100%; }
     <div id="form-login">
       <div class="a-grp">
         <label>Email Address</label>
-        <input class="a-inp" id="l-email" type="email" placeholder="admin@apykart.com" autocomplete="username">
+        <input class="a-inp" id="l-email" type="email" placeholder="apykart@gmail.com" autocomplete="username">
       </div>
       <div class="a-grp">
         <label>Password</label>
         <input class="a-inp" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="auth-btn" id="l-btn" onclick="doLogin()">Sign In to Admin Panel →</button>
-      <p class="auth-note">Only authorised managers can access this panel.</p>
+      <p class="auth-note">Auto‑create manager account on first login.</p>
     </div>
     <!-- Reset -->
     <div id="form-reset" style="display:none">
       <div class="a-grp">
         <label>Admin Email</label>
-        <input class="a-inp" id="r-email" type="email" placeholder="admin@apykart.com" onkeydown="if(event.key==='Enter')doReset()">
+        <input class="a-inp" id="r-email" type="email" placeholder="apykart@gmail.com" onkeydown="if(event.key==='Enter')doReset()">
       </div>
       <button class="auth-btn" id="r-btn" onclick="doReset()">Send Reset Email</button>
     </div>
@@ -1186,7 +1186,7 @@ img { display: block; max-width: 100%; }
 <div id="TOASTS"></div>
 
 <!-- ══════════════════════════
-     FIREBASE SDK
+     FIREBASE SDK + AUTO-CREATE MANAGER LOGIC
 ══════════════════════════ -->
 <script type="module">
 import { initializeApp }                        from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -1200,9 +1200,9 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
          EmailAuthProvider, createUserWithEmailAndPassword }
                                                 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// ╔══════════════════════════════════════════════╗
-// ║  🔧 REPLACE WITH YOUR FIREBASE CONFIG BELOW  ║
-// ╚══════════════════════════════════════════════╝
+// ╔══════════════════════════════════════════════════════════╗
+// ║  🔧 REPLACE WITH YOUR FIREBASE CONFIG (from your project) ║
+// ╚══════════════════════════════════════════════════════════╝
 const firebaseConfig = {
   apiKey: "AIzaSyB9wwF-K1AwN8xlrppiKELDXx0NxqJknbc",
   authDomain: "apykart-916.firebaseapp.com",
@@ -1210,8 +1210,8 @@ const firebaseConfig = {
   storageBucket: "apykart-916.firebasestorage.app",
   messagingSenderId: "787741109597",
   appId: "1:787741109597:web:883a5eee5e9bb9602f8cb4",
-     };
-// ════════════════════════════════════════════════
+};
+// ════════════════════════════════════════════════════════════
 
 const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
@@ -1227,21 +1227,56 @@ window._FB = {
   EmailAuthProvider, createUserWithEmailAndPassword,
 };
 
+// ════════════════════════════════════════════════════════════
+// 🔥 AUTO-CREATE MANAGER DOCUMENT IF NOT EXISTS (FIRST LOGIN)
+// ════════════════════════════════════════════════════════════
 onAuthStateChanged(auth, async user => {
   if (user) {
     try {
-      const snap = await getDoc(doc(db, 'managers', user.uid));
-      if (snap.exists() && snap.data().active !== false) {
-        window._ADMIN = { uid: user.uid, ...snap.data() };
+      const mgrRef = doc(db, 'managers', user.uid);
+      const mgrSnap = await getDoc(mgrRef);
+      
+      // If manager document doesn't exist, create it with super_admin rights
+      if (!mgrSnap.exists()) {
+        const fullName = user.email ? user.email.split('@')[0] : 'Admin';
+        await setDoc(mgrRef, {
+          uid: user.uid,
+          name: fullName,
+          email: user.email,
+          role: 'super_admin',
+          permissions: ['orders', 'products', 'categories', 'banners', 'users', 'coupons', 'settings', 'notifications'],
+          active: true,
+          createdAt: serverTimestamp(),
+          createdBy: 'auto_on_first_login'
+        });
+        console.log('✅ Auto-created manager document for', user.email);
+        // Small delay to ensure Firestore write propagates
+        await new Promise(r => setTimeout(r, 300));
+      }
+      
+      // Now verify it's active
+      const finalSnap = await getDoc(mgrRef);
+      if (finalSnap.exists() && finalSnap.data().active !== false) {
+        window._ADMIN = { uid: user.uid, ...finalSnap.data() };
         showApp();
-      } else { await signOut(auth); showAuth(); }
-    } catch { showAuth(); }
-  } else { showAuth(); }
+      } else {
+        await signOut(auth);
+        showAuth();
+        toast('Account disabled. Contact super admin.', 'err');
+      }
+    } catch (err) {
+      console.error('Auth state error:', err);
+      showAuth();
+      toast('Error loading admin profile: ' + err.message, 'err');
+    }
+  } else {
+    showAuth();
+  }
 });
 </script>
 
 <!-- ══════════════════════════
-     MAIN JS
+     MAIN JS (same as before, but toast must be defined before use in module)
 ══════════════════════════ -->
 <script>
 /* ════════════════════════════
@@ -1261,6 +1296,39 @@ let _ORD_UNSUB = null, _PRD_UNSUB = null;
 const PER = 15;
 
 /* ════════════════════════════
+   HELPER FUNCTIONS (defined early so they are available globally)
+════════════════════════════ */
+function toast(msg, type='inf', title='', dur=4000) {
+  const icons={suc:'✅',err:'❌',wrn:'⚠️',inf:'ℹ️'};
+  const titles={suc:'Success',err:'Error',wrn:'Warning',inf:'Info'};
+  const wrap = document.getElementById('TOASTS');
+  if (!wrap) return;
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<div class="ti">${icons[type]}</div><div class="tc"><div class="tt">${title||titles[type]}</div>${msg?`<div class="tm">${msg}</div>`:''}</div><div class="tx" onclick="this.parentElement.remove()">✕</div>`;
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),300); }, dur);
+}
+
+function setEl(id,v) { const e=document.getElementById(id); if(e) e.textContent=v; }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtC(n,s='₹') { return s+(n||0).toLocaleString('en-IN',{maximumFractionDigits:0}); }
+function fmtD(ts) { if(!ts)return'—'; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
+function fmtDT(ts) { if(!ts)return'—'; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function relTime(ts) {
+  if(!ts)return'—'; const d=ts.toDate?ts.toDate():new Date(ts), diff=Date.now()-d.getTime();
+  if(diff<60000)return'just now'; if(diff<3600000)return Math.floor(diff/60000)+'m ago';
+  if(diff<86400000)return Math.floor(diff/3600000)+'h ago'; if(diff<604800000)return Math.floor(diff/86400000)+'d ago';
+  return fmtD(ts);
+}
+function initials(s) { return (s||'U').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase(); }
+function strColor(s) {
+  const cols=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#14b8a6'];
+  let h=0; for(const c of (s||'')) h=h*31+c.charCodeAt(0);
+  return cols[Math.abs(h)%cols.length];
+}
+
+/* ════════════════════════════
    SIDEBAR NAV
 ════════════════════════════ */
 const NAV_ITEMS = [
@@ -1272,6 +1340,7 @@ const NAV_ITEMS = [
 
 function buildNav() {
   const nav = document.getElementById('sb-nav');
+  if (!nav) return;
   nav.innerHTML = NAV_ITEMS.map(g => `
     <div class="sb-grp-lbl">${g.g}</div>
     ${g.items.map(it => `
@@ -1311,12 +1380,15 @@ function showApp() {
   const n = a.name || 'Admin';
   const c = strColor(n);
   const ava = document.getElementById('sb-ava');
-  ava.textContent = initials(n);
-  ava.style.background = c;
-  document.getElementById('sb-uname').textContent = n;
-  document.getElementById('sb-urole').textContent = (a.role||'super_admin').replace('_',' ').toUpperCase();
-  document.getElementById('st-aname').textContent = n;
-  document.getElementById('st-uid').textContent   = a.uid || '—';
+  if (ava) { ava.textContent = initials(n); ava.style.background = c; }
+  const uname = document.getElementById('sb-uname');
+  if (uname) uname.textContent = n;
+  const urole = document.getElementById('sb-urole');
+  if (urole) urole.textContent = (a.role||'super_admin').replace('_',' ').toUpperCase();
+  const aname = document.getElementById('st-aname');
+  if (aname) aname.textContent = n;
+  const uidSpan = document.getElementById('st-uid');
+  if (uidSpan) uidSpan.textContent = a.uid || '—';
   buildNav();
   nav('dashboard');
 }
@@ -1331,7 +1403,7 @@ async function doLogin() {
   btn.classList.add('loading');
   try {
     await window._FB.signInWithEmailAndPassword(window._FB.auth, email, pass);
-    // onAuthStateChanged handles the rest
+    // onAuthStateChanged will handle the rest (auto-create manager if needed)
   } catch(e) {
     showErr(e.code === 'auth/invalid-credential' ? 'Invalid email or password.' : e.message);
     btn.classList.remove('loading');
@@ -1478,7 +1550,6 @@ async function loadDashboard() {
         <td><button class="btn btn-g btn-xs" onclick="openOrderDrawer('${o.id}')">View →</button></td>
       </tr>`).join('')
     : '<tr><td colspan="7"><div class="empty" style="padding:24px"><div class="empty-sb">No orders yet</div></div></td></tr>';
-
   } catch(e) { console.error(e); toast('Dashboard load failed: '+e.message,'err'); }
 }
 
@@ -1497,7 +1568,7 @@ function renderChart(elId, data, labels, isRevenue) {
 }
 
 /* ════════════════════════════
-   ORDERS
+   ORDERS (keep all existing functions)
 ════════════════════════════ */
 function loadOrders() {
   const { db, collection, onSnapshot, query, orderBy } = window._FB;
@@ -1650,7 +1721,7 @@ function openOrderDrawer(docId) {
 }
 
 /* ════════════════════════════
-   PRODUCTS
+   PRODUCTS (keep all functions, but we need to ensure loadCatsForFilter etc. are defined)
 ════════════════════════════ */
 function loadProducts() {
   const { db, collection, onSnapshot, query, orderBy } = window._FB;
@@ -1739,7 +1810,6 @@ function openProductModal(docId) {
   sv('pm-coins',  p?.coinsEarned||'10'); sv('pm-desc', p?.desc||'');
   sv('pm-st',     p?.status||'active');
 
-  // Category select
   const csel = document.getElementById('pm-cat');
   if (csel) {
     csel.innerHTML = '<option value="">Select category…</option>' +
@@ -1832,7 +1902,7 @@ function delProd(docId, name) {
 }
 
 /* ════════════════════════════
-   CATEGORIES
+   CATEGORIES (keep all functions)
 ════════════════════════════ */
 async function loadCats() {
   const { db, collection, getDocs, query, orderBy } = window._FB;
@@ -1929,7 +1999,7 @@ function delCat(docId, name) {
 }
 
 /* ════════════════════════════
-   BANNERS
+   BANNERS (keep all functions)
 ════════════════════════════ */
 async function loadBanners() {
   const { db, collection, getDocs, query, orderBy } = window._FB;
@@ -2037,7 +2107,7 @@ function delBan(docId, title) {
 }
 
 /* ════════════════════════════
-   USERS
+   USERS (keep all functions)
 ════════════════════════════ */
 async function loadUsers() {
   const { db, collection, getDocs } = window._FB;
@@ -2158,7 +2228,7 @@ async function banUser(docId, ban) {
 }
 
 /* ════════════════════════════
-   MANAGERS
+   MANAGERS (keep all functions)
 ════════════════════════════ */
 async function loadMgrs() {
   const { db, collection, getDocs } = window._FB;
@@ -2255,7 +2325,7 @@ function delMgr(docId, name) {
 }
 
 /* ════════════════════════════
-   COUPONS
+   COUPONS (keep all functions)
 ════════════════════════════ */
 async function loadCpns() {
   const { db, collection, getDocs } = window._FB;
@@ -2350,7 +2420,7 @@ function delCpn(docId, code) {
 }
 
 /* ════════════════════════════
-   NOTIFICATIONS
+   NOTIFICATIONS (keep all functions)
 ════════════════════════════ */
 async function loadNotifs() {
   const { db, collection, getDocs, query, orderBy, limit } = window._FB;
@@ -2405,7 +2475,7 @@ async function delNotif(docId) {
 }
 
 /* ════════════════════════════
-   SETTINGS
+   SETTINGS (keep all functions)
 ════════════════════════════ */
 async function loadSettings() {
   const { db, doc, getDoc } = window._FB;
@@ -2545,20 +2615,6 @@ function confirm2(title, msg, cb, icon='🗑️', label='Delete') {
 }
 
 /* ════════════════════════════
-   TOAST
-════════════════════════════ */
-function toast(msg, type='inf', title='', dur=4000) {
-  const icons={suc:'✅',err:'❌',wrn:'⚠️',inf:'ℹ️'};
-  const titles={suc:'Success',err:'Error',wrn:'Warning',inf:'Info'};
-  const wrap = document.getElementById('TOASTS');
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `<div class="ti">${icons[type]}</div><div class="tc"><div class="tt">${title||titles[type]}</div>${msg?`<div class="tm">${msg}</div>`:''}</div><div class="tx" onclick="this.parentElement.remove()">✕</div>`;
-  wrap.appendChild(el);
-  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),300); }, dur);
-}
-
-/* ════════════════════════════
    PAGINATION
 ════════════════════════════ */
 function paginate(arr, page) {
@@ -2577,27 +2633,6 @@ function buildPg(elId, total, pages, cur, onPage) {
   }
   btns+=`<button class="pg-btn" ${cur>=pages?'disabled':''} onclick="(${onPage})(${cur+1})">›</button>`;
   el.innerHTML = `<div class="pg-info">Page ${cur} of ${pages} · ${total} records</div><div class="pg-btns">${btns}</div>`;
-}
-
-/* ════════════════════════════
-   HELPERS
-════════════════════════════ */
-function setEl(id,v) { const e=document.getElementById(id); if(e) e.textContent=v; }
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtC(n,s='₹') { return s+(n||0).toLocaleString('en-IN',{maximumFractionDigits:0}); }
-function fmtD(ts) { if(!ts)return'—'; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
-function fmtDT(ts) { if(!ts)return'—'; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
-function relTime(ts) {
-  if(!ts)return'—'; const d=ts.toDate?ts.toDate():new Date(ts), diff=Date.now()-d.getTime();
-  if(diff<60000)return'just now'; if(diff<3600000)return Math.floor(diff/60000)+'m ago';
-  if(diff<86400000)return Math.floor(diff/3600000)+'h ago'; if(diff<604800000)return Math.floor(diff/86400000)+'d ago';
-  return fmtD(ts);
-}
-function initials(s) { return (s||'U').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase(); }
-function strColor(s) {
-  const cols=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#14b8a6'];
-  let h=0; for(const c of (s||'')) h=h*31+c.charCodeAt(0);
-  return cols[Math.abs(h)%cols.length];
 }
 </script>
 </body>
