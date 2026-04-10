@@ -1526,7 +1526,7 @@ function renderRefer() {
       <div class="refer-code-box"><div class="refer-code-val">${code}</div><button class="refer-copy-btn" onclick="navigator.clipboard?.writeText('${code}').then(()=>showToast('Code copied! 🎉','success'))">Copy</button></div>
       <div class="refer-share-row">
         <button class="refer-share-btn" style="background:#25d366;color:#fff" onclick="window.open('https://wa.me/?text='+encodeURIComponent('🛒 Join Apykart! Use my code *${code}* to get ₹5 off + we both earn 50 ApyCoins 🪙'),'_blank')">📱 WhatsApp</button>
-        <button class="refer-share-btn" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="navigator.clipboard?.writeText('https://apykart.app?ref=${code}').then(()=>showToast('Link copied!','success'))">🔗 Copy Link</button>
+        <button class="refer-share-btn" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="navigator.clipboard?.writeText('https://apykart.vercel.app?ref=${code}').then(()=>showToast('Link copied!','success'))">🔗 Copy Link</button>
       </div>
     </div>
     <div class="refer-steps">
