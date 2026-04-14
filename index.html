@@ -20,7 +20,7 @@
 html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--font-body);color:var(--text);-webkit-font-smoothing:antialiased}
 button{font-family:var(--font-body);cursor:pointer;border:none;background:none}
 input,textarea,select{font-family:var(--font-body)}
-img{display:block;width:100%;height:100%;object-fit:contain}
+img{display:block;width:100%;height:100%;object-fit:cover}
 a{text-decoration:none;color:inherit}
 
 /* LOADING */
@@ -83,13 +83,13 @@ a{text-decoration:none;color:inherit}
 .timer-block{background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:800;padding:3px 6px;border-radius:6px;min-width:26px;text-align:center}
 .timer-sep{color:rgba(255,255,255,.7);font-weight:800;font-size:13px}
 
-/* PRODUCT CARDS */
+/* PRODUCT CARDS — images fill the container */
 .products-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 12px 16px}
 .product-card{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow2);cursor:pointer;transition:transform .18s,box-shadow .18s;border:1px solid var(--border);position:relative}
 .product-card:active{transform:scale(.97);box-shadow:var(--shadow)}
-.product-img-wrap{background:linear-gradient(145deg,#f0f4ff 0%,#e8efff 100%);height:140px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.product-img-wrap img{width:110px;height:110px;object-fit:contain}
-.product-img-placeholder{font-size:64px}
+.product-img-wrap{background:linear-gradient(145deg,#f0f4ff 0%,#e8efff 100%);height:160px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.product-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.product-img-placeholder{font-size:64px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
 .product-badge{position:absolute;top:8px;left:8px;background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;z-index:1}
 .wish-btn-card{position:absolute;top:8px;right:8px;width:26px;height:26px;background:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:var(--shadow2);cursor:pointer;z-index:2;border:none;transition:transform .15s}
 .wish-btn-card:active{transform:scale(1.2)}
@@ -121,12 +121,29 @@ a{text-decoration:none;color:inherit}
 .search-chip{background:var(--card);border:1.5px solid var(--border);color:var(--text2);font-size:13px;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;transition:all .15s}
 .search-chip:active{background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
 
-/* PRODUCT DETAIL */
+/* PRODUCT DETAIL — image gallery / swiper */
 .detail-back{display:flex;align-items:center;gap:8px;padding:14px 16px 0;color:var(--primary);font-size:14px;font-weight:700;cursor:pointer;width:fit-content}
-.detail-img-section{background:linear-gradient(160deg,#dce8ff 0%,#eef4ff 100%);margin:10px 12px;border-radius:var(--radius);height:240px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:var(--shadow2)}
-.detail-img-section img{width:180px;height:180px;object-fit:contain;filter:drop-shadow(4px 8px 16px rgba(0,0,0,.15))}
-.detail-discount-badge{position:absolute;top:12px;left:12px;background:var(--accent);color:#fff;font-size:13px;font-weight:800;padding:4px 12px;border-radius:8px}
-.detail-wishlist{position:absolute;top:12px;right:12px;width:36px;height:36px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:var(--shadow2);border:none}
+
+/* MEDIA SWIPER */
+.media-swiper-wrap{position:relative;margin:10px 12px;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow2);background:#000;height:280px}
+.media-swiper-track{display:flex;transition:transform .35s cubic-bezier(.4,0,.2,1);height:100%;will-change:transform}
+.media-slide{flex-shrink:0;width:100%;height:100%;position:relative;background:linear-gradient(160deg,#dce8ff 0%,#eef4ff 100%);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.media-slide img{width:100%;height:100%;object-fit:cover;display:block}
+.media-slide video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
+.media-play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.media-play-btn{width:60px;height:60px;background:rgba(0,0,0,.55);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;pointer-events:all;cursor:pointer;border:2px solid rgba(255,255,255,.7);transition:transform .15s}
+.media-play-btn:active{transform:scale(.9)}
+.swiper-prev,.swiper-next{position:absolute;top:50%;transform:translateY(-50%);width:32px;height:32px;background:rgba(255,255,255,.85);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;z-index:10;border:none;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:background .15s}
+.swiper-prev{left:10px}.swiper-next{right:10px}
+.swiper-prev:active,.swiper-next:active{background:#fff}
+.swiper-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:10}
+.swiper-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);transition:background .2s,width .2s;cursor:pointer}
+.swiper-dot.active{background:#fff;width:18px;border-radius:4px}
+.detail-discount-badge{position:absolute;top:12px;left:12px;background:var(--accent);color:#fff;font-size:13px;font-weight:800;padding:4px 12px;border-radius:8px;z-index:5}
+.detail-wishlist{position:absolute;top:12px;right:52px;width:36px;height:36px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:var(--shadow2);border:none;z-index:5}
+.detail-share-btn{position:absolute;top:12px;right:12px;width:36px;height:36px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:var(--shadow2);border:none;z-index:5;transition:transform .15s}
+.detail-share-btn:active{transform:scale(.9)}
+
 .detail-info{padding:0 14px 110px}
 .detail-brand{font-size:12px;color:var(--primary);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
 .detail-title{font-family:var(--font-head);font-size:19px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:10px}
@@ -163,7 +180,7 @@ a{text-decoration:none;color:inherit}
 .cart-items{padding:0 12px}
 .cart-item{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:12px;display:flex;gap:12px;margin-bottom:10px;box-shadow:var(--shadow2)}
 .cart-item-img{width:70px;height:70px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;overflow:hidden}
-.cart-item-img img{width:60px;height:60px;object-fit:contain}
+.cart-item-img img{width:70px;height:70px;object-fit:cover}
 .cart-item-info{flex:1}
 .cart-item-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .cart-item-price{font-size:15px;font-weight:800;color:var(--primary);margin-bottom:8px}
@@ -237,7 +254,7 @@ a{text-decoration:none;color:inherit}
 .checkout-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
 .checkout-item:last-child{border-bottom:none}
 .checkout-item-img{width:44px;height:44px;background:var(--bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
-.checkout-item-img img{width:40px;height:40px;object-fit:contain}
+.checkout-item-img img{width:44px;height:44px;object-fit:cover}
 .checkout-item-info{flex:1}
 .checkout-item-name{font-size:12px;font-weight:700;color:var(--text);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .checkout-item-qty{font-size:11px;color:var(--text3);margin-top:2px}
@@ -288,7 +305,7 @@ a{text-decoration:none;color:inherit}
 .status-return_requested,.status-returned{background:#f3e8ff;color:#7c3aed}
 .order-items-preview{display:flex;gap:8px;padding:0 16px 10px;flex-wrap:wrap}
 .order-item-thumb{width:48px;height:48px;background:var(--bg);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--border)}
-.order-item-thumb img{width:40px;height:40px;object-fit:contain}
+.order-item-thumb img{width:48px;height:48px;object-fit:cover}
 .order-item-more{width:48px;height:48px;background:var(--primary-light);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--primary)}
 .order-tracking{padding:10px 16px;background:var(--bg);border-top:1px solid var(--border)}
 .order-track-title{font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px}
@@ -412,7 +429,7 @@ a{text-decoration:none;color:inherit}
 .wishlist-item{background:#fff;border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;cursor:pointer;box-shadow:var(--shadow2);position:relative}
 .wishlist-remove{position:absolute;top:8px;right:8px;width:24px;height:24px;background:#fff;border-radius:7px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;box-shadow:var(--shadow2);z-index:2}
 .wishlist-img{background:var(--bg);height:120px;display:flex;align-items:center;justify-content:center;font-size:48px;overflow:hidden}
-.wishlist-img img{width:100px;height:100px;object-fit:contain}
+.wishlist-img img{width:100%;height:120px;object-fit:cover}
 .wishlist-info{padding:10px}
 .wishlist-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .wishlist-price{font-size:14px;font-weight:800;color:var(--primary);margin-bottom:8px}
@@ -658,15 +675,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
-// Expose helpers to main script
 window._fb = { db, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, query, where, orderBy, onSnapshot, serverTimestamp };
 window._fbReady = true;
 
-/* ─────────────────────────────────────────────────────────
-   CRITICAL FIX:
-   Admin saves products to Firestore collection "products"
-   We listen in real-time with onSnapshot and update PRODUCTS
-───────────────────────────────────────────────────────── */
 try {
   const q = query(collection(db, 'products'), orderBy('name', 'asc'));
 
@@ -674,11 +685,11 @@ try {
     const fromFirestore = [];
     snap.forEach(d => {
       const x = d.data();
-      if (!x.name) return;                          // skip blank docs
-      if (x.status && x.status !== 'active') return; // skip inactive
+      if (!x.name) return;
+      if (x.status && x.status !== 'active') return;
       fromFirestore.push({
         _fid:     d.id,
-        id:       d.id,                             // use Firestore doc ID as product id
+        id:       d.id,
         name:     x.name     || '',
         brand:    x.brand    || '',
         category: (x.category || 'all').toLowerCase(),
@@ -690,20 +701,20 @@ try {
         badge:    x.badge    || '',
         desc:     x.desc     || x.name || '',
         features: Array.isArray(x.features) ? x.features : [],
-        // Admin stores images as array; fallback to img field
+        // ✅ UPDATED: store full images array + video
+        images:   Array.isArray(x.images) && x.images.length ? x.images : (x.img ? [x.img] : []),
+        video:    x.video || '',
         img:      (Array.isArray(x.images) && x.images[0]) ? x.images[0] : (x.img || ''),
       });
     });
 
-    if (fromFirestore.length === 0) return; // no admin products yet — keep defaults
+    if (fromFirestore.length === 0) return;
 
-    // Replace the global PRODUCTS array contents
     if (typeof PRODUCTS !== 'undefined') {
       PRODUCTS.length = 0;
       fromFirestore.forEach(p => PRODUCTS.push(p));
     }
 
-    // Re-render whichever page is visible
     if (typeof currentPage !== 'undefined') {
       if      (currentPage === 'home')   renderHome();
       else if (currentPage === 'search') handleSearch(document.getElementById('searchInput')?.value || '');
@@ -733,20 +744,20 @@ const CATEGORIES = [
   {id:'sports',      label:'Sports',   icon:'⚽', bg:'linear-gradient(135deg,#a1c4fd,#c2e9fb)'},
 ];
 
-/* ─── DEFAULT PRODUCTS (shown until Firestore loads) ─── */
+/* ─── DEFAULT PRODUCTS ─── */
 let PRODUCTS = [
-  {id:1,  name:'iPhone 15 Pro Max',        category:'mobiles',     img:'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-7inch-naturaltitanium?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1693009278140',  price:134900, ogPrice:159900, discount:16, rating:4.8, reviews:'12.4k', badge:'HOT',       brand:'Apple',    desc:'Titanium design, A17 Pro chip, 48MP camera.',     features:['A17 Pro chip','48MP Main camera','6.7" Super Retina XDR','USB 3','29hr battery']},
-  {id:2,  name:'Samsung Galaxy S24 Ultra', category:'mobiles',     img:'https://images.samsung.com/is/image/samsung/p6pim/in/2401/gallery/in-galaxy-s24-ultra-s928-sm-s928bztqins-thumb-539573363',                                                                price:124999, ogPrice:149999, discount:17, rating:4.7, reviews:'9.2k',  badge:'NEW',       brand:'Samsung',  desc:'Galaxy AI with built-in S Pen, 200MP camera.',    features:['200MP camera','Built-in S Pen','6.8" AMOLED 120Hz','Snapdragon 8 Gen 3','5000mAh']},
-  {id:3,  name:'Sony WH-1000XM5',          category:'audio',       img:'https://www.sony.co.in/image/5d02da5df552836db894cead8a68f9f3?fmt=png-alpha&wid=440',                                                                                                        price:24990,  ogPrice:34990,  discount:29, rating:4.9, reviews:'7.8k',  badge:'SALE',      brand:'Sony',     desc:'Industry-leading noise canceling, 30hr battery.', features:['Best-in-class NC','30hr battery','Multipoint','Speak-to-Chat']},
-  {id:4,  name:'Nike Air Max 270',          category:'shoes',       img:'https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/i1-0f3f36b5-89b5-41e8-82be-28a3e57ad3f6/air-max-270-shoes-2V5C4p.png',                                                   price:8495,   ogPrice:12995,  discount:35, rating:4.6, reviews:'4.3k',  badge:'35% OFF',   brand:'Nike',     desc:'Tallest Air unit ever for all-day comfort.',       features:['Largest Air unit','Mesh upper','Foam midsole','Rubber outsole']},
-  {id:5,  name:'MacBook Pro 14" M3',        category:'electronics', img:'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-m3-pro-spaceblack-select-202311?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1700260997029',                                price:169900, ogPrice:199900, discount:15, rating:4.9, reviews:'5.1k',  badge:'POPULAR',   brand:'Apple',    desc:'Supercharged by M3, 22hr battery.',               features:['M3 chip','14" Liquid Retina XDR','22hr battery','Thunderbolt 4']},
-  {id:6,  name:"Levi's 511 Slim Jeans",    category:'fashion',     img:'https://lsco.scene7.com/is/image/lsco/045110208-front-pdp?fmt=jpeg&qlt=70&resMode=sharp2&fit=crop,0&op_usm=0.6,0.6,8&wid=480&hei=560',                                                      price:2399,   ogPrice:3799,   discount:37, rating:4.4, reviews:'11.2k', badge:'37% OFF',   brand:"Levi's",   desc:'Slim fit denim, not too tight not too loose.',     features:['Slim fit','Stretch denim','5-pocket','10+ washes']},
-  {id:7,  name:'boAt Airdopes 141',         category:'audio',       img:'https://www.boat-lifestyle.com/cdn/shop/products/Airdopes141_black_01.jpg?v=1627461045&width=533',                                                                                           price:1299,   ogPrice:3990,   discount:67, rating:4.2, reviews:'45.2k', badge:'67% OFF',   brand:'boAt',     desc:'True wireless, 42hr playback, IPX4.',             features:['8mm drivers','42hr total','IPX4','Type-C']},
-  {id:8,  name:'Wildcraft Hiking Backpack', category:'sports',      img:'https://m.media-amazon.com/images/I/71P-AiVKriL._AC_UF894,1000_QL80_.jpg',                                                                                                                   price:1999,   ogPrice:3500,   discount:43, rating:4.5, reviews:'6.1k',  badge:'43% OFF',   brand:'Wildcraft', desc:'45L backpack with rain cover.',                  features:['45L capacity','Rain cover','Padded straps','Hydration compatible']},
-  {id:9,  name:'Maybelline Fit Me',         category:'beauty',      img:'https://www.maybelline.in/sites/g/files/tmsbpt536/files/2023-08/Fit-Me-Matte-Poreless-Liquid-Foundation-Makeup_120-Classic-Ivory.png',                                                       price:299,    ogPrice:595,    discount:50, rating:4.3, reviews:'22.3k', badge:'50% OFF',   brand:'Maybelline',desc:'Oil-free foundation, 14 shades, 12hr wear.',      features:['14 shades','Oil-free','Blurs pores','12hr wear']},
-  {id:10, name:'Mi Smart LED TV 43" 4K',   category:'electronics', img:'https://i02.appmifile.com/images/2023/01/13/0af37498-5e0c-4f70-aa6e-aed0e6fc5b7c.png',                                                                                                       price:28990,  ogPrice:45000,  discount:36, rating:4.5, reviews:'14.8k', badge:'BESTSELLER', brand:'Mi',       desc:'4K UHD, Dolby Audio, Android TV 11.',             features:['4K UHD','Dolby Vision','Android TV 11','20W audio']},
-  {id:11, name:'Puma Softride Shoes',       category:'shoes',       img:'https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_750,h_750/global/373017/01/sv01/fnd/IND/fmt/png/SOFTRIDE-Enzo-Evo-Running-Shoes',                                          price:3499,   ogPrice:5999,   discount:42, rating:4.5, reviews:'9.3k',  badge:'42% OFF',   brand:'Puma',     desc:'NITRO foam cushioning running shoes.',            features:['NITRO foam','Mesh upper','PUMAGRIP outsole']},
-  {id:12, name:'Campus Men Sneakers',       category:'shoes',       img:'https://m.media-amazon.com/images/I/711dWiQp3OL._AC_UY1000_.jpg',                                                                                                                             price:1299,   ogPrice:2499,   discount:48, rating:4.3, reviews:'8.7k',  badge:'DEAL',      brand:'Campus',   desc:'Trendy everyday sneakers, cushioned insole.',     features:['Mesh upper','Cushioned insole','Anti-skid outsole']},
+  {id:1,  name:'iPhone 15 Pro Max',        category:'mobiles',     images:['https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-7inch-naturaltitanium?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1693009278140','https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-hero-q3?wid=832&hei=780&fmt=jpeg&qlt=90&.v=1693008286044'],  img:'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-7inch-naturaltitanium?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1693009278140', video:'', price:134900, ogPrice:159900, discount:16, rating:4.8, reviews:'12.4k', badge:'HOT',       brand:'Apple',    desc:'Titanium design, A17 Pro chip, 48MP camera.',     features:['A17 Pro chip','48MP Main camera','6.7" Super Retina XDR','USB 3','29hr battery']},
+  {id:2,  name:'Samsung Galaxy S24 Ultra', category:'mobiles',     images:['https://images.samsung.com/is/image/samsung/p6pim/in/2401/gallery/in-galaxy-s24-ultra-s928-sm-s928bztqins-thumb-539573363','https://images.samsung.com/is/image/samsung/p6pim/in/2401/gallery/in-galaxy-s24-ultra-s928-sm-s928bztqins-thumb-539573363'],  img:'https://images.samsung.com/is/image/samsung/p6pim/in/2401/gallery/in-galaxy-s24-ultra-s928-sm-s928bztqins-thumb-539573363', video:'', price:124999, ogPrice:149999, discount:17, rating:4.7, reviews:'9.2k',  badge:'NEW',       brand:'Samsung',  desc:'Galaxy AI with built-in S Pen, 200MP camera.',    features:['200MP camera','Built-in S Pen','6.8" AMOLED 120Hz','Snapdragon 8 Gen 3','5000mAh']},
+  {id:3,  name:'Sony WH-1000XM5',          category:'audio',       images:['https://www.sony.co.in/image/5d02da5df552836db894cead8a68f9f3?fmt=png-alpha&wid=440'],  img:'https://www.sony.co.in/image/5d02da5df552836db894cead8a68f9f3?fmt=png-alpha&wid=440', video:'', price:24990,  ogPrice:34990,  discount:29, rating:4.9, reviews:'7.8k',  badge:'SALE',      brand:'Sony',     desc:'Industry-leading noise canceling, 30hr battery.', features:['Best-in-class NC','30hr battery','Multipoint','Speak-to-Chat']},
+  {id:4,  name:'Nike Air Max 270',          category:'shoes',       images:['https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/i1-0f3f36b5-89b5-41e8-82be-28a3e57ad3f6/air-max-270-shoes-2V5C4p.png'],  img:'https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/i1-0f3f36b5-89b5-41e8-82be-28a3e57ad3f6/air-max-270-shoes-2V5C4p.png', video:'', price:8495, ogPrice:12995, discount:35, rating:4.6, reviews:'4.3k',  badge:'35% OFF',   brand:'Nike',     desc:'Tallest Air unit ever for all-day comfort.',       features:['Largest Air unit','Mesh upper','Foam midsole','Rubber outsole']},
+  {id:5,  name:'MacBook Pro 14" M3',        category:'electronics', images:['https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-m3-pro-spaceblack-select-202311?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1700260997029'],  img:'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-m3-pro-spaceblack-select-202311?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1700260997029', video:'', price:169900, ogPrice:199900, discount:15, rating:4.9, reviews:'5.1k',  badge:'POPULAR',   brand:'Apple',    desc:'Supercharged by M3, 22hr battery.',               features:['M3 chip','14" Liquid Retina XDR','22hr battery','Thunderbolt 4']},
+  {id:6,  name:"Levi's 511 Slim Jeans",    category:'fashion',     images:['https://lsco.scene7.com/is/image/lsco/045110208-front-pdp?fmt=jpeg&qlt=70&resMode=sharp2&fit=crop,0&op_usm=0.6,0.6,8&wid=480&hei=560'],  img:'https://lsco.scene7.com/is/image/lsco/045110208-front-pdp?fmt=jpeg&qlt=70&resMode=sharp2&fit=crop,0&op_usm=0.6,0.6,8&wid=480&hei=560', video:'', price:2399, ogPrice:3799, discount:37, rating:4.4, reviews:'11.2k', badge:'37% OFF',   brand:"Levi's",   desc:'Slim fit denim, not too tight not too loose.',     features:['Slim fit','Stretch denim','5-pocket','10+ washes']},
+  {id:7,  name:'boAt Airdopes 141',         category:'audio',       images:['https://www.boat-lifestyle.com/cdn/shop/products/Airdopes141_black_01.jpg?v=1627461045&width=533'],  img:'https://www.boat-lifestyle.com/cdn/shop/products/Airdopes141_black_01.jpg?v=1627461045&width=533', video:'', price:1299, ogPrice:3990, discount:67, rating:4.2, reviews:'45.2k', badge:'67% OFF',   brand:'boAt',     desc:'True wireless, 42hr playback, IPX4.',             features:['8mm drivers','42hr total','IPX4','Type-C']},
+  {id:8,  name:'Wildcraft Hiking Backpack', category:'sports',      images:['https://m.media-amazon.com/images/I/71P-AiVKriL._AC_UF894,1000_QL80_.jpg'],  img:'https://m.media-amazon.com/images/I/71P-AiVKriL._AC_UF894,1000_QL80_.jpg', video:'', price:1999, ogPrice:3500, discount:43, rating:4.5, reviews:'6.1k',  badge:'43% OFF',   brand:'Wildcraft', desc:'45L backpack with rain cover.',                  features:['45L capacity','Rain cover','Padded straps','Hydration compatible']},
+  {id:9,  name:'Maybelline Fit Me',         category:'beauty',      images:['https://www.maybelline.in/sites/g/files/tmsbpt536/files/2023-08/Fit-Me-Matte-Poreless-Liquid-Foundation-Makeup_120-Classic-Ivory.png'],  img:'https://www.maybelline.in/sites/g/files/tmsbpt536/files/2023-08/Fit-Me-Matte-Poreless-Liquid-Foundation-Makeup_120-Classic-Ivory.png', video:'', price:299, ogPrice:595, discount:50, rating:4.3, reviews:'22.3k', badge:'50% OFF',   brand:'Maybelline',desc:'Oil-free foundation, 14 shades, 12hr wear.',      features:['14 shades','Oil-free','Blurs pores','12hr wear']},
+  {id:10, name:'Mi Smart LED TV 43" 4K',   category:'electronics', images:['https://i02.appmifile.com/images/2023/01/13/0af37498-5e0c-4f70-aa6e-aed0e6fc5b7c.png'],  img:'https://i02.appmifile.com/images/2023/01/13/0af37498-5e0c-4f70-aa6e-aed0e6fc5b7c.png', video:'', price:28990, ogPrice:45000, discount:36, rating:4.5, reviews:'14.8k', badge:'BESTSELLER', brand:'Mi',       desc:'4K UHD, Dolby Audio, Android TV 11.',             features:['4K UHD','Dolby Vision','Android TV 11','20W audio']},
+  {id:11, name:'Puma Softride Shoes',       category:'shoes',       images:['https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_750,h_750/global/373017/01/sv01/fnd/IND/fmt/png/SOFTRIDE-Enzo-Evo-Running-Shoes'],  img:'https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_750,h_750/global/373017/01/sv01/fnd/IND/fmt/png/SOFTRIDE-Enzo-Evo-Running-Shoes', video:'', price:3499, ogPrice:5999, discount:42, rating:4.5, reviews:'9.3k',  badge:'42% OFF',   brand:'Puma',     desc:'NITRO foam cushioning running shoes.',            features:['NITRO foam','Mesh upper','PUMAGRIP outsole']},
+  {id:12, name:'Campus Men Sneakers',       category:'shoes',       images:['https://m.media-amazon.com/images/I/711dWiQp3OL._AC_UY1000_.jpg'],  img:'https://m.media-amazon.com/images/I/711dWiQp3OL._AC_UY1000_.jpg', video:'', price:1299, ogPrice:2499, discount:48, rating:4.3, reviews:'8.7k',  badge:'DEAL',      brand:'Campus',   desc:'Trendy everyday sneakers, cushioned insole.',     features:['Mesh upper','Cushioned insole','Anti-skid outsole']},
 ];
 
 /* ─── STATE ─── */
@@ -764,6 +775,9 @@ let selectedPayment  = 'cod';
 let useCoinsToggle   = false;
 let timerInterval;
 let buyNowProduct    = null;
+
+// Swiper state per detail page
+let _swiperIdx = 0;
 
 let userId = localStorage.getItem('apykart_userid');
 if (!userId) { userId = 'USR_' + Math.random().toString(36).substr(2,9).toUpperCase(); localStorage.setItem('apykart_userid', userId); }
@@ -841,7 +855,8 @@ function getCartSavings()   { return cart.reduce((s,i)=>{const p=findProd(i.id);
 function getCheckoutItems() { return buyNowProduct ? [{id:buyNowProduct.id,qty:buyNowProduct.qty}] : cart; }
 function getCheckoutTotal() { return getCheckoutItems().reduce((s,i)=>{const p=findProd(i.id);return s+(p?p.price*i.qty:0);},0); }
 function getCheckoutSavings(){ return getCheckoutItems().reduce((s,i)=>{const p=findProd(i.id);return s+(p?(p.ogPrice-p.price)*i.qty:0);},0); }
-function findProd(id)       { return PRODUCTS.find(p=>p.id===id||p.id==id); }
+
+function findProd(id) { return PRODUCTS.find(p=>p.id===id||p.id==id); }
 
 /* ─── ROUTING ─── */
 function showPage(page, productId) {
@@ -861,7 +876,7 @@ function showPage(page, productId) {
   const nav = document.getElementById('nav-'+(navMap[page]||page));
   if (nav) nav.classList.add('active');
 
-  if      (page==='detail'    && productId) { currentProductId=productId; renderDetail(productId); }
+  if      (page==='detail'    && productId) { currentProductId=productId; _swiperIdx=0; renderDetail(productId); }
   else if (page==='cart')       renderCart();
   else if (page==='checkout')   renderCheckout();
   else if (page==='success')    renderSuccess();
@@ -898,16 +913,21 @@ function filterByCategory(catId) {
 
 function productCardHTML(p) {
   const wished = wishlist.includes(p.id)||wishlist.includes(p._fid);
-  const imgTag = p.img
-    ? `<img src="${p.img}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+  // Use first image from images array, fallback to img field
+  const firstImg = (Array.isArray(p.images) && p.images[0]) ? p.images[0] : (p.img || '');
+  const imgTag = firstImg
+    ? `<img src="${firstImg}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
     : '';
-  const placeholder = `<div class="product-img-placeholder" style="${p.img?'display:none':''}">📦</div>`;
+  const placeholder = `<div class="product-img-placeholder" style="${firstImg?'display:none':''}">📦</div>`;
+  // Multi-image indicator
+  const imgCount = Array.isArray(p.images) ? p.images.length : (p.img ? 1 : 0);
+  const multiTag = imgCount > 1 ? `<div style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;z-index:2">+${imgCount}</div>` : '';
   return `
   <div class="product-card" onclick="showPage('detail','${p.id}')">
     <div class="product-img-wrap">
       ${p.badge?`<div class="product-badge">${p.badge}</div>`:''}
       <button class="wish-btn-card" onclick="toggleWishlist(event,'${p.id}')">${wished?'❤️':'🤍'}</button>
-      ${imgTag}${placeholder}
+      ${imgTag}${placeholder}${multiTag}
     </div>
     <div class="product-info">
       <div class="product-name">${p.name}</div>
@@ -955,6 +975,124 @@ function handleSearch(q) {
 }
 function clearSearch() { document.getElementById('searchInput').value=''; handleSearch(''); }
 
+/* ─── MEDIA SWIPER HELPERS ─── */
+function getProductMedia(p) {
+  // returns array of {type:'image'|'video', src}
+  const media = [];
+  const imgs = Array.isArray(p.images) && p.images.length ? p.images : (p.img ? [p.img] : []);
+  imgs.forEach(src => { if(src) media.push({type:'image', src}); });
+  if (p.video) media.push({type:'video', src:p.video});
+  return media;
+}
+
+function buildSwiper(media, discount) {
+  if (!media.length) {
+    return `<div class="media-swiper-wrap" style="height:240px">
+      <div style="display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(160deg,#dce8ff,#eef4ff)">
+        <div style="font-size:80px">📦</div>
+      </div>
+      ${discount>0?`<div class="detail-discount-badge">-${discount}%</div>`:''}
+    </div>`;
+  }
+
+  const slides = media.map((m, i) => {
+    if (m.type === 'video') {
+      return `<div class="media-slide">
+        <video id="prodVideo_${i}" src="${m.src}" playsinline preload="metadata" loop></video>
+        <div class="media-play-overlay">
+          <button class="media-play-btn" onclick="toggleVideo(${i})">▶️</button>
+        </div>
+      </div>`;
+    } else {
+      return `<div class="media-slide">
+        <img src="${m.src}" alt="Product image ${i+1}" onerror="this.src='';this.parentElement.innerHTML='<div style=font-size:64px;margin:auto>📦</div>'">
+      </div>`;
+    }
+  }).join('');
+
+  const dots = media.length > 1 ? `<div class="swiper-dots" id="swiperDots">
+    ${media.map((_,i)=>`<div class="swiper-dot ${i===0?'active':''}" onclick="goSlide(${i})"></div>`).join('')}
+  </div>` : '';
+
+  const arrows = media.length > 1 ? `
+    <button class="swiper-prev" onclick="swiperPrev()">‹</button>
+    <button class="swiper-next" onclick="swiperNext()">›</button>` : '';
+
+  return `<div class="media-swiper-wrap" id="mediaSwiperWrap">
+    <div class="media-swiper-track" id="mediaSwiperTrack">${slides}</div>
+    ${discount>0?`<div class="detail-discount-badge">-${discount}%</div>`:''}
+    ${arrows}
+    ${dots}
+  </div>`;
+}
+
+function updateSwiperUI(total) {
+  const track = document.getElementById('mediaSwiperTrack');
+  if (track) track.style.transform = `translateX(-${_swiperIdx * 100}%)`;
+  const dots = document.querySelectorAll('#swiperDots .swiper-dot');
+  dots.forEach((d,i) => d.classList.toggle('active', i === _swiperIdx));
+}
+
+function swiperNext() {
+  const p = findProd(currentProductId);
+  if (!p) return;
+  const total = getProductMedia(p).length;
+  _swiperIdx = (_swiperIdx + 1) % total;
+  updateSwiperUI(total);
+}
+function swiperPrev() {
+  const p = findProd(currentProductId);
+  if (!p) return;
+  const total = getProductMedia(p).length;
+  _swiperIdx = (_swiperIdx - 1 + total) % total;
+  updateSwiperUI(total);
+}
+function goSlide(i) {
+  _swiperIdx = i;
+  const p = findProd(currentProductId);
+  if (p) updateSwiperUI(getProductMedia(p).length);
+}
+function toggleVideo(i) {
+  const vid = document.getElementById('prodVideo_' + i);
+  if (!vid) return;
+  if (vid.paused) {
+    vid.play();
+    // hide play btn overlay
+    const overlay = vid.parentElement.querySelector('.media-play-overlay');
+    if (overlay) overlay.style.display = 'none';
+  } else {
+    vid.pause();
+    const overlay = vid.parentElement.querySelector('.media-play-overlay');
+    if (overlay) overlay.style.display = 'flex';
+  }
+}
+
+// Touch swipe support
+let _touchStartX = 0;
+function initSwiperTouch() {
+  const wrap = document.getElementById('mediaSwiperWrap');
+  if (!wrap) return;
+  wrap.addEventListener('touchstart', e => { _touchStartX = e.touches[0].clientX; }, {passive:true});
+  wrap.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - _touchStartX;
+    if (Math.abs(dx) > 40) { if (dx < 0) swiperNext(); else swiperPrev(); }
+  }, {passive:true});
+}
+
+/* ─── PRODUCT SHARE ─── */
+function shareProduct(id) {
+  const p = findProd(id);
+  if (!p) return;
+  const url = `https://apykart.vercel.app?product=${id}`;
+  const text = `🛒 Check out *${p.name}* on Apykart!\n💰 Only ₹${Number(p.price).toLocaleString()}${p.discount>0?' ('+p.discount+'% off)':''}\n\n${url}`;
+  if (navigator.share) {
+    navigator.share({title: p.name, text: `Check out ${p.name} on Apykart!`, url}).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(text).then(()=>showToast('Product link copied! 🔗','success'))
+      .catch(()=> window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank'));
+  }
+}
+
 /* ─── DETAIL ─── */
 function renderDetail(id) {
   const p = findProd(id);
@@ -962,18 +1100,13 @@ function renderDetail(id) {
   const wished   = wishlist.includes(p.id)||wishlist.includes(p._fid);
   const cartItem = cart.find(i=>i.id===id||i.id==id);
   const inQty    = cartItem ? cartItem.qty : 0;
-
-  const imgHtml = p.img
-    ? `<img src="${p.img}" alt="${p.name}" onerror="this.style.display='none'">`
-    : `<div style="font-size:80px">📦</div>`;
+  const media    = getProductMedia(p);
 
   document.getElementById('detailContent').innerHTML = `
     <div class="detail-back" onclick="showPage('${prevPage||'home'}')">← Back</div>
-    <div class="detail-img-section">
-      ${p.discount>0?`<div class="detail-discount-badge">-${p.discount}%</div>`:''}
-      <button class="detail-wishlist" onclick="toggleWishlistDetail('${p.id}')" id="wishBtn${p.id}">${wished?'❤️':'🤍'}</button>
-      ${imgHtml}
-    </div>
+    ${buildSwiper(media, p.discount)}
+    <button class="detail-wishlist" onclick="toggleWishlistDetail('${p.id}')" id="wishBtn${p.id}">${wished?'❤️':'🤍'}</button>
+    <button class="detail-share-btn" onclick="shareProduct('${p.id}')" title="Share product">🔗</button>
     <div class="detail-info">
       ${p.brand?`<div class="detail-brand">${p.brand}</div>`:''}
       <div class="detail-title">${p.name}</div>
@@ -1002,7 +1135,27 @@ function renderDetail(id) {
         <div class="detail-feat-title">Key Highlights</div>
         ${p.features.map(f=>`<div class="detail-feat-item">${f}</div>`).join('')}
       </div>`:''}
+      <div style="margin-bottom:14px;padding:12px 14px;background:#f0f9ff;border-radius:12px;border:1px solid #bae6fd">
+        <div style="font-size:12px;font-weight:800;color:#0369a1;margin-bottom:8px">📤 Share This Product</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="shareProduct('${p.id}')" style="flex:1;background:#25d366;color:#fff;font-size:12px;font-weight:800;padding:9px;border-radius:8px;border:none;cursor:pointer">📱 WhatsApp</button>
+          <button onclick="navigator.clipboard?.writeText('https://apykart.vercel.app?product=${p.id}').then(()=>showToast('Link copied! 🔗','success'))" style="flex:1;background:var(--primary-light);color:var(--primary);font-size:12px;font-weight:800;padding:9px;border-radius:8px;border:1px solid var(--primary);cursor:pointer">🔗 Copy Link</button>
+        </div>
+      </div>
     </div>`;
+
+  // Position wishlist and share btn over the swiper
+  setTimeout(()=>{
+    const swiperWrap = document.getElementById('mediaSwiperWrap');
+    const wishBtn = document.getElementById('wishBtn'+p.id);
+    const shareBtn = document.querySelector('.detail-share-btn');
+    if (swiperWrap && wishBtn) {
+      swiperWrap.style.position = 'relative';
+      swiperWrap.appendChild(wishBtn);
+      if (shareBtn) swiperWrap.appendChild(shareBtn);
+    }
+    initSwiperTouch();
+  }, 0);
 
   document.getElementById('detailCta').innerHTML = inQty>0
     ? `<div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--primary-light);border-radius:var(--radius-sm);padding:10px 14px"><span style="font-size:13px;font-weight:700;color:var(--primary);flex:1">In Cart (${inQty})</span><button class="qty-btn" onclick="updateQty('${p.id}',-1)">−</button><div class="qty-val">${inQty}</div><button class="qty-btn" onclick="updateQty('${p.id}',1)">+</button></div><button class="btn-buy-now" onclick="buyNow('${p.id}')">⚡ Buy Now</button>`
@@ -1047,9 +1200,9 @@ function renderCart() {
   cont.innerHTML=`
     <div class="cart-header-section"><div class="cart-page-title">My Cart 🛍️</div><div class="cart-count">${totalItems} item${totalItems!==1?'s':''}</div></div>
     <div class="cart-items">
-      ${cart.map(item=>{const p=findProd(item.id);if(!p)return'';return`
+      ${cart.map(item=>{const p=findProd(item.id);if(!p)return'';const fi=(Array.isArray(p.images)&&p.images[0])?p.images[0]:(p.img||'');return`
       <div class="cart-item">
-        <div class="cart-item-img">${p.img?`<img src="${p.img}" alt="${p.name}" onerror="this.outerHTML='<span style=font-size:32px>📦</span>'">`:'<span style="font-size:32px">📦</span>'}</div>
+        <div class="cart-item-img">${fi?`<img src="${fi}" alt="${p.name}" onerror="this.outerHTML='<span style=font-size:32px>📦</span>'">`:'<span style="font-size:32px">📦</span>'}</div>
         <div class="cart-item-info">
           <div class="cart-item-name">${p.name}</div>
           <div class="cart-item-price">₹${(p.price*item.qty).toLocaleString()}</div>
@@ -1107,9 +1260,9 @@ function renderCheckout() {
       <div class="checkout-card">
         <div class="checkout-card-header"><div class="checkout-card-icon">📦</div><div><div class="checkout-card-title">Order Summary</div><div class="checkout-card-sub">${items.length} item(s)</div></div></div>
         <div class="checkout-items-list">
-          ${items.map(item=>{const p=findProd(item.id);if(!p)return'';return`
+          ${items.map(item=>{const p=findProd(item.id);if(!p)return'';const fi=(Array.isArray(p.images)&&p.images[0])?p.images[0]:(p.img||'');return`
           <div class="checkout-item">
-            <div class="checkout-item-img">${p.img?`<img src="${p.img}" alt="${p.name}" onerror="this.outerHTML='<span style=font-size:22px>📦</span>'">`:'<span style="font-size:22px">📦</span>'}</div>
+            <div class="checkout-item-img">${fi?`<img src="${fi}" alt="${p.name}" onerror="this.outerHTML='<span style=font-size:22px>📦</span>'">`:'<span style="font-size:22px">📦</span>'}</div>
             <div class="checkout-item-info"><div class="checkout-item-name">${p.name}</div><div class="checkout-item-qty">Qty: ${item.qty}</div></div>
             <div class="checkout-item-price">₹${(p.price*item.qty).toLocaleString()}</div>
           </div>`;}).join('')}
@@ -1398,7 +1551,7 @@ function renderProfile() {
       <div class="profile-menu-card">
         ${mi('📍','My Addresses','Delivery locations','addresses','')}
         ${mi('✏️','Edit Info','Update your details','_editProfile','')}
-        ${mi('👥','Refer & Earn','Get 50 coins per referral','refer','')}
+        ${mi('👥','Refer & Earn','Get 100 coins per referral','refer','')}
       </div>
     </div>
     <div class="profile-menu-group">
@@ -1487,7 +1640,7 @@ function deleteAddress(id) {
 function renderWishlist() {
   const cont=document.getElementById('wishlistContent');
   if(!wishlist.length){cont.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:12px;text-align:center"><div style="font-size:72px">🤍</div><div style="font-family:var(--font-head);font-size:20px;font-weight:700">Wishlist is Empty</div><div style="font-size:14px;color:var(--text2)">Save products you love</div><button class="btn-shop-now" style="margin-top:8px" onclick="showPage('home')">Explore Products</button></div>`;return;}
-  cont.innerHTML=`<div class="wishlist-grid">${wishlist.map(id=>{const p=findProd(id);if(!p)return'';return`<div class="wishlist-item" onclick="showPage('detail','${p.id}')"><button class="wishlist-remove" onclick="event.stopPropagation();toggleWishlist(event,'${p.id}')">✕</button><div class="wishlist-img">${p.img?`<img src="${p.img}" alt="${p.name}" onerror="this.outerHTML='<span style=font-size:48px>📦</span>'">`:'<span style="font-size:48px">📦</span>'}</div><div class="wishlist-info"><div class="wishlist-name">${p.name}</div><div class="wishlist-price">₹${p.price.toLocaleString()}</div><button class="wishlist-add-btn" onclick="event.stopPropagation();addToCart('${p.id}')">Add to Cart</button></div></div>`;}).join('')}</div><div style="height:20px"></div>`;
+  cont.innerHTML=`<div class="wishlist-grid">${wishlist.map(id=>{const p=findProd(id);if(!p)return'';const fi=(Array.isArray(p.images)&&p.images[0])?p.images[0]:(p.img||'');return`<div class="wishlist-item" onclick="showPage('detail','${p.id}')"><button class="wishlist-remove" onclick="event.stopPropagation();toggleWishlist(event,'${p.id}')">✕</button><div class="wishlist-img">${fi?`<img src="${fi}" alt="${p.name}" onerror="this.outerHTML='<span style=font-size:48px>📦</span>'">`:'<span style="font-size:48px">📦</span>'}</div><div class="wishlist-info"><div class="wishlist-name">${p.name}</div><div class="wishlist-price">₹${p.price.toLocaleString()}</div><button class="wishlist-add-btn" onclick="event.stopPropagation();addToCart('${p.id}')">Add to Cart</button></div></div>`;}).join('')}</div><div style="height:20px"></div>`;
 }
 
 /* ─── WALLET ─── */
@@ -1507,7 +1660,7 @@ function renderWallet() {
     </div>
     <div class="wallet-how-earn" style="margin-top:8px">
       <div style="padding:12px 14px;font-size:13px;font-weight:800;color:var(--text)">How to Earn Coins</div>
-      ${[{i:'🛒',t:'Every Order',s:'Earn +10 coins on every order',a:'+10'},{i:'❌',t:'Cancel/Return Penalty',s:'Lose −10 coins on cancel or return',a:'−10'},{i:'👥',t:'Refer a Friend',s:'Both earn 50 coins',a:'+50'},{i:'⭐',t:'Leave a Review',s:'Rate any product you bought',a:'+10'},{i:'🎂',t:'Birthday Bonus',s:'Special coins on your birthday',a:'+100'}].map(e=>`<div class="wallet-earn-item"><div class="wallet-earn-icon">${e.i}</div><div class="wallet-earn-text"><div class="wallet-earn-title">${e.t}</div><div class="wallet-earn-sub">${e.s}</div></div><div class="wallet-earn-amt" style="${e.a.startsWith('−')?'color:var(--danger);background:#fee2e2':'color:#166534;background:#dcfce7'}">${e.a}</div></div>`).join('')}
+      ${[{i:'🛒',t:'Every Order',s:'Earn +10 coins on every order',a:'+10'},{i:'❌',t:'Cancel/Return Penalty',s:'Lose −10 coins on cancel or return',a:'−10'},{i:'👥',t:'Refer a Friend',s:'Both earn 100 coins',a:'+100'},{i:'⭐',t:'Leave a Review',s:'Rate any product you bought',a:'+10'},{i:'🎂',t:'Birthday Bonus',s:'Special coins on your birthday',a:'+100'}].map(e=>`<div class="wallet-earn-item"><div class="wallet-earn-icon">${e.i}</div><div class="wallet-earn-text"><div class="wallet-earn-title">${e.t}</div><div class="wallet-earn-sub">${e.s}</div></div><div class="wallet-earn-amt" style="${e.a.startsWith('−')?'color:var(--danger);background:#fee2e2':'color:#166534;background:#dcfce7'}">${e.a}</div></div>`).join('')}
     </div>
     <div style="padding:12px 12px 6px;font-size:13px;font-weight:800;color:var(--text)">Transaction History</div>
     ${coinData.transactions.length?`<div class="tx-list">${coinData.transactions.slice(0,30).map(tx=>`<div class="tx-item"><div class="tx-dot ${tx.type}">${tx.type==='earned'?'⬆️':tx.type==='redeemed'?'⬇️':'🎁'}</div><div class="tx-info"><div class="tx-desc">${tx.desc}</div><div class="tx-date">${new Date(tx.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div></div><div class="tx-amount ${tx.type}">${tx.type==='redeemed'?'−':'+'} ${tx.amount} 🪙</div></div>`).join('')}</div>`:
@@ -1515,25 +1668,38 @@ function renderWallet() {
     <div style="height:20px"></div>`;
 }
 
-/* ─── REFER ─── */
+/* ─── REFER — 100 coins + apykart.vercel.app link ─── */
 function renderRefer() {
-  const code='APY'+(guestUser.name.slice(0,3).toUpperCase().replace(/[^A-Z]/g,'')||'USR')+'50';
+  const code='APY'+(guestUser.name.slice(0,3).toUpperCase().replace(/[^A-Z]/g,'')||'USR')+'100';
+  const referUrl = `https://apykart.vercel.app?ref=${code}`;
+  const waMsg = `🛒 Join *Apykart* — India's smartest shopping app!\n\nUse my referral code *${code}* to get ₹10 off on your first order 🎁\n\nWe both get *100 ApyCoins* when you shop! 🪙\n\n👉 Download & Shop: ${referUrl}`;
   document.getElementById('referContent').innerHTML=`
     <div class="refer-hero">
       <div class="refer-hero-icon">🎁</div>
-      <div class="refer-hero-title">Refer & Earn 50 Coins!</div>
-      <div class="refer-hero-sub">Share your code — friend gets ₹5 off, you get 50 ApyCoins</div>
+      <div class="refer-hero-title">Refer & Earn 100 Coins!</div>
+      <div class="refer-hero-sub">Share your code — friend gets ₹10 off, you both earn 100 ApyCoins 🪙</div>
       <div class="refer-code-box"><div class="refer-code-val">${code}</div><button class="refer-copy-btn" onclick="navigator.clipboard?.writeText('${code}').then(()=>showToast('Code copied! 🎉','success'))">Copy</button></div>
+      <div style="margin-bottom:12px;background:rgba(255,255,255,.15);border-radius:10px;padding:10px 12px">
+        <div style="font-size:11px;color:rgba(255,255,255,.7);font-weight:600;margin-bottom:4px">Your Referral Link</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;font-size:12px;color:#fff;font-weight:700;word-break:break-all">${referUrl}</div>
+          <button onclick="navigator.clipboard?.writeText('${referUrl}').then(()=>showToast('Link copied! 🔗','success'))" style="background:#fff;color:var(--primary);font-size:11px;font-weight:800;padding:5px 10px;border-radius:7px;border:none;cursor:pointer;flex-shrink:0">Copy</button>
+        </div>
+      </div>
       <div class="refer-share-row">
-        <button class="refer-share-btn" style="background:#25d366;color:#fff" onclick="window.open('https://wa.me/?text='+encodeURIComponent('🛒 Join Apykart! Use my code *${code}* to get ₹5 off + we both earn 50 ApyCoins 🪙'),'_blank')">📱 WhatsApp</button>
-        <button class="refer-share-btn" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="navigator.clipboard?.writeText('https://apykart.vercel.app?ref=${code}').then(()=>showToast('Link copied!','success'))">🔗 Copy Link</button>
+        <button class="refer-share-btn" style="background:#25d366;color:#fff" onclick="window.open('https://wa.me/?text='+encodeURIComponent('${waMsg.replace(/'/g,"\\'")}'),'_blank')">📱 WhatsApp</button>
+        <button class="refer-share-btn" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="navigator.clipboard?.writeText('${referUrl}').then(()=>showToast('Link copied!','success'))">🔗 Copy Link</button>
       </div>
     </div>
     <div class="refer-steps">
       <div class="refer-steps-title">🚀 How it Works</div>
-      <div class="refer-step"><div class="refer-step-num">1</div><div class="refer-step-text"><div class="refer-step-title">Share your referral code</div><div class="refer-step-sub">Send via WhatsApp or any platform</div></div></div>
-      <div class="refer-step"><div class="refer-step-num">2</div><div class="refer-step-text"><div class="refer-step-title">Friend shops & orders</div><div class="refer-step-sub">They get ₹5 discount at checkout</div></div></div>
-      <div class="refer-step"><div class="refer-step-num">3</div><div class="refer-step-text"><div class="refer-step-title">You both earn 50 coins</div><div class="refer-step-sub">Auto-credited after first delivery</div></div></div>
+      <div class="refer-step"><div class="refer-step-num">1</div><div class="refer-step-text"><div class="refer-step-title">Share your referral link</div><div class="refer-step-sub">Send via WhatsApp or any platform • apykart.vercel.app</div></div></div>
+      <div class="refer-step"><div class="refer-step-num">2</div><div class="refer-step-text"><div class="refer-step-title">Friend shops & orders</div><div class="refer-step-sub">They get ₹10 discount at checkout</div></div></div>
+      <div class="refer-step"><div class="refer-step-num">3</div><div class="refer-step-text"><div class="refer-step-title">You both earn 100 coins! 🪙</div><div class="refer-step-sub">Auto-credited after first delivery</div></div></div>
+    </div>
+    <div style="margin:8px 12px;background:#fef9e7;border:1.5px solid #f7c948;border-radius:var(--radius);padding:14px 16px">
+      <div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:6px">💡 Referral Rewards</div>
+      <div style="font-size:12px;color:#b45309;line-height:1.6">• You earn <strong>100 coins</strong> (₹10 value) per successful referral<br>• Your friend gets <strong>100 coins</strong> too!<br>• No limit on referrals — earn as much as you want!</div>
     </div>
     <div style="height:20px"></div>`;
 }
@@ -1569,7 +1735,7 @@ function hideLoadingScreen(){const ls=document.getElementById('loadingScreen');i
 /* ─── INIT ─── */
 function init() {
   renderHome();
-  handleSearch(''); // init search page
+  handleSearch('');
   updateCartBadge();
   startTimer();
   setTimeout(hideLoadingScreen, 2200);
