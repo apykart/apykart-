@@ -3037,6 +3037,66 @@ function logoutUser() {
   signOut(auth).then(() => { window.currentUser = null; showToast('Logged out', 'info'); renderProfile(); });
 }
 
+// ─── DYNAMIC BRANDING & THEME from Firebase ───
+async function loadDynamicBranding() {
+  if (!window._fb) return;
+  const { db, doc, getDoc } = window._fb;
+  try {
+    const [brandSnap, themeSnap] = await Promise.all([
+      getDoc(doc(db, 'settings', 'app_branding')).catch(() => null),
+      getDoc(doc(db, 'settings', 'app_theme')).catch(() => null),
+    ]);
+
+    if (themeSnap?.exists()) {
+      const t = themeSnap.data();
+      const root = document.documentElement;
+      if (t.primaryColor)  root.style.setProperty('--primary', t.primaryColor);
+      if (t.accentColor)   root.style.setProperty('--accent',  t.accentColor);
+      if (t.bgColor)       root.style.setProperty('--bg',      t.bgColor);
+      if (t.cardColor)     root.style.setProperty('--card',    t.cardColor);
+      if (t.textColor)     root.style.setProperty('--text',    t.textColor);
+      if (t.successColor)  root.style.setProperty('--success', t.successColor);
+      // Derive dark/light from primary
+      const darken = hex => hex ? hex.replace(/^#/, '').match(/.{2}/g).map((c,i)=>Math.max(0,parseInt(c,16)-30).toString(16).padStart(2,'0')).join('') : null;
+      const d = darken(t.primaryColor);
+      if (d) root.style.setProperty('--primary-dark', '#'+d);
+      root.style.setProperty('--primary-light', (t.primaryColor||'#2874f0')+'22');
+    }
+
+    if (brandSnap?.exists()) {
+      const b = brandSnap.data();
+      const emoji = b.logoEmoji || '🛒';
+      const name  = b.appName  || 'apykart';
+      const split = parseInt(b.nameSplit) || 3;
+      const color = b.nameColor || '#ffd700';
+      const tagline = b.appTagline || 'Shop Smarter · Save Better';
+      const p1 = name.slice(0, split);
+      const p2 = name.slice(split);
+
+      // Update page title
+      document.title = name.charAt(0).toUpperCase() + name.slice(1) + ' – Shop Smarter';
+
+      // Update all logo icons
+      document.querySelectorAll('.header-logo-icon, .sb-logo-mark, .loading-logo-icon').forEach(el => {
+        el.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
+        if (el.classList.contains('loading-logo-icon')) el.innerHTML = `<span style="font-size:52px">${emoji}</span>`;
+      });
+
+      // Update all logo texts
+      document.querySelectorAll('.header-logo-text, .sb-logo-text, .loading-logo-text').forEach(el => {
+        el.innerHTML = `${p1}<span style="color:${color}">${p2}</span>`;
+      });
+
+      // Update tagline
+      document.querySelectorAll('.loading-tagline').forEach(el => el.textContent = tagline);
+
+      // Auth logo icon
+      const authLogo = document.querySelector('.auth-logo');
+      if (authLogo) authLogo.textContent = emoji;
+    }
+  } catch(e) { console.warn('Branding load:', e); }
+}
+
 // Auth state listener — safely wait for Firebase module to load
 function setupAuthListener() {
   if (!window._fbAuth) {
@@ -3071,6 +3131,8 @@ function init() {
   updateCartBadge();
   startTimer();
   setTimeout(hideLoadingScreen, 2200);
+  // Load Firebase-controlled branding & theme
+  setTimeout(loadDynamicBranding, 500);
 }
 
 init();
