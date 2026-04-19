@@ -373,32 +373,46 @@ img { display: block; max-width: 100%; }
 .sts-bar-bg { flex:1;height:6px;background:var(--s4);border-radius:4px;overflow:hidden; }
 .sts-bar-fill { height:100%;border-radius:4px; }
 
+
 /* AI CHAT WIDGET */
-#ai-fab { position:fixed;bottom:24px;left:24px;z-index:500;width:52px;height:52px;background:linear-gradient(135deg,var(--blue),var(--indigo));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,.5);transition:transform .2s,box-shadow .2s; }
-#ai-fab:hover { transform:scale(1.1);box-shadow:0 6px 28px rgba(59,130,246,.7); }
-#ai-fab .ai-notif { position:absolute;top:2px;right:2px;width:12px;height:12px;background:var(--green);border-radius:50%;border:2px solid var(--bg); }
-#ai-panel { position:fixed;bottom:86px;left:24px;z-index:499;width:360px;max-height:520px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh),0 0 40px rgba(59,130,246,.12);display:flex;flex-direction:column;transform:scale(.85) translateY(20px);transform-origin:bottom left;opacity:0;visibility:hidden;transition:all .25s cubic-bezier(.34,1.3,.64,1); }
+#ai-fab { position:fixed;bottom:24px;left:24px;z-index:500;width:54px;height:54px;background:linear-gradient(135deg,var(--blue),var(--indigo));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;box-shadow:0 4px 24px rgba(59,130,246,.55);transition:transform .2s,box-shadow .2s; }
+#ai-fab:hover { transform:scale(1.1);box-shadow:0 6px 32px rgba(59,130,246,.75); }
+#ai-fab .ai-notif { position:absolute;top:2px;right:2px;width:12px;height:12px;background:var(--green);border-radius:50%;border:2px solid var(--bg);animation:pulseDot 2s ease-in-out infinite; }
+@keyframes pulseDot{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.6)}50%{box-shadow:0 0 0 5px rgba(16,185,129,0)}}
+#ai-panel { position:fixed;bottom:90px;left:24px;z-index:499;width:380px;max-height:580px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh),0 0 60px rgba(59,130,246,.15);display:flex;flex-direction:column;transform:scale(.85) translateY(24px);transform-origin:bottom left;opacity:0;visibility:hidden;transition:all .28s cubic-bezier(.34,1.3,.64,1);overflow:hidden; }
 #ai-panel.open { opacity:1;visibility:visible;transform:scale(1) translateY(0); }
-.ai-hd { padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px; }
-.ai-hd-icon { width:34px;height:34px;background:linear-gradient(135deg,var(--blue),var(--indigo));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px; }
+.ai-hd { padding:13px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(99,102,241,.06)); }
+.ai-hd-icon { width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--indigo));border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 12px rgba(59,130,246,.4); }
+.ai-hd-info { flex:1 }
 .ai-hd-info h4 { font-size:13px;font-weight:700; }
-.ai-hd-info p { font-size:10px;color:var(--green);font-weight:600; }
-.ai-close { margin-left:auto;width:26px;height:26px;background:var(--s3);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text3);transition:all .2s; }
+.ai-hd-info p { font-size:10px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:4px; }
+.ai-hd-info p::before { content:'';display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulseDot 2s ease-in-out infinite; }
+.ai-hd-actions { display:flex;align-items:center;gap:4px; }
+.ai-close { width:26px;height:26px;background:var(--s3);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--text3);transition:all .2s; }
 .ai-close:hover { background:var(--red-g);color:var(--red); }
-.ai-msgs { flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:0;max-height:340px; }
-.ai-msg { max-width:85%;padding:10px 13px;border-radius:14px;font-size:12px;line-height:1.55;animation:fadeSlide .2s ease; }
+.ai-quick-chips { display:flex;gap:6px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--border);scrollbar-width:none;flex-shrink:0; }
+.ai-quick-chips::-webkit-scrollbar{display:none}
+.ai-chip { flex-shrink:0;background:var(--s3);border:1px solid var(--border);color:var(--text2);font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;transition:all .15s;white-space:nowrap; }
+.ai-chip:hover { background:var(--blue-g);border-color:var(--blue);color:var(--blue); }
+.ai-msgs { flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:0; }
+.ai-msg { max-width:88%;padding:10px 13px;border-radius:14px;font-size:12.5px;line-height:1.6;animation:fadeSlide .22s ease; }
 .ai-msg.bot { background:var(--s3);border:1px solid var(--border);border-bottom-left-radius:4px;align-self:flex-start; }
-.ai-msg.user { background:var(--blue);color:#fff;border-bottom-right-radius:4px;align-self:flex-end; }
-.ai-msg.typing span { display:inline-block;width:6px;height:6px;background:var(--text3);border-radius:50%;animation:bounce .8s ease infinite; }
-.ai-msg.typing span:nth-child(2) { animation-delay:.15s; }
-.ai-msg.typing span:nth-child(3) { animation-delay:.3s; }
-@keyframes bounce { 0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)} }
-.ai-inp-row { display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border); }
-.ai-inp { flex:1;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;transition:border-color .2s; }
-.ai-inp:focus { border-color:var(--blue); }
+.ai-msg.user { background:linear-gradient(135deg,var(--blue),var(--indigo));color:#fff;border-bottom-right-radius:4px;align-self:flex-end;box-shadow:0 3px 12px rgba(59,130,246,.3); }
+.ai-msg strong { font-weight:700; }
+.ai-msg code { font-family:var(--mono); }
+.ai-msg.typing { padding:12px 16px; }
+.ai-msg.typing span { display:inline-block;width:7px;height:7px;background:var(--text3);border-radius:50%;animation:bounce .8s ease infinite;margin-right:3px; }
+.ai-msg.typing span:nth-child(2) { animation-delay:.18s; }
+.ai-msg.typing span:nth-child(3) { animation-delay:.36s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)} }
+.ai-inp-row { display:flex;gap:8px;padding:11px 13px;border-top:1px solid var(--border);background:var(--s1);flex-shrink:0; }
+.ai-inp { flex:1;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s; }
+.ai-inp:focus { border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-gs); }
 .ai-inp::placeholder { color:var(--text3); }
-.ai-send { width:34px;height:34px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:background .2s;flex-shrink:0; }
-.ai-send:hover { background:var(--blue-d); }
+.ai-send { width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--indigo));border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;transition:all .2s;flex-shrink:0;border:none; }
+.ai-send:hover { transform:scale(1.05);box-shadow:0 3px 12px rgba(59,130,246,.5); }
+.ai-send:active { transform:scale(.95); }
+@keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* THEME SETTINGS */
 .theme-cards { display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px; }
@@ -1293,16 +1307,28 @@ img { display: block; max-width: 100%; }
 <div id="ai-fab" onclick="toggleAI()" title="AI Admin Assistant">🤖<div class="ai-notif"></div></div>
 <div id="ai-panel">
   <div class="ai-hd">
-    <div class="ai-hd-icon">🤖</div>
-    <div class="ai-hd-info"><h4>Apykart AI Assistant</h4><p>● Online — Claude Sonnet</p></div>
-    <div class="ai-close" onclick="toggleAI()">✕</div>
+    <div class="ai-hd-icon">✨</div>
+    <div class="ai-hd-info"><h4>Apykart AI Assistant</h4><p>● Online — Gemini 1.5 Flash</p></div>
+    <div class="ai-hd-actions">
+      <button onclick="clearAIChat()" title="Clear chat" style="background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:4px 6px;border-radius:6px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">🗑</button>
+      <div class="ai-close" onclick="toggleAI()">✕</div>
+    </div>
+  </div>
+  <div class="ai-quick-chips">
+    <div class="ai-chip" onclick="askAIQuick('Show me today\'s order summary')">📦 Today's Orders</div>
+    <div class="ai-chip" onclick="askAIQuick('Which products are pending approval?')">🕐 Pending Products</div>
+    <div class="ai-chip" onclick="askAIQuick('Give me a quick revenue analysis')">💰 Revenue</div>
+    <div class="ai-chip" onclick="askAIQuick('Any seller issues I should know about?')">👥 Sellers</div>
+    <div class="ai-chip" onclick="askAIQuick('What should I focus on today as admin?')">🎯 Focus Today</div>
   </div>
   <div class="ai-msgs" id="ai-msgs">
-    <div class="ai-msg bot">👋 Hi! I'm your Apykart AI assistant. Ask me anything about managing your marketplace — orders, products, sellers, analytics, and more!</div>
+    <div class="ai-msg bot">👋 Hi! I'm your <strong>Apykart AI Assistant</strong> powered by Gemini.<br><br>I can help you with:<br>• 📦 Order management & tracking<br>• 🛍️ Product approvals & listings<br>• 👥 Seller & user analytics<br>• 📊 Sales reports & insights<br>• ⚙️ Admin operations<br><br>What do you need help with?</div>
   </div>
   <div class="ai-inp-row">
-    <input class="ai-inp" id="ai-inp" placeholder="Ask anything…" onkeydown="if(event.key==='Enter')sendAIMsg()">
-    <div class="ai-send" onclick="sendAIMsg()">➤</div>
+    <input class="ai-inp" id="ai-inp" placeholder="Ask anything about your marketplace…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMsg();}">
+    <button class="ai-send" onclick="sendAIMsg()" id="ai-send-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
   </div>
 </div>
 
@@ -2342,38 +2368,191 @@ async function compressImg(file,maxSide=900,quality=0.82){
 }
 
 /* ════════ AI ASSISTANT ════════ */
-let _AI_OPEN=false,_AI_MSGS=[{role:'assistant',content:"👋 Hi! I'm your Apykart AI assistant. Ask me anything about managing your marketplace — orders, products, sellers, analytics, and more!"}];
-const AI_API_KEY='AQ.Ab8RN6LYnwrmt3mf97FAmPHJ_-yvH9GbG8cf1UjUNplqlR380Q';
+/* ════════ AI ASSISTANT — GEMINI 1.5 FLASH ════════ */
+let _AI_OPEN = false;
+let _AI_LOADING = false;
+const GEMINI_API_KEY = 'AIzaSyC5T2EY9k0mN-HVthTL-PXeoT84vCvrj6g';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-function toggleAI(){_AI_OPEN=!_AI_OPEN;document.getElementById('ai-panel').classList.toggle('open',_AI_OPEN);if(_AI_OPEN)document.getElementById('ai-inp').focus();}
+// Chat history for multi-turn conversation
+let _AI_HISTORY = [];
 
-function renderAIMsgs(){
-  const container=document.getElementById('ai-msgs');if(!container)return;
-  container.innerHTML=_AI_MSGS.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'bot'}">${m.content.replace(/\n/g,'<br>')}</div>`).join('');
-  container.scrollTop=container.scrollHeight;
+// Initial greeting already shown in HTML
+const _AI_INITIAL_MSG = "👋 Hi! I'm your **Apykart AI Assistant** powered by Gemini.\n\nI can help you with:\n• 📦 Order management & tracking\n• 🛍️ Product approvals & listings\n• 👥 Seller & user analytics\n• 📊 Sales reports & insights\n• ⚙️ Admin operations\n\nWhat do you need help with?";
+
+function toggleAI() {
+  _AI_OPEN = !_AI_OPEN;
+  const panel = document.getElementById('ai-panel');
+  panel.classList.toggle('open', _AI_OPEN);
+  if (_AI_OPEN) {
+    setTimeout(() => document.getElementById('ai-inp')?.focus(), 150);
+    // Remove notif dot once opened
+    document.querySelector('.ai-notif')?.remove();
+  }
 }
 
-async function sendAIMsg(){
-  const inp=document.getElementById('ai-inp');const msg=inp.value.trim();if(!msg)return;
-  inp.value='';
-  _AI_MSGS.push({role:'user',content:msg});
-  renderAIMsgs();
-  
-  // Add typing indicator
-  const container=document.getElementById('ai-msgs');const typing=document.createElement('div');typing.className='ai-msg bot typing';typing.innerHTML='<span></span><span></span><span></span>';container.appendChild(typing);container.scrollTop=container.scrollHeight;
-  
-  // Build context about current state
-  const ctx=`You are an AI assistant for Apykart marketplace admin panel. Current admin: ${window._ADMIN?.name||'Admin'} (${window._ADMIN?.role||'super_admin'}). Current page: ${_PAGE}. Stats: ${_ORDERS.length} orders, ${_PRODUCTS.length} products, ${_USERS.length} users. Be concise, helpful, and actionable. Use emojis sparingly.`;
-  
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':AI_API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:ctx,messages:_AI_MSGS.filter(m=>m.role!=='system')})});
-    const data=await res.json();typing.remove();
-    if(data.content&&data.content[0]){const reply=data.content[0].text;_AI_MSGS.push({role:'assistant',content:reply});renderAIMsgs();}
-    else{const err='Sorry, I had trouble responding. Try again!';_AI_MSGS.push({role:'assistant',content:err});renderAIMsgs();}
-  }catch(e){typing.remove();const err='Connection error. Check your internet.';_AI_MSGS.push({role:'assistant',content:err});renderAIMsgs();}
+function clearAIChat() {
+  _AI_HISTORY = [];
+  const container = document.getElementById('ai-msgs');
+  if (container) {
+    container.innerHTML = `<div class="ai-msg bot">🔄 Chat cleared! Ask me anything about your Apykart marketplace.</div>`;
+  }
 }
 
-document.getElementById('ai-inp')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey)sendAIMsg();});
+function renderAIMsg(role, content) {
+  const container = document.getElementById('ai-msgs');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = `ai-msg ${role === 'user' ? 'user' : 'bot'}`;
+  // Render basic markdown: **bold**, *italic*, bullet points, line breaks
+  let html = content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:var(--s3);padding:1px 5px;border-radius:4px;font-size:12px;font-family:var(--mono)">$1</code>')
+    .replace(/\n/g, '<br>');
+  div.innerHTML = html;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function addTypingIndicator() {
+  const container = document.getElementById('ai-msgs');
+  if (!container) return null;
+  const div = document.createElement('div');
+  div.className = 'ai-msg bot typing';
+  div.id = 'ai-typing';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function buildSystemContext() {
+  // Gather live data from the admin panel
+  const admin = window._ADMIN || {};
+  const orders = window._ORDERS || [];
+  const products = window._PRODUCTS || [];
+  const users = window._USERS || [];
+  const sellers = window._SELLERS || [];
+
+  const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'placed').length;
+  const pendingProducts = products.filter(p => p.status === 'pending').length;
+  const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s, o) => s + (Number(o.total) || 0), 0);
+  const todayOrders = orders.filter(o => {
+    if (!o.createdAt) return false;
+    const d = o.createdAt.toDate ? o.createdAt.toDate() : new Date(o.createdAt);
+    return d.toDateString() === new Date().toDateString();
+  }).length;
+
+  return `You are an expert AI assistant for Apykart — an Indian e-commerce marketplace admin panel.
+
+ADMIN INFO:
+- Name: ${admin.name || 'Admin'}
+- Role: ${admin.role || 'super_admin'}
+- Email: ${admin.email || 'N/A'}
+- Current Page: ${window._PAGE || 'dashboard'}
+
+LIVE MARKETPLACE STATS:
+- Total Orders: ${orders.length} (${pendingOrders} pending, ${todayOrders} today)
+- Total Products: ${products.length} (${pendingProducts} pending approval)
+- Registered Users: ${users.length}
+- Sellers: ${sellers.length}
+- Total Revenue (delivered): ₹${totalRevenue.toLocaleString('en-IN')}
+
+INSTRUCTIONS:
+- Be concise, practical and actionable
+- Use Indian marketplace context (₹, Indian names, GST, etc.)
+- Format responses with bullet points and bold text where helpful
+- When asked about specific data, give numbers from the stats above
+- Suggest specific admin actions when relevant
+- Keep responses under 200 words unless asked for detail
+- Be friendly but professional`;
+}
+
+async function sendAIMsg() {
+  if (_AI_LOADING) return;
+  const inp = document.getElementById('ai-inp');
+  const msg = inp?.value?.trim();
+  if (!msg) return;
+
+  inp.value = '';
+  _AI_LOADING = true;
+
+  // Disable send button
+  const sendBtn = document.getElementById('ai-send-btn');
+  if (sendBtn) sendBtn.style.opacity = '0.4';
+
+  // Show user message
+  renderAIMsg('user', msg);
+
+  // Add to history
+  _AI_HISTORY.push({ role: 'user', parts: [{ text: msg }] });
+
+  // Show typing
+  const typing = addTypingIndicator();
+
+  try {
+    const systemCtx = buildSystemContext();
+
+    // Build request — Gemini format
+    const requestBody = {
+      system_instruction: {
+        parts: [{ text: systemCtx }]
+      },
+      contents: _AI_HISTORY,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 600,
+        topP: 0.9,
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+      ]
+    };
+
+    const res = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    });
+
+    const data = await res.json();
+    typing?.remove();
+
+    if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+      const reply = data.candidates[0].content.parts[0].text;
+      // Add to history for multi-turn
+      _AI_HISTORY.push({ role: 'model', parts: [{ text: reply }] });
+      // Keep history manageable (last 20 turns)
+      if (_AI_HISTORY.length > 20) _AI_HISTORY = _AI_HISTORY.slice(-20);
+      renderAIMsg('bot', reply);
+    } else if (data.error) {
+      const errMsg = data.error.message || 'API error occurred.';
+      renderAIMsg('bot', `⚠️ **Error:** ${errMsg}\n\nPlease try again.`);
+    } else {
+      renderAIMsg('bot', '⚠️ No response received. Please try rephrasing your question.');
+    }
+  } catch (e) {
+    typing?.remove();
+    console.error('AI Error:', e);
+    renderAIMsg('bot', `🔴 **Connection error.** Please check your internet and try again.\n\n_Error: ${e.message}_`);
+  } finally {
+    _AI_LOADING = false;
+    if (sendBtn) sendBtn.style.opacity = '1';
+    inp?.focus();
+  }
+}
+
+// Quick action prompts
+function askAIQuick(prompt) {
+  const inp = document.getElementById('ai-inp');
+  if (inp) { inp.value = prompt; sendAIMsg(); }
+  if (!_AI_OPEN) toggleAI();
+}
 
 /* ════════ MODALS / DRAWERS ════════ */
 function openOv(id){const e=document.getElementById(id);if(e){e.classList.add('open');document.body.style.overflow='hidden';}}
