@@ -942,13 +942,24 @@ let PRODUCTS = [
   {id:11, name:'Puma Softride Shoes',       category:'shoes',       images:['https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_750,h_750/global/373017/01/sv01/fnd/IND/fmt/png/SOFTRIDE-Enzo-Evo-Running-Shoes'],  img:'https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_750,h_750/global/373017/01/sv01/fnd/IND/fmt/png/SOFTRIDE-Enzo-Evo-Running-Shoes', video:'', price:3499, ogPrice:5999, discount:42, rating:4.5, reviews:'9.3k',  badge:'42% OFF',   brand:'Puma',     desc:'NITRO foam cushioning running shoes.',            features:['NITRO foam','Mesh upper','PUMAGRIP outsole'], status:'approved', sellerId:'system'},
   {id:12, name:'Campus Men Sneakers',       category:'shoes',       images:['https://m.media-amazon.com/images/I/711dWiQp3OL._AC_UY1000_.jpg'],  img:'https://m.media-amazon.com/images/I/711dWiQp3OL._AC_UY1000_.jpg', video:'', price:1299, ogPrice:2499, discount:48, rating:4.3, reviews:'8.7k',  badge:'DEAL',      brand:'Campus',   desc:'Trendy everyday sneakers, cushioned insole.',     features:['Mesh upper','Cushioned insole','Anti-skid outsole'], status:'approved', sellerId:'system'},
 ];
+/* ─── UID-BASED KEY SYSTEM ─── */
+// Har user ka data alag key mein store hoga - uid se prefix milega
+function getUid() {
+  return (window.currentUser && window.currentUser.uid) ? window.currentUser.uid : 'guest';
+}
+function lsKey(k) { return 'apykart_' + getUid() + '_' + k; }
+function lsGet(k, def) {
+  try { const v = localStorage.getItem(lsKey(k)); return v ? JSON.parse(v) : def; } catch(e) { return def; }
+}
+function lsSet(k, v) { localStorage.setItem(lsKey(k), JSON.stringify(v)); }
+
 /* ─── STATE ─── */
-let cart      = JSON.parse(localStorage.getItem('apykart_cart')      || '[]');
-let wishlist  = JSON.parse(localStorage.getItem('apykart_wishlist')  || '[]');
-let addresses = JSON.parse(localStorage.getItem('apykart_addresses') || '[]');
-let orders    = JSON.parse(localStorage.getItem('apykart_orders')    || '[]');
-let coinData  = JSON.parse(localStorage.getItem('apykart_coins')     || JSON.stringify({balance:0,transactions:[]}));
-let guestUser = JSON.parse(localStorage.getItem('apykart_guestuser') || JSON.stringify({name:'',email:'',phone:''}));
+let cart      = lsGet('cart',      []);
+let wishlist  = lsGet('wishlist',  []);
+let addresses = lsGet('addresses', []);
+let orders    = lsGet('orders',    []);
+let coinData  = lsGet('coins',     {balance:0,transactions:[]});
+let guestUser = lsGet('guestuser', {name:'',email:'',phone:''});
 
 let currentPage      = 'home';
 let prevPage         = 'home';
@@ -958,39 +969,56 @@ let useCoinsToggle   = false;
 let timerInterval;
 let buyNowProduct    = null;
 
-
 // 🧑‍💼 SELLER SYSTEM VARIABLES
-let userRole = localStorage.getItem('apykart_role') || 'user'; // 'user', 'seller', 'admin'
-let sellerVerification = JSON.parse(localStorage.getItem('apykart_seller_verification') || 'null');
-let sellerProducts = JSON.parse(localStorage.getItem('apykart_seller_products') || '[]');
-let sellerEarnings = JSON.parse(localStorage.getItem('apykart_seller_earnings') || '[]');
-let withdrawalRequests = JSON.parse(localStorage.getItem('apykart_withdrawals') || '[]');
-let sellerProfile = JSON.parse(localStorage.getItem('apykart_seller_profile') || '{"bankName":"","accountNumber":"","ifsc":"","upi":""}');
+let userRole           = lsGet('role', 'user');
+let sellerVerification = lsGet('seller_verification', null);
+let sellerProducts     = lsGet('seller_products', []);
+let sellerEarnings     = lsGet('seller_earnings', []);
+let withdrawalRequests = lsGet('withdrawals', []);
+let sellerProfile      = lsGet('seller_profile', {bankName:'',accountNumber:'',ifsc:'',upi:''});
 // Swiper state per detail page
 let _swiperIdx = 0;
 
-let userId = localStorage.getItem('apykart_userid');
-if (!userId) { userId = 'USR_' + Math.random().toString(36).substr(2,9).toUpperCase(); localStorage.setItem('apykart_userid', userId); }
+// userId for Firestore (anonymous/guest tracking)
+let userId = localStorage.getItem('apykart_anon_userid');
+if (!userId) { userId = 'USR_' + Math.random().toString(36).substr(2,9).toUpperCase(); localStorage.setItem('apykart_anon_userid', userId); }
+
+// Jab user login/logout ho - data reload karo
+function reloadUserData() {
+  cart              = lsGet('cart',              []);
+  wishlist          = lsGet('wishlist',          []);
+  addresses         = lsGet('addresses',         []);
+  orders            = lsGet('orders',            []);
+  coinData          = lsGet('coins',             {balance:0,transactions:[]});
+  guestUser         = lsGet('guestuser',         {name:'',email:'',phone:''});
+  userRole          = lsGet('role',              'user');
+  sellerVerification= lsGet('seller_verification', null);
+  sellerProducts    = lsGet('seller_products',   []);
+  sellerEarnings    = lsGet('seller_earnings',   []);
+  withdrawalRequests= lsGet('withdrawals',       []);
+  sellerProfile     = lsGet('seller_profile',    {bankName:'',accountNumber:'',ifsc:'',upi:''});
+  updateCartBadge();
+}
 
 const COIN_TO_RUPEE   = 0.10;
 const COIN_MIN_TO_USE = 1000;
 const COIN_KEEP_MIN   = 500;
 
 /* ─── PERSIST ─── */
-function saveCart()      { localStorage.setItem('apykart_cart',      JSON.stringify(cart));      updateCartBadge(); }
-function saveWishlist()  { localStorage.setItem('apykart_wishlist',  JSON.stringify(wishlist));  syncUser(); }
-function saveAddresses() { localStorage.setItem('apykart_addresses', JSON.stringify(addresses)); }
-function saveOrders()    { localStorage.setItem('apykart_orders',    JSON.stringify(orders)); }
-function saveCoins()     { localStorage.setItem('apykart_coins',     JSON.stringify(coinData));  syncUser(); }
-function saveGuest()     { localStorage.setItem('apykart_guestuser', JSON.stringify(guestUser)); }
+function saveCart()      { lsSet('cart',      cart);      updateCartBadge(); }
+function saveWishlist()  { lsSet('wishlist',  wishlist);  syncUser(); }
+function saveAddresses() { lsSet('addresses', addresses); }
+function saveOrders()    { lsSet('orders',    orders); }
+function saveCoins()     { lsSet('coins',     coinData);  syncUser(); }
+function saveGuest()     { lsSet('guestuser', guestUser); }
 function saveSellerData() {
-  localStorage.setItem('apykart_role', userRole);
-  localStorage.setItem('apykart_seller_verification', JSON.stringify(sellerVerification));
-  localStorage.setItem('apykart_seller_products', JSON.stringify(sellerProducts));
+  lsSet('role', userRole);
+  lsSet('seller_verification', sellerVerification);
+  lsSet('seller_products', sellerProducts);
 }
-function saveSellerEarnings() { localStorage.setItem('apykart_seller_earnings', JSON.stringify(sellerEarnings)); }
-function saveWithdrawals() { localStorage.setItem('apykart_withdrawals', JSON.stringify(withdrawalRequests)); }
-function saveSellerProfile() { localStorage.setItem('apykart_seller_profile', JSON.stringify(sellerProfile)); }
+function saveSellerEarnings() { lsSet('seller_earnings', sellerEarnings); }
+function saveWithdrawals() { lsSet('withdrawals', withdrawalRequests); }
+function saveSellerProfile() { lsSet('seller_profile', sellerProfile); }
   
 async function syncUser() {
   if (!window._fb) return;
@@ -3034,7 +3062,12 @@ function signInWithGoogle() {
 function logoutUser() {
   if (!window._fbAuth) return;
   const { signOut, auth } = window._fbAuth;
-  signOut(auth).then(() => { window.currentUser = null; showToast('Logged out', 'info'); renderProfile(); });
+  signOut(auth).then(() => {
+    window.currentUser = null;
+    // reloadUserData will be called by onAuthStateChanged automatically
+    showToast('Logged out', 'info');
+    renderProfile();
+  });
 }
 
 // ─── DYNAMIC BRANDING & THEME from Firebase ───
@@ -3112,14 +3145,20 @@ function setupAuthListener() {
         photoURL: user.photoURL
       };
       localStorage.setItem('apykart_user', JSON.stringify(window.currentUser));
+      // ✅ FIX: Login hone ke baad us user ka data load karo (uid-based keys se)
+      reloadUserData();
       if (!guestUser.name) guestUser.name = user.displayName || '';
       if (!guestUser.email) guestUser.email = user.email || '';
       saveGuest();
     } else {
       window.currentUser = null;
       localStorage.removeItem('apykart_user');
+      // ✅ FIX: Logout hone ke baad guest data load karo
+      reloadUserData();
     }
     if (currentPage === 'profile') renderProfile();
+    renderCart();
+    renderHome();
   });
 }
 setupAuthListener();
