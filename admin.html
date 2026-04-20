@@ -501,8 +501,56 @@ img { display: block; max-width: 100%; }
 .bdg-s{background:var(--blue-g);color:var(--cyan)}
 
 /* RESPONSIVE */
-@media(max-width:900px){.sg{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr}.theme-cards{grid-template-columns:1fr 1fr}}
-@media(max-width:680px){.sg{grid-template-columns:1fr}.g2,.g2a{grid-template-columns:1fr}.drw-pn{width:100vw}#ai-panel{width:calc(100vw - 48px)}}
+@media(max-width:1100px){:root{--sw:220px}}
+@media(max-width:900px){
+  :root{--sw:200px}
+  .sg{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr}
+  .theme-cards{grid-template-columns:1fr 1fr}
+  .g2a{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  :root{--sw:260px}
+  #SB{position:fixed;left:-280px;height:100vh;z-index:200;transition:left .3s cubic-bezier(.4,0,.2,1);}
+  #SB.mob-open{left:0;box-shadow:4px 0 24px rgba(0,0,0,.5);}
+  #SB.slim{width:var(--sw);}
+  #MAIN{width:100vw;}
+  .sg{grid-template-columns:1fr 1fr}
+  .g2,.g2a{grid-template-columns:1fr}
+  .g3{grid-template-columns:1fr}
+  .tb-search{display:none;}
+  .drw-pn{width:100vw}
+  #ai-panel{width:calc(100vw - 16px);right:8px;bottom:70px;}
+  #ai-fab{bottom:16px;right:16px;}
+  .frow2,.frow3{grid-template-columns:1fr;}
+  .sh{flex-direction:column;align-items:flex-start;}
+  .sh h1{font-size:17px;}
+  .mod-lg,.mod-sm{width:calc(100vw - 24px);margin:12px;}
+  .mod{max-height:calc(100vh - 24px);}
+  .pg{padding:14px;}
+  .cb{padding:12px;}
+  #sb-mob-overlay{display:block;}
+}
+@media(max-width:480px){
+  .sg{grid-template-columns:1fr}
+  .fltr-bar{flex-direction:column;}
+  .f-search{width:100%;}
+  .btn{font-size:12px;padding:8px 12px;}
+  .deal-cards{grid-template-columns:1fr 1fr;}
+  .sc-val{font-size:22px;}
+}
+#sb-mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;}
+
+/* MOBILE BOTTOM NAV */
+#mob-bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--s1);border-top:1px solid var(--border);z-index:150;padding:6px 0 max(6px,env(safe-area-inset-bottom));justify-content:space-around;align-items:center;}
+.mbn-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 16px;font-size:10px;font-weight:600;color:var(--text3);cursor:pointer;position:relative;transition:color .2s;}
+.mbn-item:active{color:var(--blue);}
+.mbn-item span:first-child{font-size:18px;}
+.mbn-badge{position:absolute;top:0;right:8px;background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+@media(max-width:768px){
+  #mob-bottom-nav{display:flex;}
+  #CT{padding-bottom:64px;}
+}
 </style>
 </head>
 <body>
@@ -537,6 +585,7 @@ img { display: block; max-width: 100%; }
 
 <!-- APP -->
 <div id="APP" class="gone">
+  <div id="sb-mob-overlay" onclick="closeMobSB()"></div>
   <!-- SIDEBAR -->
   <aside id="SB">
     <div class="sb-head">
@@ -565,6 +614,7 @@ img { display: block; max-width: 100%; }
         <span style="color:var(--text3);font-size:14px">🔍</span>
         <input id="gs-inp" placeholder="Search orders, products, users…" oninput="globalSearch(this.value)">
       </div>
+      <div class="tb-btn" onclick="document.getElementById('gs-inp').closest('.tb-search').style.display='flex'" style="display:none" id="tb-search-btn" title="Search">🔍</div>
       <div class="tb-actions">
         <div class="tb-btn" onclick="nav('orders')" title="Pending Orders">🔔<div class="tb-dot" id="tb-dot" style="display:none"></div></div>
         <div class="tb-btn" onclick="nav('settings')" title="Settings">⚙️</div>
@@ -1308,7 +1358,7 @@ img { display: block; max-width: 100%; }
 <div id="ai-panel">
   <div class="ai-hd">
     <div class="ai-hd-icon">✨</div>
-    <div class="ai-hd-info"><h4>Apykart AI Assistant</h4><p>● Online — Gemini 1.5 Flash</p></div>
+    <div class="ai-hd-info"><h4>Apykart AI Assistant</h4><p>● Online — Groq LLaMA 3</p></div>
     <div class="ai-hd-actions">
       <button onclick="clearAIChat()" title="Clear chat" style="background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:4px 6px;border-radius:6px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">🗑</button>
       <div class="ai-close" onclick="toggleAI()">✕</div>
@@ -1322,7 +1372,7 @@ img { display: block; max-width: 100%; }
     <div class="ai-chip" onclick="askAIQuick('What should I focus on today as admin?')">🎯 Focus Today</div>
   </div>
   <div class="ai-msgs" id="ai-msgs">
-    <div class="ai-msg bot">👋 Hi! I'm your <strong>Apykart AI Assistant</strong> powered by Gemini.<br><br>I can help you with:<br>• 📦 Order management & tracking<br>• 🛍️ Product approvals & listings<br>• 👥 Seller & user analytics<br>• 📊 Sales reports & insights<br>• ⚙️ Admin operations<br><br>What do you need help with?</div>
+    <div class="ai-msg bot">👋 Hi! I'm your <strong>Apykart AI Assistant</strong> powered by Groq.<br><br>I can help you with:<br>• 📦 Order management & tracking<br>• 🛍️ Product approvals & listings<br>• 👥 Seller & user analytics<br>• 📊 Sales reports & insights<br>• ⚙️ Admin operations<br><br>What do you need help with?</div>
   </div>
   <div class="ai-inp-row">
     <input class="ai-inp" id="ai-inp" placeholder="Ask anything about your marketplace…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMsg();}">
@@ -1333,6 +1383,23 @@ img { display: block; max-width: 100%; }
 </div>
 
 <div id="TOASTS"></div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav id="mob-bottom-nav">
+  <div class="mbn-item" onclick="nav('dashboard')">
+    <span>📊</span><span>Dashboard</span>
+  </div>
+  <div class="mbn-item" onclick="nav('orders')">
+    <span>📦</span><span>Orders</span>
+    <div class="mbn-badge" id="mbn-badge-orders" style="display:none">0</div>
+  </div>
+  <div class="mbn-item" onclick="nav('products')">
+    <span>🛍️</span><span>Products</span>
+  </div>
+  <div class="mbn-item" onclick="toggleSB()">
+    <span>☰</span><span>Menu</span>
+  </div>
+</nav>
 
 <!-- FIREBASE -->
 <script type="module">
@@ -1416,10 +1483,117 @@ let _PEND_PRODS=[],_PEND_PRODS_F=[],_PEND_P=1;
 let _VER_LIST=[],_VER_F=[],_CURRENT_VER_ID=null;
 let _EDIT_PROD_ID=null,_EDIT_CAT_ID=null,_EDIT_BAN_ID=null,_EDIT_MGR_ID=null,_EDIT_SEL_ID=null;
 let _FEAT_TAGS=[],_PROD_IMGS=[],_BAN_IMG_URL=null,_CAT_IMG_URL=null,_FLASH_IMG_URL=null,_HOME_IMG_URL=null;
-let _ORD_UNSUB=null,_PRD_UNSUB=null;
+let _ORD_UNSUB=null,_PRD_UNSUB=null,_CAT_UNSUB=null,_BAN_UNSUB=null,_USR_UNSUB=null,_SEL_UNSUB=null,_WD_UNSUB=null;
 let _PICKER_SELECTED=new Set();
 let _FD_INTERVAL=null;
 const PER=15;
+
+
+/* ════ GLOBAL REAL-TIME LISTENERS ════
+   All admin changes instantly sync to Firestore → user panel reflects them immediately */
+function startGlobalListeners(){
+  const{db,collection,onSnapshot,query,orderBy}=window._FB;
+
+  // ── Products (live) ──
+  if(_PRD_UNSUB)_PRD_UNSUB();
+  _PRD_UNSUB=onSnapshot(
+    query(collection(db,'products'),orderBy('name','asc')),
+    snap=>{
+      _PRODUCTS=snap.docs.map(d=>({_did:d.id,...d.data()}));
+      _PEND_PRODS=[..._PRODUCTS];
+      const pending=_PRODUCTS.filter(p=>(p.approvalStatus||'approved')==='pending').length;
+      const b=document.getElementById('sb-badge-approval');
+      if(b){b.textContent=pending;b.style.display=pending>0?'flex':'none';}
+      if(_PAGE==='products')filterProducts();
+      if(_PAGE==='product-approval')filterPendingProducts('',document.getElementById('pa-st-f')?.value||'pending');
+    },
+    e=>console.warn('🔴 Products listener:',e)
+  );
+
+  // ── Orders (live) ──
+  if(_ORD_UNSUB)_ORD_UNSUB();
+  _ORD_UNSUB=onSnapshot(
+    query(collection(db,'orders'),orderBy('createdAt','desc')),
+    snap=>{
+      _ORDERS=snap.docs.map(d=>({_did:d.id,...d.data()}));
+      const pend=_ORDERS.filter(o=>['placed','confirmed','return_requested'].includes(o.status)).length;
+      const b=document.getElementById('sb-badge-orders');
+      if(b){b.textContent=pend;b.style.display=pend>0?'flex':'none';}
+      const dot=document.getElementById('tb-dot');if(dot)dot.style.display=pend>0?'block':'none';
+      if(_PAGE==='orders')filterOrders();
+      if(_PAGE==='dashboard')loadDashboard();
+    },
+    e=>console.warn('🔴 Orders listener:',e)
+  );
+
+  // ── Categories (live → user panel homepage) ──
+  if(_CAT_UNSUB)_CAT_UNSUB();
+  _CAT_UNSUB=onSnapshot(
+    collection(db,'categories'),
+    snap=>{
+      _CATS=snap.docs.map(d=>({_did:d.id,...d.data()}));
+      if(_PAGE==='categories')renderCats();
+      // Refresh category dropdowns in modals
+      const sel=document.getElementById('prd-cat-f');
+      if(sel){sel.innerHTML='<option value="">All Categories</option>'+_CATS.map(c=>`<option value="${c.id}">${c.icon||''} ${c.name}</option>`).join('');}
+    },
+    e=>console.warn('🔴 Categories listener:',e)
+  );
+
+  // ── Banners (live → user panel homepage) ──
+  if(_BAN_UNSUB)_BAN_UNSUB();
+  _BAN_UNSUB=onSnapshot(
+    collection(db,'banners'),
+    snap=>{
+      _BANNERS=snap.docs.map(d=>({_did:d.id,...d.data()}));
+      if(_PAGE==='banners')renderBanners();
+    },
+    e=>console.warn('🔴 Banners listener:',e)
+  );
+
+  // ── Users (live) ──
+  if(_USR_UNSUB)_USR_UNSUB();
+  _USR_UNSUB=onSnapshot(
+    collection(db,'users'),
+    snap=>{
+      _USERS=snap.docs.map(d=>({_did:d.id,...d.data()}));
+      if(_PAGE==='users')filterUsers();
+    },
+    e=>console.warn('🔴 Users listener:',e)
+  );
+
+  // ── Sellers + Verification (live) ──
+  if(_SEL_UNSUB)_SEL_UNSUB();
+  _SEL_UNSUB=onSnapshot(
+    collection(db,'sellers'),
+    snap=>{
+      _SELLERS=snap.docs.map(d=>({_did:d.id,...d.data()}));
+      _VER_LIST=_SELLERS.filter(s=>s.verification);
+      const pendingVer=_VER_LIST.filter(s=>(s.verification?.status||s.status)==='pending').length;
+      const b=document.getElementById('sb-badge-verification');
+      if(b){b.textContent=pendingVer;b.style.display=pendingVer>0?'flex':'none';}
+      if(_PAGE==='sellers')filterSellers();
+      if(_PAGE==='verification')filterVerification();
+    },
+    e=>console.warn('🔴 Sellers listener:',e)
+  );
+
+  // ── Withdrawals (live) ──
+  if(_WD_UNSUB)_WD_UNSUB();
+  try{
+    _WD_UNSUB=onSnapshot(
+      query(collection(db,'withdrawals'),orderBy('date','desc')),
+      snap=>{
+        _WITHDRAWALS=snap.docs.map(d=>({_did:d.id,...d.data()}));
+        _WITHDRAWALS_F=[..._WITHDRAWALS];
+        const pendingCount=_WITHDRAWALS.filter(w=>w.status==='pending').length;
+        updateWithdrawalBadge_count(pendingCount);
+        if(_PAGE==='withdrawals')renderWithdrawals();
+      },
+      e=>console.warn('🔴 Withdrawals listener:',e)
+    );
+  }catch(e){console.warn('Withdrawals listener setup failed:',e);}
+}
 
 /* ════════ HELPERS ════════ */
 function toast(msg,type='inf',title='',dur=4000){const icons={suc:'✅',err:'❌',wrn:'⚠️',inf:'ℹ️'};const titles={suc:'Success',err:'Error',wrn:'Warning',inf:'Info'};const wrap=document.getElementById('TOASTS');if(!wrap)return;const el=document.createElement('div');el.className=`toast ${type}`;el.innerHTML=`<div class="ti">${icons[type]}</div><div class="tc"><div class="tt">${title||titles[type]}</div>${msg?`<div class="tm">${msg}</div>`:''}</div><div class="tx" onclick="this.parentElement.remove()">✕</div>`;wrap.appendChild(el);setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),300);},dur);}
@@ -1460,7 +1634,23 @@ function buildNav(){
   `).join('');
 }
 
-function toggleSB(){_SLIM=!_SLIM;document.getElementById('SB').classList.toggle('slim',_SLIM);}
+function toggleSB(){
+  const sb=document.getElementById('SB');
+  const ov=document.getElementById('sb-mob-overlay');
+  if(window.innerWidth<=768){
+    const isOpen=sb.classList.contains('mob-open');
+    sb.classList.toggle('mob-open',!isOpen);
+    if(ov)ov.style.display=isOpen?'none':'block';
+  } else {
+    _SLIM=!_SLIM;sb.classList.toggle('slim',_SLIM);
+  }
+}
+function closeMobSB(){
+  const sb=document.getElementById('SB');
+  const ov=document.getElementById('sb-mob-overlay');
+  sb.classList.remove('mob-open');
+  if(ov)ov.style.display='none';
+}
 
 /* ════════ THEME ════════ */
 function applyTheme(t){
@@ -1490,7 +1680,7 @@ function showApp(){
   const urole=document.getElementById('sb-urole');if(urole)urole.textContent=(a.role||'super_admin').replace(/_/g,' ').toUpperCase();
   const aname=document.getElementById('st-aname');if(aname)aname.textContent=n;
   const uidSpan=document.getElementById('st-uid');if(uidSpan)uidSpan.textContent=a.uid||'—';
-  buildNav();nav('dashboard');
+  buildNav();startGlobalListeners();nav('dashboard');
 }
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
@@ -1511,13 +1701,15 @@ async function doReset(){
   catch(e){showErr(e.message);}
   finally{btn.classList.remove('loading');}
 }
-async function doLogout(){if(_ORD_UNSUB)_ORD_UNSUB();if(_PRD_UNSUB)_PRD_UNSUB();await window._FB.signOut(window._FB.auth);toast('Logged out','inf','Bye!');}
+async function doLogout(){[_ORD_UNSUB,_PRD_UNSUB,_CAT_UNSUB,_BAN_UNSUB,_USR_UNSUB,_SEL_UNSUB,_WD_UNSUB].forEach(u=>{try{if(u)u();}catch(e){}});await window._FB.signOut(window._FB.auth);toast('Logged out','inf','Bye!');}
 function showErr(msg){const e=document.getElementById('auth-err');e.textContent='❌ '+msg;e.classList.add('show');}
 
 /* ════════ PAGE NAVIGATION ════════ */
 const PAGE_TITLES={dashboard:'Dashboard',orders:'Orders',products:'Products','product-approval':'Product Approval',categories:'Categories',banners:'Banners',users:'Users',managers:'Managers',notifications:'Notifications',settings:'Settings','store-config':'Store Configuration',sellers:'Sellers',verification:'Seller Verification','flash-deals':'Flash Deals',featured:'Featured Sections','home-theme':'Home Theme Builder',withdrawals:'Withdrawal Requests',earnings:'Seller Earnings',coins:'Coin Management'};
 function nav(page){
   _PAGE=page;
+  // Close mobile sidebar on nav
+  closeMobSB();
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   const el=document.getElementById('pg-'+page);
   if(el)el.classList.add('on');
@@ -1530,6 +1722,16 @@ function nav(page){
 /* ════════ DASHBOARD ════════ */
 async function loadDashboard(){
   const{db,collection,getDocs}=window._FB;
+  // Fast render from cached data first
+  if(_ORDERS.length||_PRODUCTS.length||_USERS.length){
+    const rev=_ORDERS.filter(o=>!['cancelled','returned','refunded'].includes(o.status)).reduce((s,o)=>s+(o.total||0),0);
+    const pend=_ORDERS.filter(o=>['placed','confirmed','return_requested'].includes(o.status)).length;
+    setEl('ds-ord',_ORDERS.length);setEl('ds-rev',fmtC(rev));setEl('ds-usr',_USERS.length);setEl('ds-prd',_PRODUCTS.length);
+    setEl('ds-pend',pend+' pending');
+    setEl('ds-sel',_SELLERS.length);
+    setEl('ds-sel-ver',_SELLERS.filter(s=>s.status==='verified').length+' verified');
+    setEl('ds-ver',_VER_LIST.filter(s=>(s.verification?.status||s.status)==='pending').length);
+  }
   try{
     const[oSnap,uSnap,pSnap,sSnap]=await Promise.all([getDocs(collection(db,'orders')),getDocs(collection(db,'users')),getDocs(collection(db,'products')),getDocs(collection(db,'sellers')).catch(()=>({docs:[]}))]);
     const orders=oSnap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1595,12 +1797,7 @@ function renderChart(elId,data,labels,isRevenue){
 
 /* ════════ ORDERS ════════ */
 function loadOrders(){
-  const{db,collection,onSnapshot,query,orderBy}=window._FB;
-  const tbody=document.getElementById('ord-tbody');
-  if(tbody)tbody.innerHTML='<tr><td colspan="10"><div class="ld"><div class="spin spin-sm"></div></div></td></tr>';
-  if(_ORD_UNSUB)_ORD_UNSUB();
-  const q=query(collection(db,'orders'),orderBy('createdAt','desc'));
-  _ORD_UNSUB=onSnapshot(q,snap=>{_ORDERS=snap.docs.map(d=>({_did:d.id,...d.data()}));filterOrders();},e=>toast('Orders error: '+e.message,'err'));
+  filterOrders();
 }
 function filterOrders(q){
   const sq=(q||document.querySelector('#pg-orders .f-search input')?.value||'').toLowerCase();
@@ -1651,13 +1848,8 @@ function openOrderDrawer(docId){
 
 /* ════════ PRODUCTS ════════ */
 function loadProducts(){
-  const{db,collection,onSnapshot,query,orderBy}=window._FB;
-  const tbody=document.getElementById('prd-tbody');
-  if(tbody)tbody.innerHTML='<tr><td colspan="10"><div class="ld"><div class="spin spin-sm"></div></div></td></tr>';
-  if(_PRD_UNSUB)_PRD_UNSUB();
   loadCatsForFilter();
-  const q=query(collection(db,'products'),orderBy('name','asc'));
-  _PRD_UNSUB=onSnapshot(q,snap=>{_PRODUCTS=snap.docs.map(d=>({_did:d.id,...d.data()}));filterProducts();},e=>toast('Products error: '+e.message,'err'));
+  filterProducts();
 }
 async function loadCatsForFilter(){
   const{db,collection,getDocs}=window._FB;
@@ -1703,7 +1895,7 @@ async function saveProduct(){
   const name=gv('pm-name'),price=parseFloat(gv('pm-price')),cat=gv('pm-cat');
   if(!name){toast('Name required','wrn');return;}if(!price){toast('Price required','wrn');return;}if(!cat){toast('Select a category','wrn');return;}
   const ogP=parseFloat(gv('pm-ogp'))||price;
-  const data={name,brand:gv('pm-brand'),category:cat,price,ogPrice:ogP,stock:parseInt(gv('pm-stk'))||0,badge:gv('pm-badge'),rating:parseFloat(gv('pm-rat'))||4.5,reviews:gv('pm-rev'),coinsEarned:parseInt(gv('pm-coins'))||10,desc:gv('pm-desc'),status:gv('pm-st')||'active',features:[..._FEAT_TAGS],images:[..._PROD_IMGS],discount:Math.round((ogP-price)/ogP*100),featuredIn:gv('pm-featured')||null};
+  const data={name,brand:gv('pm-brand'),category:cat,price,ogPrice:ogP,stock:parseInt(gv('pm-stk'))||0,badge:gv('pm-badge'),rating:parseFloat(gv('pm-rat'))||4.5,reviews:gv('pm-rev'),coinsEarned:parseInt(gv('pm-coins'))||10,desc:gv('pm-desc'),status:gv('pm-st')||'active',approvalStatus:'approved',features:[..._FEAT_TAGS],images:[..._PROD_IMGS],discount:Math.round((ogP-price)/ogP*100),featuredIn:gv('pm-featured')||null,addedBy:'admin'};
   const{db,collection,doc,addDoc,updateDoc,serverTimestamp}=window._FB;
   const btn=document.getElementById('pm-save');if(btn)btn.classList.add('btn-ld');
   try{
@@ -1713,20 +1905,13 @@ async function saveProduct(){
   }catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
 }
 async function togProdSt(docId,active){const{db,doc,updateDoc}=window._FB;await updateDoc(doc(db,'products',docId),{status:active?'active':'inactive'});toast('Status updated','inf');}
-function delProd(docId,name){confirm2('Delete Product',`Remove "${name}"?`,async()=>{const{db,doc,deleteDoc}=window._FB;await deleteDoc(doc(db,'products',docId));toast('Product deleted','inf');});}
+function delProd(docId,name){confirm2('Delete Product',`Remove "${name}"?`,async()=>{const{db,doc,deleteDoc}=window._FB;try{await deleteDoc(doc(db,'products',docId));toast('Product deleted','inf');}catch(e){toast('Delete failed: '+e.message,'err');}});}
 
 /* ════════ PRODUCT APPROVAL ════════ */
 async function loadProductApproval(){
-  const{db,collection,getDocs}=window._FB;
-  try{
-    const snap=await getDocs(collection(db,'products'));
-    _PEND_PRODS=snap.docs.map(d=>({_did:d.id,...d.data()}));
-    const filter=document.getElementById('pa-st-f')?.value||'pending';
-    filterPendingProducts('',filter);
-    const pendingCount=_PEND_PRODS.filter(p=>p.approvalStatus==='pending').length;
-    const badge=document.getElementById('sb-badge-approval');
-    if(badge){badge.textContent=pendingCount;badge.style.display=pendingCount>0?'flex':'none';}
-  }catch(e){toast('Error: '+e.message,'err');}
+  // _PEND_PRODS kept live by global product listener
+  const filter=document.getElementById('pa-st-f')?.value||'pending';
+  filterPendingProducts('',filter);
 }
 function filterPendingProducts(q,forceStatus){
   const sq=(q||document.querySelector('#pg-product-approval .f-search input')?.value||'').toLowerCase();
@@ -1747,27 +1932,29 @@ function renderPendingProducts(){
   buildPg('pa-pg',total,pages,_PEND_P,p=>{_PEND_P=p;renderPendingProducts();});
 }
 async function approveProduct(docId){
-  const{db,doc,updateDoc,serverTimestamp}=window._FB;
+  const{db,doc,collection,updateDoc,addDoc,serverTimestamp}=window._FB;
+  const prod=_PRODUCTS.find(p=>p._did===docId);
   await updateDoc(doc(db,'products',docId),{approvalStatus:'approved',status:'active',approvedAt:serverTimestamp(),approvedBy:window._ADMIN?.name||'Admin'});
-  toast('Product approved ✅','suc');await loadProductApproval();
+  // Notify seller
+  if(prod?.sellerId){
+    addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_approved',title:'Product Approved ✅',body:`Your product "${prod.name}" has been approved and is now live!`,read:false,createdAt:serverTimestamp()}).catch(()=>{});
+  }
+  toast('Product approved ✅ Seller notified.','suc');
 }
 async function rejectProduct(docId){
-  const{db,doc,updateDoc,serverTimestamp}=window._FB;
+  const{db,doc,collection,updateDoc,addDoc,serverTimestamp}=window._FB;
+  const prod=_PRODUCTS.find(p=>p._did===docId);
   await updateDoc(doc(db,'products',docId),{approvalStatus:'rejected',status:'inactive',rejectedAt:serverTimestamp(),rejectedBy:window._ADMIN?.name||'Admin'});
-  toast('Product rejected','wrn');await loadProductApproval();
+  if(prod?.sellerId){
+    addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_rejected',title:'Product Rejected ❌',body:`Your product "${prod.name}" was not approved. Please review and resubmit.`,read:false,createdAt:serverTimestamp()}).catch(()=>{});
+  }
+  toast('Product rejected. Seller notified.','wrn');
 }
 
 /* ════════ SELLER VERIFICATION ════════ */
 async function loadVerification(){
-  const{db,collection,getDocs}=window._FB;
-  try{
-    const snap=await getDocs(collection(db,'sellers'));
-    _VER_LIST=snap.docs.map(d=>({_did:d.id,...d.data()})).filter(s=>s.verification);
-    filterVerification();
-    const pendingCount=_VER_LIST.filter(s=>(s.verification?.status||s.status)==='pending').length;
-    const badge=document.getElementById('sb-badge-verification');
-    if(badge){badge.textContent=pendingCount;badge.style.display=pendingCount>0?'flex':'none';}
-  }catch(e){toast('Verification error: '+e.message,'err');}
+  // _VER_LIST kept live by global seller listener
+  filterVerification();
 }
 function filterVerification(q){
   const sq=(q||document.querySelector('#pg-verification .f-search input')?.value||'').toLowerCase();
@@ -1810,22 +1997,22 @@ async function approveSeller(){
   if(!_CURRENT_VER_ID)return;
   const{db,doc,updateDoc,serverTimestamp}=window._FB;
   await updateDoc(doc(db,'sellers',_CURRENT_VER_ID),{'verification.status':'approved','verification.approvedAt':serverTimestamp(),'verification.approvedBy':window._ADMIN?.name||'Admin',status:'verified'});
-  toast('Seller approved ✅','suc');closeOv('ov-verify');await loadVerification();
+  toast('Seller approved ✅','suc');closeOv('ov-verify');
 }
 async function rejectSeller(){
   if(!_CURRENT_VER_ID)return;
   const reason=document.getElementById('vfy-reason')?.value||'Invalid document';
   const{db,doc,updateDoc,serverTimestamp}=window._FB;
   await updateDoc(doc(db,'sellers',_CURRENT_VER_ID),{'verification.status':'rejected','verification.reason':reason,'verification.rejectedAt':serverTimestamp(),status:'rejected'});
-  toast('Seller rejected','wrn');closeOv('ov-verify');await loadVerification();
+  toast('Seller rejected','wrn');closeOv('ov-verify');
 }
-async function quickApproveSeller(docId){const{db,doc,updateDoc,serverTimestamp}=window._FB;await updateDoc(doc(db,'sellers',docId),{'verification.status':'approved','verification.approvedAt':serverTimestamp(),status:'verified'});toast('Seller approved ✅','suc');await loadVerification();}
-async function quickRejectSeller(docId){const{db,doc,updateDoc,serverTimestamp}=window._FB;await updateDoc(doc(db,'sellers',docId),{'verification.status':'rejected',status:'rejected'});toast('Seller rejected','wrn');await loadVerification();}
+async function quickApproveSeller(docId){const{db,doc,updateDoc,serverTimestamp}=window._FB;await updateDoc(doc(db,'sellers',docId),{'verification.status':'approved','verification.approvedAt':serverTimestamp(),status:'verified'});toast('Seller approved ✅','suc');}
+async function quickRejectSeller(docId){const{db,doc,updateDoc,serverTimestamp}=window._FB;await updateDoc(doc(db,'sellers',docId),{'verification.status':'rejected',status:'rejected'});toast('Seller rejected','wrn');}
 
 /* ════════ CATEGORIES ════════ */
 async function loadCats(){
-  const{db,collection,getDocs,query,orderBy}=window._FB;
-  try{const snap=await getDocs(query(collection(db,'categories'),orderBy('order','asc')));_CATS=snap.docs.map(d=>({_did:d.id,...d.data()}));renderCats();}catch(e){toast('Categories error: '+e.message,'err');}
+  // _CATS is kept live by global listener; just re-render
+  renderCats();
 }
 async function getCatProdCounts(){const{db,collection,getDocs}=window._FB;try{const snap=await getDocs(collection(db,'products'));const cnt={};snap.docs.forEach(d=>{const c=d.data().category;if(c)cnt[c]=(cnt[c]||0)+1;});return cnt;}catch{return {};}}
 async function renderCats(){
@@ -1877,14 +2064,14 @@ async function saveCat(){
   try{
     if(_EDIT_CAT_ID){await updateDoc(doc(db,'categories',_EDIT_CAT_ID),{...data,updatedAt:serverTimestamp()});toast('Category updated ✅','suc');}
     else{await setDoc(doc(db,'categories',id),{...data,createdAt:serverTimestamp()});toast('Category added ✅','suc');}
-    closeOv('ov-cat');await loadCats();
+    closeOv('ov-cat');
   }catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
 }
 async function togCat(docId,active){const{db,doc,updateDoc}=window._FB;await updateDoc(doc(db,'categories',docId),{active});toast('Status updated','inf');}
-function delCat(docId,name){confirm2('Delete Category',`Remove "${name}"?`,async()=>{const{db,doc,deleteDoc}=window._FB;await deleteDoc(doc(db,'categories',docId));await loadCats();toast('Category deleted','inf');});}
+function delCat(docId,name){confirm2('Delete Category',`Remove "${name}"?`,async()=>{const{db,doc,deleteDoc}=window._FB;await deleteDoc(doc(db,'categories',docId));toast('Category deleted','inf');});}
 
 /* ════════ BANNERS ════════ */
-async function loadBanners(){const{db,collection,getDocs,query,orderBy}=window._FB;try{const snap=await getDocs(query(collection(db,'banners'),orderBy('order','asc')));_BANNERS=snap.docs.map(d=>({_did:d.id,...d.data()}));renderBanners();}catch(e){toast('Banners error: '+e.message,'err');}}
+async function loadBanners(){ renderBanners(); }
 function renderBanners(){
   const grid=document.getElementById('ban-grid');if(!grid)return;
   grid.innerHTML=_BANNERS.length?_BANNERS.map(b=>`<div class="card" style="overflow:hidden"><div style="background:${b.bg||'var(--s3)'};padding:18px 22px;position:relative;min-height:80px;display:flex;align-items:center;gap:18px"><div style="flex:1;position:relative;z-index:1">${b.tag?`<div style="font-size:10px;font-weight:700;background:rgba(255,255,255,.18);color:#fff;padding:2px 9px;border-radius:20px;display:inline-block;margin-bottom:7px">${esc(b.tag)}</div>`:''}<div style="font-size:19px;font-weight:800;color:#fff;line-height:1.2">${esc(b.title||'')}</div><div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px">${esc(b.sub||'')}</div></div><div style="font-size:48px;opacity:.75;z-index:1">${b.emoji||'🎉'}</div>${b.imageUrl?`<img src="${b.imageUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.22" alt="">`:''}</div><div class="cb" style="padding:11px 16px;display:flex;align-items:center;gap:12px"><label class="tog" style="transform:scale(.85)"><input type="checkbox" ${b.active?'checked':''} onchange="togBan('${b._did}',this.checked)"><span class="tog-sl"></span></label><span style="font-size:12px;color:var(--text2)">${b.active?'Active':'Inactive'}</span><span style="font-size:11px;color:var(--text3);flex:1">Order: ${b.order||1}</span><button class="btn btn-g btn-xs" onclick="openBannerModal('${b._did}')">✏️</button><button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="delBan('${b._did}','${esc(b.title||'')}')">🗑️</button></div></div>`).join(''):'<div class="empty"><div class="empty-ic">🖼️</div><div class="empty-tt">No banners yet</div><button class="btn btn-p" onclick="openBannerModal(null)" style="margin-top:10px">Add First Banner</button></div>';
@@ -1896,10 +2083,10 @@ async function saveBanner(){
   if(!gv('bm-title')){toast('Title required','wrn');return;}
   const data={title:gv('bm-title'),sub:gv('bm-sub'),btnLabel:gv('bm-btn'),emoji:gv('bm-emoji'),bg:gv('bm-bg'),tag:gv('bm-tag'),action:gv('bm-act'),order:parseInt(gv('bm-ord'))||1,active:document.getElementById('bm-act2')?.checked,imageUrl:_BAN_IMG_URL||null};
   const{db,collection,doc,addDoc,updateDoc,serverTimestamp}=window._FB;const btn=document.getElementById('bm-save');if(btn)btn.classList.add('btn-ld');
-  try{if(_EDIT_BAN_ID){await updateDoc(doc(db,'banners',_EDIT_BAN_ID),{...data,updatedAt:serverTimestamp()});toast('Banner updated ✅','suc');}else{await addDoc(collection(db,'banners'),{...data,createdAt:serverTimestamp()});toast('Banner added ✅','suc');}closeOv('ov-banner');await loadBanners();}catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
+  try{if(_EDIT_BAN_ID){await updateDoc(doc(db,'banners',_EDIT_BAN_ID),{...data,updatedAt:serverTimestamp()});toast('Banner updated ✅','suc');}else{await addDoc(collection(db,'banners'),{...data,createdAt:serverTimestamp()});toast('Banner added ✅','suc');}closeOv('ov-banner');}catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
 }
-async function togBan(docId,active){const{db,doc,updateDoc}=window._FB;await updateDoc(doc(db,'banners',docId),{active});toast('Banner status updated','inf');await loadBanners();}
-function delBan(docId,title){confirm2('Delete Banner',`Remove "${title}"?`,async()=>{const{db,doc,deleteDoc}=window._FB;await deleteDoc(doc(db,'banners',docId));await loadBanners();toast('Banner deleted','inf');});}
+async function togBan(docId,active){const{db,doc,updateDoc}=window._FB;await updateDoc(doc(db,'banners',docId),{active});toast('Banner status updated','inf');}
+function delBan(docId,title){confirm2('Delete Banner',`Remove "${title}"?`,async()=>{const{db,doc,deleteDoc}=window._FB;await deleteDoc(doc(db,'banners',docId));toast('Banner deleted','inf');});}
 
 /* ════════ FLASH DEALS ════════ */
 async function loadFlashDeals(){
@@ -2038,11 +2225,7 @@ async function setThemeLive(docId){
 async function delTheme(docId){const{db,doc,deleteDoc}=window._FB;await deleteDoc(doc(db,'home_themes',docId));toast('Theme deleted','inf');await loadHomeTheme();}
 
 /* ════════ USERS ════════ */
-async function loadUsers(){
-  const{db,collection,getDocs}=window._FB;
-  const tbody=document.getElementById('usr-tbody');if(tbody)tbody.innerHTML='<tr><td colspan="8"><div class="ld"><div class="spin spin-sm"></div></div></td></tr>';
-  try{const snap=await getDocs(collection(db,'users'));_USERS=snap.docs.map(d=>({_did:d.id,...d.data()}));filterUsers();}catch(e){toast('Users error: '+e.message,'err');}
-}
+async function loadUsers(){ filterUsers(); }
 let _USER_BAN_F='';
 function filterUsersBanned(v){_USER_BAN_F=v;filterUsers(document.querySelector('#pg-users .f-search input')?.value||'');}
 function filterUsers(q){
@@ -2065,10 +2248,7 @@ function openUserDrawer(docId){
 async function banUser(docId,ban){const{db,doc,updateDoc}=window._FB;await updateDoc(doc(db,'users',docId),{banned:ban});toast(ban?'User banned':'User unbanned',ban?'wrn':'suc');await loadUsers();}
 
 /* ════════ SELLERS ════════ */
-async function loadSellers(){
-  const{db,collection,getDocs}=window._FB;
-  try{const snap=await getDocs(collection(db,'sellers'));_SELLERS=snap.docs.map(d=>({_did:d.id,...d.data()}));filterSellers();}catch(e){toast('Sellers error: '+e.message,'err');}
-}
+async function loadSellers(){ filterSellers(); }
 function filterSellers(q){
   const sq=(q||document.querySelector('#pg-sellers .f-search input')?.value||'').toLowerCase();
   const st=document.getElementById('sel-st-f')?.value||'';
@@ -2368,17 +2548,17 @@ async function compressImg(file,maxSide=900,quality=0.82){
 }
 
 /* ════════ AI ASSISTANT ════════ */
-/* ════════ AI ASSISTANT — GEMINI 1.5 FLASH ════════ */
+/* ════════ AI ASSISTANT — GROQ (LLaMA 3) ════════ */
 let _AI_OPEN = false;
 let _AI_LOADING = false;
-const GEMINI_API_KEY = 'AIzaSyC5T2EY9k0mN-HVthTL-PXeoT84vCvrj6g';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GROQ_API_KEY = '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';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // Chat history for multi-turn conversation
 let _AI_HISTORY = [];
 
 // Initial greeting already shown in HTML
-const _AI_INITIAL_MSG = "👋 Hi! I'm your **Apykart AI Assistant** powered by Gemini.\n\nI can help you with:\n• 📦 Order management & tracking\n• 🛍️ Product approvals & listings\n• 👥 Seller & user analytics\n• 📊 Sales reports & insights\n• ⚙️ Admin operations\n\nWhat do you need help with?";
+const _AI_INITIAL_MSG = "👋 Hi! I'm your **Apykart AI Assistant** powered by Groq.\n\nI can help you with:\n• 📦 Order management & tracking\n• 🛍️ Product approvals & listings\n• 👥 Seller & user analytics\n• 📊 Sales reports & insights\n• ⚙️ Admin operations\n\nWhat do you need help with?";
 
 function toggleAI() {
   _AI_OPEN = !_AI_OPEN;
@@ -2495,39 +2675,33 @@ async function sendAIMsg() {
   try {
     const systemCtx = buildSystemContext();
 
-    // Build request — Gemini format
-    const requestBody = {
-      system_instruction: {
-        parts: [{ text: systemCtx }]
-      },
-      contents: _AI_HISTORY,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 600,
-        topP: 0.9,
-      },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-      ]
-    };
+    // Build Groq/OpenAI-compatible messages
+    const messages = [
+      { role: 'system', content: systemCtx },
+      ..._AI_HISTORY.map(m => ({ role: m.role === 'model' ? 'assistant' : m.role, content: m.parts[0].text }))
+    ];
 
-    const res = await fetch(GEMINI_URL, {
+    const res = await fetch(GROQ_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + GROQ_API_KEY
+      },
+      body: JSON.stringify({
+        model: 'llama3-8b-8192',
+        messages,
+        temperature: 0.7,
+        max_tokens: 600,
+        top_p: 0.9
+      })
     });
 
     const data = await res.json();
     typing?.remove();
 
-    if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-      const reply = data.candidates[0].content.parts[0].text;
-      // Add to history for multi-turn
+    if (data.choices && data.choices[0]?.message?.content) {
+      const reply = data.choices[0].message.content;
       _AI_HISTORY.push({ role: 'model', parts: [{ text: reply }] });
-      // Keep history manageable (last 20 turns)
       if (_AI_HISTORY.length > 20) _AI_HISTORY = _AI_HISTORY.slice(-20);
       renderAIMsg('bot', reply);
     } else if (data.error) {
@@ -2578,23 +2752,9 @@ function buildPg(elId,total,pages,cur,onPage){
 /* ════════ WITHDRAWALS ════════ */
 let _WITHDRAWALS=[], _WITHDRAWALS_F=[];
 async function loadWithdrawals(){
-  const{db,collection,getDocs,query,orderBy}=window._FB;
-  const list=document.getElementById('wd-list');
-  if(list)list.innerHTML='<div class="ld"><div class="spin"></div></div>';
-  try{
-    // Load from Firestore apykart_withdrawals collection (stored by user panel)
-    const [wSnap, uSnap] = await Promise.all([
-      getDocs(query(collection(db,'withdrawals'),orderBy('date','desc'))).catch(()=>({docs:[]})),
-      getDocs(collection(db,'users')).catch(()=>({docs:[]}))
-    ]);
-    const users = {};
-    uSnap.docs.forEach(d=>{const u=d.data();users[d.id]=u;});
-    _WITHDRAWALS = wSnap.docs.map(d=>({_did:d.id,...d.data()}));
-    _WITHDRAWALS_F = [..._WITHDRAWALS];
-    renderWithdrawals();
-    // Also try localStorage-based (user panel saves locally)
-    updateWithdrawalBadge();
-  }catch(e){toast('Error loading withdrawals: '+e.message,'err');}
+  // _WITHDRAWALS kept live by global listener
+  renderWithdrawals();
+  updateWithdrawalBadge();
 }
 
 function renderWithdrawals(){
@@ -2836,33 +2996,8 @@ async function adjustCoins(){
 }
 
 /* ════════ ENHANCED VERIFICATION (Improved Document Viewer) ════════ */
-async function loadVerification(){
-  const{db,collection,getDocs,query,orderBy}=window._FB;
-  const list=document.getElementById('ver-list');
-  if(list)list.innerHTML='<div class="ld"><div class="spin"></div></div>';
-  const cntEl=document.getElementById('ver-cnt');
-  try{
-    // Load from 'seller_verifications' collection (user panel saves here)
-    const snap=await getDocs(collection(db,'seller_verifications')).catch(()=>({docs:[]}));
-    _VER_LIST=snap.docs.map(d=>({_did:d.id,...d.data()}));
-    
-    // Also try loading from users collection (user panel saves in localStorage, not Firestore always)
-    const userSnap=await getDocs(collection(db,'users')).catch(()=>({docs:[]}));
-    userSnap.docs.forEach(d=>{
-      const u=d.data();
-      if(u.sellerVerification&&!_VER_LIST.find(v=>v.userId===d.id)){
-        _VER_LIST.push({_did:'local_'+d.id,userId:d.id,userName:u.name||'',userPhone:u.phone||'',...u.sellerVerification});
-      }
-    });
-    
-    _VER_F=[..._VER_LIST];
-    const pending=_VER_LIST.filter(v=>v.status==='pending').length;
-    if(cntEl)cntEl.textContent=_VER_LIST.length+' applications';
-    const badge=document.getElementById('sb-badge-verification');
-    if(badge){badge.textContent=pending;badge.style.display=pending>0?'flex':'none';}
-    renderVerification();
-  }catch(e){if(list)list.innerHTML='<div class="empty"><div class="empty-ic">🔍</div><div class="empty-tt">Could not load verifications</div><div class="empty-sb">'+esc(e.message)+'</div></div>';}
-}
+// loadVerification handled by global listener
+
 
 function renderVerification(){
   const list=document.getElementById('ver-list');if(!list)return;
@@ -2930,7 +3065,6 @@ async function approveVerification(docId,userId){
         await setDoc(doc(db,'sellers',userId),{uid:userId,name:verData.userName||'',phone:verData.userPhone||'',status:'verified',verifiedAt:serverTimestamp(),verifiedBy:window._ADMIN?.name||'Admin',docType:verData.docType||'',createdAt:serverTimestamp()},{merge:true});
       }
       toast('Seller approved ✅ They can now list products.','suc');
-      await loadVerification();
     }catch(e){toast('Error: '+e.message,'err');}
   },'✅','Approve');
 }
@@ -2946,7 +3080,6 @@ async function rejectVerification(docId,userId){
         await updateDoc(doc(db,'users',userId),{'sellerVerification.status':'rejected',updatedAt:serverTimestamp()}).catch(()=>{});
       }
       toast('Application rejected','wrn');
-      await loadVerification();
     }catch(e){toast('Error: '+e.message,'err');}
   },'❌','Reject');
 }
@@ -2954,6 +3087,11 @@ async function rejectVerification(docId,userId){
 function updateWithdrawalBadge_count(count){
   const badge=document.getElementById('sb-badge-withdrawals');
   if(badge){badge.textContent=count;badge.style.display=count>0?'flex':'none';}
+}
+function syncMobileBadges(){
+  const ob=document.getElementById('sb-badge-orders');
+  const mob=document.getElementById('mbn-badge-orders');
+  if(ob&&mob){mob.textContent=ob.textContent;mob.style.display=ob.style.display;}
 }
 
 </script>
