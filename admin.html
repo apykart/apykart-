@@ -1173,9 +1173,82 @@ img { display: block; max-width: 100%; }
         </div>
       </div>
 
+      <!-- ── VIDEO APPROVAL ── -->
+      <div class="pg" id="pg-video-approval">
+        <div class="sh">
+          <div><h1>🎬 Video Approval</h1><p>Review and moderate user-uploaded product videos</p></div>
+          <div class="sh-acts">
+            <span id="vid-cnt" style="font-size:12px;color:var(--text3)"></span>
+            <button class="btn btn-g btn-sm" onclick="loadVideoApproval()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="mini-stats-row" id="vid-stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+          <div class="mini-stat"><div class="mini-stat-val" id="vid-stat-pending" style="color:var(--amber)">—</div><div class="mini-stat-lbl">⏳ Pending</div></div>
+          <div class="mini-stat"><div class="mini-stat-val" id="vid-stat-approved" style="color:var(--green)">—</div><div class="mini-stat-lbl">✅ Approved</div></div>
+          <div class="mini-stat"><div class="mini-stat-val" id="vid-stat-rejected" style="color:var(--red)">—</div><div class="mini-stat-lbl">❌ Rejected</div></div>
+        </div>
+        <div class="fltr-bar">
+          <div class="f-search"><span style="font-size:13px;color:var(--text3)">🔍</span><input placeholder="Title, product, uploader…" oninput="filterVideos(this.value)"></div>
+          <select class="f-sel" id="vid-st-f" onchange="filterVideos()">
+            <option value="">All Statuses</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="approved">✅ Approved</option>
+            <option value="rejected">❌ Rejected</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="tw">
+            <table class="dt">
+              <thead>
+                <tr>
+                  <th>Thumb</th>
+                  <th>Title / Product</th>
+                  <th>Uploader</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vid-tbody"></tbody>
+            </table>
+          </div>
+          <div id="vid-pg" class="pg-wrap"></div>
+        </div>
+      </div>
+
     </div><!-- end CT -->
   </div><!-- end MAIN -->
 </div><!-- end APP -->
+
+<!-- Video Preview Modal -->
+<div class="ov" id="ov-video-preview">
+  <div class="mod" style="max-width:680px;width:95vw">
+    <div class="mh">
+      <div class="mt" id="vid-prev-title">🎬 Video Preview</div>
+      <div class="mx" onclick="closeVideoPreview()">✕</div>
+    </div>
+    <div class="mb" style="padding:0">
+      <div style="background:#000;position:relative;padding-top:56.25%;border-radius:0 0 var(--r) var(--r);overflow:hidden">
+        <video id="vid-prev-player" controls style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain" src=""></video>
+      </div>
+      <div style="padding:16px 20px">
+        <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:15px;font-weight:700;margin-bottom:4px" id="vid-prev-name">—</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:4px" id="vid-prev-product">—</div>
+            <div style="font-size:12px;color:var(--text2)" id="vid-prev-uploader">—</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px" id="vid-prev-date">—</div>
+          </div>
+          <div style="font-size:20px;font-weight:800;color:var(--blue)" id="vid-prev-price">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="mf" id="vid-prev-actions" style="padding:14px 20px;justify-content:flex-end;gap:8px">
+      <!-- Approve/Reject buttons injected dynamically -->
+    </div>
+  </div>
+</div>
 
 <!-- MODALS -->
 <div class="ov" id="ov-confirm">
@@ -1481,6 +1554,7 @@ let _SELLERS=[],_SELLERS_F=[],_SELLERS_P=1;
 let _CATS=[],_BANNERS=[],_MGRS=[],_NOTIFS=[],_FLASH_DEALS=[],_FEATURED={};
 let _PEND_PRODS=[],_PEND_PRODS_F=[],_PEND_P=1;
 let _VER_LIST=[],_VER_F=[],_CURRENT_VER_ID=null;
+let _VIDEOS=[],_VIDEOS_F=[],_VIDEOS_P=1,_VID_UNSUB=null;
 let _EDIT_PROD_ID=null,_EDIT_CAT_ID=null,_EDIT_BAN_ID=null,_EDIT_MGR_ID=null,_EDIT_SEL_ID=null;
 let _FEAT_TAGS=[],_PROD_IMGS=[],_BAN_IMG_URL=null,_CAT_IMG_URL=null,_FLASH_IMG_URL=null,_HOME_IMG_URL=null;
 let _ORD_UNSUB=null,_PRD_UNSUB=null,_CAT_UNSUB=null,_BAN_UNSUB=null,_USR_UNSUB=null,_SEL_UNSUB=null,_WD_UNSUB=null;
@@ -1593,6 +1667,22 @@ function startGlobalListeners(){
       e=>console.warn('🔴 Withdrawals listener:',e)
     );
   }catch(e){console.warn('Withdrawals listener setup failed:',e);}
+
+  // ── Videos (live) ──
+  if(_VID_UNSUB)_VID_UNSUB();
+  try{
+    _VID_UNSUB=onSnapshot(
+      query(collection(db,'videos'),orderBy('uploadedAt','desc')),
+      snap=>{
+        _VIDEOS=snap.docs.map(d=>({_did:d.id,...d.data()}));
+        const pendingVids=_VIDEOS.filter(v=>v.status==='pending').length;
+        const b=document.getElementById('sb-badge-videos');
+        if(b){b.textContent=pendingVids;b.style.display=pendingVids>0?'flex':'none';}
+        if(_PAGE==='video-approval')filterVideos();
+      },
+      e=>console.warn('🔴 Videos listener:',e)
+    );
+  }catch(e){console.warn('Videos listener setup failed:',e);}
 }
 
 /* ════════ HELPERS ════════ */
@@ -1609,7 +1699,7 @@ function strColor(s){const cols=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf
 /* ════════ NAV ════════ */
 const NAV_ITEMS = [
   {g:'Overview', items:[{k:'dashboard',l:'Dashboard',i:'📊'}]},
-  {g:'Commerce', items:[{k:'orders',l:'Orders',i:'📦',badge:true},{k:'products',l:'Products',i:'🛍️'},{k:'product-approval',l:'Product Approval',i:'✅',badge2:true},{k:'flash-deals',l:'Flash Deals',i:'⚡'},{k:'featured',l:'Featured Sections',i:'🌟'}]},
+  {g:'Commerce', items:[{k:'orders',l:'Orders',i:'📦',badge:true},{k:'products',l:'Products',i:'🛍️'},{k:'product-approval',l:'Product Approval',i:'✅',badge2:true},{k:'video-approval',l:'Video Approval',i:'🎬',badge5:true},{k:'flash-deals',l:'Flash Deals',i:'⚡'},{k:'featured',l:'Featured Sections',i:'🌟'}]},
   {g:'Marketplace', items:[{k:'sellers',l:'Sellers',i:'🏪'},{k:'verification',l:'Verification',i:'🔍',badge3:true},{k:'categories',l:'Categories',i:'🏷️'},{k:'banners',l:'Banners',i:'🖼️'}]},
   {g:'People', items:[{k:'users',l:'Users',i:'👥'},{k:'managers',l:'Managers',i:'🔑'}]},
   {g:'Design', items:[{k:'home-theme',l:'Home Theme Builder',i:'🎨'}]},
@@ -1630,6 +1720,7 @@ function buildNav(){
       ${it.badge2?`<span class="ni-badge" id="sb-badge-approval" style="display:none">0</span>`:''}
       ${it.badge3?`<span class="ni-badge" id="sb-badge-verification" style="display:none">0</span>`:''}
       ${it.badge4?`<span class="ni-badge" id="sb-badge-withdrawals" style="display:none">0</span>`:''}
+      ${it.badge5?`<span class="ni-badge" id="sb-badge-videos" style="display:none">0</span>`:''}
     </div>`).join('')}
   `).join('');
 }
@@ -1701,11 +1792,11 @@ async function doReset(){
   catch(e){showErr(e.message);}
   finally{btn.classList.remove('loading');}
 }
-async function doLogout(){[_ORD_UNSUB,_PRD_UNSUB,_CAT_UNSUB,_BAN_UNSUB,_USR_UNSUB,_SEL_UNSUB,_WD_UNSUB].forEach(u=>{try{if(u)u();}catch(e){}});await window._FB.signOut(window._FB.auth);toast('Logged out','inf','Bye!');}
+async function doLogout(){[_ORD_UNSUB,_PRD_UNSUB,_CAT_UNSUB,_BAN_UNSUB,_USR_UNSUB,_SEL_UNSUB,_WD_UNSUB,_VID_UNSUB].forEach(u=>{try{if(u)u();}catch(e){}});await window._FB.signOut(window._FB.auth);toast('Logged out','inf','Bye!');}
 function showErr(msg){const e=document.getElementById('auth-err');e.textContent='❌ '+msg;e.classList.add('show');}
 
 /* ════════ PAGE NAVIGATION ════════ */
-const PAGE_TITLES={dashboard:'Dashboard',orders:'Orders',products:'Products','product-approval':'Product Approval',categories:'Categories',banners:'Banners',users:'Users',managers:'Managers',notifications:'Notifications',settings:'Settings','store-config':'Store Configuration',sellers:'Sellers',verification:'Seller Verification','flash-deals':'Flash Deals',featured:'Featured Sections','home-theme':'Home Theme Builder',withdrawals:'Withdrawal Requests',earnings:'Seller Earnings',coins:'Coin Management'};
+const PAGE_TITLES={dashboard:'Dashboard',orders:'Orders',products:'Products','product-approval':'Product Approval','video-approval':'Video Approval',categories:'Categories',banners:'Banners',users:'Users',managers:'Managers',notifications:'Notifications',settings:'Settings','store-config':'Store Configuration',sellers:'Sellers',verification:'Seller Verification','flash-deals':'Flash Deals',featured:'Featured Sections','home-theme':'Home Theme Builder',withdrawals:'Withdrawal Requests',earnings:'Seller Earnings',coins:'Coin Management'};
 function nav(page){
   _PAGE=page;
   // Close mobile sidebar on nav
@@ -1715,7 +1806,7 @@ function nav(page){
   if(el)el.classList.add('on');
   document.getElementById('tb-title').textContent=PAGE_TITLES[page]||page;
   buildNav();
-  const loaders={dashboard:loadDashboard,orders:loadOrders,products:loadProducts,'product-approval':loadProductApproval,categories:loadCats,banners:loadBanners,users:loadUsers,managers:loadMgrs,notifications:loadNotifs,settings:loadSettings,'store-config':loadStoreConfig,sellers:loadSellers,verification:loadVerification,'flash-deals':loadFlashDeals,featured:loadFeatured,'home-theme':loadHomeTheme,withdrawals:loadWithdrawals,earnings:loadSellerEarnings,coins:loadCoinManagement};
+  const loaders={dashboard:loadDashboard,orders:loadOrders,products:loadProducts,'product-approval':loadProductApproval,'video-approval':loadVideoApproval,categories:loadCats,banners:loadBanners,users:loadUsers,managers:loadMgrs,notifications:loadNotifs,settings:loadSettings,'store-config':loadStoreConfig,sellers:loadSellers,verification:loadVerification,'flash-deals':loadFlashDeals,featured:loadFeatured,'home-theme':loadHomeTheme,withdrawals:loadWithdrawals,earnings:loadSellerEarnings,coins:loadCoinManagement};
   if(loaders[page])loaders[page]();
 }
 
@@ -3080,6 +3171,143 @@ async function rejectVerification(docId,userId){
         await updateDoc(doc(db,'users',userId),{'sellerVerification.status':'rejected',updatedAt:serverTimestamp()}).catch(()=>{});
       }
       toast('Application rejected','wrn');
+    }catch(e){toast('Error: '+e.message,'err');}
+  },'❌','Reject');
+}
+
+/* ════════ VIDEO APPROVAL ════════ */
+function loadVideoApproval(){
+  // _VIDEOS kept live by global listener
+  filterVideos();
+}
+
+function filterVideos(q){
+  const sq=(q||document.querySelector('#pg-video-approval .f-search input')?.value||'').toLowerCase();
+  const st=document.getElementById('vid-st-f')?.value||'';
+  _VIDEOS_F=_VIDEOS.filter(v=>{
+    const mq=!sq
+      ||(v.title||'').toLowerCase().includes(sq)
+      ||(v.productName||v.product||'').toLowerCase().includes(sq)
+      ||(v.uploaderName||v.sellerName||v.userName||'').toLowerCase().includes(sq)
+      ||(v.uploaderId||v.userId||'').toLowerCase().includes(sq);
+    const ms=!st||v.status===st;
+    return mq&&ms;
+  });
+  _VIDEOS_P=1;
+  // Update mini stats
+  setEl('vid-stat-pending',_VIDEOS.filter(v=>v.status==='pending').length);
+  setEl('vid-stat-approved',_VIDEOS.filter(v=>v.status==='approved').length);
+  setEl('vid-stat-rejected',_VIDEOS.filter(v=>v.status==='rejected').length);
+  renderVideos();
+}
+
+function renderVideos(){
+  const{items,total,pages}=paginate(_VIDEOS_F,_VIDEOS_P);
+  const tbody=document.getElementById('vid-tbody');if(!tbody)return;
+  const stMap={
+    pending:{b:'bdg-a',l:'⏳ Pending'},
+    approved:{b:'bdg-g',l:'✅ Approved'},
+    rejected:{b:'bdg-r',l:'❌ Rejected'}
+  };
+  tbody.innerHTML=items.length?items.map(v=>{
+    const st=stMap[v.status||'pending']||{b:'bdg-n',l:v.status||'Unknown'};
+    const thumb=v.thumbnailUrl||v.thumb||'';
+    const videoUrl=v.videoUrl||v.url||'';
+    const title=esc(v.title||v.name||'Untitled Video');
+    const product=esc(v.productName||v.product||'—');
+    const uploader=esc(v.uploaderName||v.sellerName||v.userName||v.uploaderId||'—');
+    const price=v.price?fmtC(v.price):'—';
+    return `<tr>
+      <td>
+        <div class="thmb thmb-md" style="position:relative;cursor:pointer" onclick="previewVideo('${v._did}')">
+          ${thumb
+            ?`<img src="${thumb}" alt="thumb" style="width:100%;height:100%;object-fit:cover">`
+            :`<div style="width:100%;height:100%;background:var(--s4);display:flex;align-items:center;justify-content:center;font-size:22px">🎬</div>`}
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+            <span style="color:#fff;font-size:22px">▶</span>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="td-bold">${title}</div>
+        <div style="font-size:11px;color:var(--text3)">📦 ${product}</div>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="ava ava-sm" style="background:${strColor(v.uploaderName||v.userId||'U')}">${initials(v.uploaderName||v.userName||'U')}</div>
+          <div style="font-size:12px;font-weight:600">${uploader}</div>
+        </div>
+      </td>
+      <td class="td-bold" style="color:var(--blue)">${price}</td>
+      <td><span class="bdg ${st.b}">${st.l}</span></td>
+      <td style="font-size:11px;color:var(--text3)">${relTime(v.uploadedAt||v.createdAt)}</td>
+      <td>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          ${videoUrl?`<button class="btn btn-g btn-xs" onclick="previewVideo('${v._did}')">▶ Preview</button>`:''}
+          ${v.status==='pending'?`
+            <button class="btn btn-s btn-xs" onclick="approveVideo('${v._did}')">✅ Approve</button>
+            <button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="rejectVideo('${v._did}')">❌ Reject</button>
+          `:''}
+          ${v.status==='approved'?`<button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="rejectVideo('${v._did}')">❌ Reject</button>`:''}
+          ${v.status==='rejected'?`<button class="btn btn-s btn-xs" onclick="approveVideo('${v._did}')">✅ Approve</button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="7"><div class="empty"><div class="empty-ic">🎬</div><div class="empty-tt">No videos found</div><div class="empty-sb">User-uploaded product videos will appear here.</div></div></td></tr>';
+  setEl('vid-cnt',total+' videos');
+  buildPg('vid-pg',total,pages,_VIDEOS_P,p=>{_VIDEOS_P=p;renderVideos();});
+}
+
+function previewVideo(docId){
+  const v=_VIDEOS.find(x=>x._did===docId);if(!v)return;
+  const player=document.getElementById('vid-prev-player');
+  const videoUrl=v.videoUrl||v.url||'';
+  if(player){player.src=videoUrl;player.load();}
+  setEl('vid-prev-title','🎬 '+(v.title||'Video Preview'));
+  setEl('vid-prev-name',v.title||v.name||'Untitled');
+  setEl('vid-prev-product','📦 '+(v.productName||v.product||'No product linked'));
+  setEl('vid-prev-uploader','👤 '+(v.uploaderName||v.sellerName||v.userName||v.uploaderId||'Unknown'));
+  setEl('vid-prev-date',fmtDT(v.uploadedAt||v.createdAt));
+  setEl('vid-prev-price',v.price?fmtC(v.price):'—');
+  const actEl=document.getElementById('vid-prev-actions');
+  if(actEl){
+    actEl.innerHTML=`
+      <button class="btn btn-g btn-sm" onclick="closeVideoPreview()">Close</button>
+      ${v.status!=='rejected'?`<button class="btn btn-sm" style="background:var(--red-g);color:var(--red)" onclick="rejectVideo('${v._did}');closeVideoPreview()">❌ Reject</button>`:''}
+      ${v.status!=='approved'?`<button class="btn btn-s btn-sm" onclick="approveVideo('${v._did}');closeVideoPreview()">✅ Approve</button>`:''}
+    `;
+  }
+  openOv('ov-video-preview');
+}
+
+function closeVideoPreview(){
+  const player=document.getElementById('vid-prev-player');
+  if(player){player.pause();player.src='';}
+  closeOv('ov-video-preview');
+}
+
+async function approveVideo(docId){
+  const{db,doc,updateDoc,serverTimestamp}=window._FB;
+  try{
+    await updateDoc(doc(db,'videos',docId),{
+      status:'approved',
+      approvedAt:serverTimestamp(),
+      approvedBy:window._ADMIN?.name||'Admin'
+    });
+    toast('Video approved ✅','suc');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function rejectVideo(docId){
+  confirm2('Reject Video','Are you sure you want to reject this video?',async()=>{
+    const{db,doc,updateDoc,serverTimestamp}=window._FB;
+    try{
+      await updateDoc(doc(db,'videos',docId),{
+        status:'rejected',
+        rejectedAt:serverTimestamp(),
+        rejectedBy:window._ADMIN?.name||'Admin'
+      });
+      toast('Video rejected','wrn');
     }catch(e){toast('Error: '+e.message,'err');}
   },'❌','Reject');
 }
