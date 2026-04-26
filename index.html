@@ -1,9 +1,157 @@
 <!DOCTYPE html>
+<!--
+╔══════════════════════════════════════════════════════════════════════╗
+║           FIRESTORE SECURITY RULES — Copy to Firebase Console        ║
+║           Project: apykart-916 → Firestore → Rules                   ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── HELPER FUNCTIONS ───
+    function isLoggedIn() { return request.auth != null; }
+    function isOwner(uid) { return request.auth.uid == uid; }
+    function isManager() {
+      return isLoggedIn() &&
+        exists(/databases/$(database)/documents/managers/$(request.auth.uid));
+    }
+
+    // ─── USERS ───
+    match /users/{uid} {
+      allow read:  if isOwner(uid) || isManager();
+      allow write: if isOwner(uid);
+
+      // Orders subcollection
+      match /orders/{orderId} {
+        allow read:  if isOwner(uid) || isManager();
+        allow create: if isOwner(uid);
+        allow update: if isManager();
+        allow delete: if false;
+      }
+    }
+
+    // ─── PRODUCTS ───
+    match /products/{productId} {
+      allow read: if true;  // Public
+      allow create: if isLoggedIn();  // Sellers can add
+      allow update: if isLoggedIn() &&
+        (resource.data.sellerId == request.auth.uid || isManager());
+      allow delete: if isManager();
+    }
+
+    // ─── VIDEOS ───
+    match /videos/{videoId} {
+      allow read: if true;  // Public (approved videos)
+      allow create: if isLoggedIn();
+      allow update: if isLoggedIn() &&
+        (resource.data.uploaderUid == request.auth.uid || isManager());
+      allow delete: if isLoggedIn() &&
+        (resource.data.uploaderUid == request.auth.uid || isManager());
+    }
+
+    // ─── ALL_ORDERS (Admin view) ───
+    match /all_orders/{orderId} {
+      allow read: if isManager();
+      allow create: if true;  // Orders created by anyone (including guests)
+      allow update: if isManager();
+      allow delete: if false;
+    }
+
+    // ─── SETTINGS (App branding/theme) ───
+    match /settings/{doc} {
+      allow read: if true;   // Public branding
+      allow write: if isManager();
+    }
+
+    // ─── MANAGERS (Admin/CEO roles) ───
+    match /managers/{uid} {
+      allow read: if isLoggedIn();
+      allow write: if isManager();
+    }
+
+    // ─── REFERRALS ───
+    match /referrals/{refId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn();
+      allow update: if isManager();
+      allow delete: if false;
+    }
+  }
+}
+
+════════════════════════════════════════════════════════════════════════
+
+FIREBASE STORAGE RULES — Copy to Firebase Console → Storage → Rules:
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Videos: authenticated users can upload, public can read
+    match /videos/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.size < 100 * 1024 * 1024  // Max 100MB
+        && request.resource.contentType.matches('video/.*');
+    }
+
+    // Images: authenticated users can upload
+    match /images/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024   // Max 5MB
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Seller documents
+    match /seller_docs/{userId}/{fileName} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == userId || true);  // Manager check via custom claims
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024;  // Max 10MB
+    }
+  }
+}
+
+════════════════════════════════════════════════════════════════════════
+DATA STRUCTURE OVERVIEW:
+  Firestore Collections:
+  ├── users/{uid}
+  │   ├── cart[]
+  │   ├── wishlist[]
+  │   ├── addresses[]
+  │   ├── coins{}
+  │   ├── profile{}
+  │   ├── role
+  │   ├── seller_verification{}
+  │   ├── seller_products[]
+  │   ├── seller_earnings[]
+  │   ├── withdrawals[]
+  │   ├── seller_profile{}
+  │   ├── user_videos[]
+  │   └── orders/  ← subcollection
+  │       └── {orderId}
+  ├── products/{productId}
+  ├── videos/{videoId}
+  ├── all_orders/{orderId}
+  ├── settings/
+  │   ├── app_branding
+  │   └── app_theme
+  ├── managers/{uid}
+  └── referrals/{refId}
+
+  Firebase Storage:
+  ├── videos/{uid}/{timestamp_filename}
+  ├── images/{uid}/{timestamp_filename}
+  └── seller_docs/{uid}/{filename}
+════════════════════════════════════════════════════════════════════════
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Apykart – Shop Smarter</title>
+<title>apykart – Earn Via Shop & Create </title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -15,7 +163,7 @@
   --coin:#b45309;--coin-bg:#fffbeb;--coin-border:#fde68a;
   --bg:#f0f2f5;--card:#fff;--text:#111827;--text2:#4b5563;--text3:#9ca3af;
   --border:#e5e7eb;--shadow:0 2px 12px rgba(0,0,0,.07);--shadow2:0 1px 4px rgba(0,0,0,.06);--shadow3:0 8px 32px rgba(37,99,235,.18);
-  --header-h:60px;--nav-h:62px;--radius:14px;--radius-sm:10px;--radius-lg:18px;
+  --header-h:68px;--nav-h:62px;--radius:14px;--radius-sm:10px;--radius-lg:18px;
   --font-head:'Plus Jakarta Sans',system-ui,sans-serif;--font-body:'Inter',system-ui,sans-serif;
 }
 html,body{height:100%;height:-webkit-fill-available;overflow:hidden;background:var(--bg);font-family:var(--font-body);color:var(--text);-webkit-font-smoothing:antialiased}
@@ -45,7 +193,7 @@ a{text-decoration:none;color:inherit}
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh;height:-webkit-fill-available;max-width:480px;margin:0 auto;position:relative;background:var(--bg);overflow:hidden;box-shadow:0 0 80px rgba(0,0,0,.1)}
 
 /* ─── HEADER ─── */
-.app-header{height:var(--header-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;position:relative;z-index:100;flex-shrink:0}
+.app-header{height:70px;background:linear-gradient(135deg,#fff 0%,#f0f6ff 100%);border-bottom:1px solid rgba(37,99,235,.1);display:flex;align-items:center;padding:0 14px;gap:10px;position:relative;z-index:100;flex-shrink:0;box-shadow:0 2px 16px rgba(37,99,235,.06)}
 .app-header.hidden{display:none}
 .header-logo{display:flex;align-items:center;gap:8px;flex:1;cursor:pointer}
 .header-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:9px;display:flex;align-items:center;justify-content:center}
@@ -124,7 +272,7 @@ a{text-decoration:none;color:inherit}
 .product-card{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow2);cursor:pointer;transition:transform .15s;border:1px solid var(--border);position:relative}
 .product-card:active{transform:scale(.96)}
 .product-img-wrap{background:#f8fafc;height:180px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.product-img-wrap img{width:100%;height:100%;object-fit:contain;display:block;padding:8px}
+.product-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;padding:0;position:absolute;inset:0}
 .product-img-placeholder{font-size:56px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
 .product-badge{position:absolute;top:8px;left:8px;background:var(--danger);color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:5px;z-index:1;letter-spacing:.3px}
 .wish-btn-card{position:absolute;top:7px;right:7px;width:28px;height:28px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow2);cursor:pointer;z-index:2;border:none;transition:transform .15s}
@@ -569,6 +717,120 @@ a{text-decoration:none;color:inherit}
 .media-slide-preview-btn{position:absolute;bottom:9px;left:9px;background:rgba(0,0,0,.5);color:#fff;font-size:10px;font-weight:700;padding:5px 9px;border-radius:7px;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;z-index:6;backdrop-filter:blur(4px)}
 .media-slide-preview-btn svg{width:12px;height:12px}
 
+
+/* ─── HEADER UPGRADE ─── */
+.app-header{background:linear-gradient(135deg,#fff 0%,#f0f6ff 100%)!important;border-bottom:1px solid rgba(37,99,235,.1)!important;box-shadow:0 2px 16px rgba(37,99,235,.06)!important;height:68px!important}
+.header-logo{flex-direction:column!important;gap:1px!important;align-items:flex-start!important}
+.header-logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;border-radius:10px!important;box-shadow:0 4px 12px rgba(37,99,235,.35)!important}
+.header-logo-text{font-size:21px!important;background:linear-gradient(135deg,#111827,#1e40af);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important}
+.header-logo-text span{background:linear-gradient(135deg,#2563eb,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;color:transparent!important}
+.header-video-pill{display:flex;align-items:center;gap:3px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);border-radius:99px;padding:2px 7px;margin-top:1px}
+.header-video-dot{width:5px;height:5px;background:#f97316;border-radius:50%;animation:videoPulse 2s infinite;flex-shrink:0}
+@keyframes videoPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
+.header-video-label{font-size:9px;font-weight:700;color:#ea580c;letter-spacing:.3px;text-transform:uppercase}
+.header-btn{background:rgba(37,99,235,.06)!important;border:1.5px solid rgba(37,99,235,.12)!important;color:var(--primary)!important;border-radius:12px!important;width:38px!important;height:38px!important}
+.header-upload-btn{background:linear-gradient(135deg,#f97316,#ea580c)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 3px 10px rgba(249,115,22,.3)!important}
+
+/* ─── XPLOR PAGE ─── */
+#page-xplor{display:none;height:100%;overflow:hidden!important}
+#page-xplor.active{display:flex;flex-direction:column}
+#page-my-videos{padding-bottom:0}
+/* Override page-scroll overflow when xplor is active */
+.page-scroll.xplor-active{overflow:hidden!important}
+
+#page-xplor{background:#000;height:100%;position:relative;overflow:hidden}
+.xplor-feed{height:100%;position:relative;overflow:hidden;touch-action:pan-y}
+.xplor-video-slide{position:absolute;inset:0;transition:transform .35s cubic-bezier(.4,0,.2,1);background:#000}
+.xplor-video-slide.current{transform:translateY(0)}
+.xplor-video-slide.prev{transform:translateY(-100%)}
+.xplor-video-slide.next{transform:translateY(100%)}
+.xplor-video-bg{width:100%;height:100%;object-fit:cover;display:block}
+.xplor-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 40%,transparent 70%,rgba(0,0,0,.2) 100%);pointer-events:none}
+.xplor-product-info{position:absolute;bottom:80px;left:0;right:64px;padding:0 16px;pointer-events:all}
+.xplor-product-name{font-family:var(--font-head);font-size:16px;font-weight:800;color:#fff;margin-bottom:4px;line-height:1.3;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.xplor-product-price{font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.xplor-price-badge{background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px}
+.xplor-product-desc{font-size:12px;color:rgba(255,255,255,.8);font-weight:500;line-height:1.4}
+.xplor-actions{position:absolute;bottom:80px;right:12px;display:flex;flex-direction:column;gap:16px;align-items:center}
+.xplor-action-btn{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.xplor-action-icon{width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.2)}
+.xplor-action-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.9)}
+.xplor-buy-bar{position:absolute;bottom:10px;left:12px;right:12px;display:flex;gap:8px}
+.xplor-add-cart{flex:1;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-size:13px;font-weight:800;padding:11px;border-radius:12px;cursor:pointer;transition:all .2s}
+.xplor-buy-now{flex:1;background:var(--accent);color:#fff;font-size:13px;font-weight:800;padding:11px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,.4)}
+.xplor-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#fff;gap:14px;text-align:center;padding:20px}
+.xplor-play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.xplor-play-icon{width:60px;height:60px;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid rgba(255,255,255,.4);pointer-events:all;cursor:pointer;transition:transform .15s;opacity:0}
+.xplor-play-icon.visible{opacity:1}
+.xplor-slide-counter{position:absolute;top:14px;right:14px;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(255,255,255,.15)}
+.xplor-creator{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.xplor-creator-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ec4899);display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid rgba(255,255,255,.3);flex-shrink:0}
+.xplor-creator-name{font-size:12px;font-weight:700;color:rgba(255,255,255,.9)}
+
+/* ─── VIDEO UPLOAD ─── */
+.upload-page{height:100%;display:flex;flex-direction:column;background:#fff}
+.upload-steps{display:flex;padding:0 16px;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.upload-steps::-webkit-scrollbar{display:none}
+.upload-step-tab{flex-shrink:0;padding:10px 12px;font-size:11px;font-weight:700;color:var(--text3);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .2s}
+.upload-step-tab.active{color:var(--primary);border-color:var(--primary)}
+.upload-step-tab.done{color:var(--success)}
+.upload-body{flex:1;overflow-y:auto;padding:16px;padding-bottom:80px}
+.upload-dropzone{border:2px dashed var(--primary-mid);border-radius:var(--radius-lg);padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;cursor:pointer;background:var(--primary-light);transition:all .2s;margin-bottom:16px}
+.upload-dropzone:active,.upload-dropzone.drag{border-color:var(--primary);background:#e0eaff}
+.upload-dropzone-icon{font-size:48px}
+.upload-dropzone-title{font-family:var(--font-head);font-size:16px;font-weight:800;color:var(--primary)}
+.upload-dropzone-sub{font-size:12px;color:var(--text2)}
+.upload-preview-thumb{width:100%;max-height:200px;border-radius:var(--radius);overflow:hidden;position:relative;margin-bottom:14px;background:#000;display:flex;align-items:center;justify-content:center}
+.upload-preview-thumb video{width:100%;max-height:200px;object-fit:cover}
+.upload-cta-bar{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;padding:10px 16px;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;gap:10px;z-index:50}
+
+/* ─── MY VIDEOS (PROFILE) ─── */
+.my-videos-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;padding:0}
+.my-video-thumb{aspect-ratio:9/16;background:#111;position:relative;overflow:hidden;cursor:pointer}
+.my-video-thumb video,.my-video-thumb img{width:100%;height:100%;object-fit:cover}
+.my-video-status{position:absolute;top:6px;left:6px;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px}
+.my-video-status.pending{background:#fef3c7;color:#92400e}
+.my-video-status.approved{background:#dcfce7;color:#166534}
+.my-video-status.rejected{background:#fee2e2;color:#b91c1c}
+.my-video-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.2)}
+.profile-upload-fab{position:absolute;top:14px;right:14px;width:36px;height:36px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);transition:transform .15s}
+.profile-upload-fab:active{transform:scale(.88)}
+
+/* ─── PRODUCT DETAIL UPGRADE ─── */
+.detail-title{font-family:var(--font-head);font-size:20px;font-weight:900;color:var(--text);line-height:1.25;margin-bottom:12px;letter-spacing:-.3px}
+.detail-price-section{background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;border:1px solid #bae6fd}
+.detail-price{font-family:var(--font-head);font-size:28px;font-weight:900;color:var(--text);letter-spacing:-.5px}
+.detail-og-price{font-size:14px;color:var(--text3);text-decoration:line-through}
+.detail-discount-text{font-size:14px;font-weight:800;color:#16a34a}
+.detail-offers-strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 13px 14px;padding-bottom:2px}
+.detail-offers-strip::-webkit-scrollbar{display:none}
+.detail-offer-chip{flex-shrink:0;display:flex;align-items:center;gap:5px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px}
+.detail-offer-chip-icon{font-size:16px}
+.detail-offer-chip-text{display:flex;flex-direction:column}
+.detail-offer-chip-label{font-size:10px;font-weight:800;color:var(--text)}
+.detail-offer-chip-sub{font-size:9px;color:var(--text3);font-weight:600}
+.media-swiper-wrap{height:340px!important}
+.media-slide img{object-fit:cover!important;padding:0!important}
+
+/* ─── 5-TAB BOTTOM NAV ─── */
+.bottom-nav{height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;align-items:center;padding-bottom:env(safe-area-inset-bottom,0);flex-shrink:0;z-index:100;width:100%}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:7px 0;position:relative;transition:transform .15s}
+.nav-item:active{transform:scale(.88)}
+.nav-xplor-btn{background:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-bottom:2px;transition:transform .15s;color:var(--text3)}
+.nav-item.active .nav-xplor-btn{color:var(--primary)}
+
+/* ─── NOTIFICATIONS (HOME) ─── */
+.notifications-panel{position:fixed;top:70px;right:0;width:300px;max-width:90vw;background:#fff;border-radius:0 0 0 16px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);box-shadow:-8px 8px 32px rgba(0,0,0,.12);z-index:200;max-height:70vh;overflow-y:auto;animation:slideInRight .25s cubic-bezier(.34,1.2,.64,1)}
+@keyframes slideInRight{from{transform:translateX(100%)}to{transform:none}}
+.notif-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.notif-item{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.notif-item:active{background:var(--primary-light)}
+.notif-item.unread{background:#f0f6ff}
+.notif-icon{width:36px;height:36px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.notif-text{flex:1}
+.notif-title{font-size:12px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:2px}
+.notif-time{font-size:10px;color:var(--text3);font-weight:500}
+
 /* ─── BOTTOM NAV ─── */
 .bottom-nav{height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;align-items:center;padding-bottom:env(safe-area-inset-bottom,0);flex-shrink:0;box-shadow:0 -1px 0 var(--border);z-index:100;width:100%}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:8px 0;position:relative;transition:transform .15s}
@@ -589,16 +851,71 @@ a{text-decoration:none;color:inherit}
 
 /* ─── PRIMARY LIGHT COMPAT ─── */
 .primary-mid { color: var(--primary-mid); }
-</style>
-</head>
+
+/* ─── TRENDING VIDEOS SCROLL ─── */
+.trending-videos-scroll{display:flex;gap:10px;padding:0 12px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.trending-videos-scroll::-webkit-scrollbar{display:none}
+.trending-vid-card{flex-shrink:0;width:140px;border-radius:14px;overflow:hidden;position:relative;height:220px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);background:#111}
+.trending-vid-card video,.trending-vid-card-bg{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:block}
+.trending-vid-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.05) 50%);pointer-events:none}
+.trending-vid-info{position:absolute;bottom:0;left:0;right:0;padding:10px 9px 9px}
+.trending-vid-price{background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;display:inline-block;margin-bottom:4px}
+.trending-vid-name{font-size:11px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.trending-vid-shop{background:rgba(255,255,255,.95);color:var(--text);font-size:10px;font-weight:800;padding:4px 10px;border-radius:99px;display:inline-block;width:fit-content}
+.trending-vid-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;background:rgba(255,255,255,.25);backdrop-filter:blur(6px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.5)}
+
+/* ─── CREATOR DASHBOARD UPGRADE ─── */
+.creator-header-wrap{background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#2563eb 100%);padding:20px 16px 28px;position:relative;overflow:hidden}
+.creator-header-wrap::before{content:'';position:absolute;top:-30px;right:-30px;width:160px;height:160px;background:rgba(255,255,255,.04);border-radius:50%;pointer-events:none}
+.creator-header-wrap::after{content:'';position:absolute;bottom:-20px;left:-20px;width:100px;height:100px;background:rgba(37,99,235,.2);border-radius:50%;pointer-events:none}
+.creator-profile-row{display:flex;align-items:center;gap:12px;margin-bottom:18px;position:relative;z-index:1}
+.creator-avatar{width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#f97316,#ec4899);display:flex;align-items:center;justify-content:center;font-size:24px;border:2.5px solid rgba(255,255,255,.3);overflow:hidden;flex-shrink:0}
+.creator-info{flex:1}
+.creator-name{font-family:var(--font-head);font-size:17px;font-weight:800;color:#fff;line-height:1.2}
+.creator-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(249,115,22,.2);border:1px solid rgba(249,115,22,.4);border-radius:99px;padding:2px 8px;margin-top:3px}
+.creator-badge-text{font-size:10px;font-weight:700;color:#fb923c;letter-spacing:.3px}
+.creator-earnings-big{background:rgba(255,255,255,.07);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px;margin-bottom:14px;position:relative;z-index:1}
+.creator-earn-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.55);letter-spacing:.3px;text-transform:uppercase;margin-bottom:4px}
+.creator-earn-amount{font-family:var(--font-head);font-size:32px;font-weight:900;color:#4ade80;letter-spacing:-.5px;line-height:1}
+.creator-earn-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:3px}
+.creator-stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;position:relative;z-index:1}
+.creator-stat-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px;text-align:center}
+.creator-stat-val{font-family:var(--font-head);font-size:18px;font-weight:800;color:#fff;line-height:1}
+.creator-stat-label{font-size:10px;color:rgba(255,255,255,.5);font-weight:600;margin-top:2px}
+.creator-body{padding:14px 14px 100px;background:var(--bg)}
+.creator-section-title{font-family:var(--font-head);font-size:14px;font-weight:800;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.creator-earn-breakdown{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}
+.creator-earn-period{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;box-shadow:var(--shadow2)}
+.creator-earn-period-amt{font-family:var(--font-head);font-size:16px;font-weight:800;color:#16a34a}
+.creator-earn-period-label{font-size:10px;color:var(--text3);font-weight:600;margin-top:2px}
+.creator-video-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.creator-video-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;gap:0;box-shadow:var(--shadow2)}
+.creator-video-thumb{width:80px;height:90px;background:#111;flex-shrink:0;position:relative;overflow:hidden}
+.creator-video-thumb video,.creator-video-thumb-bg{width:100%;height:100%;object-fit:cover;display:block}
+.creator-video-thumb-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3)}
+.creator-video-details{flex:1;padding:10px}
+.creator-video-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
+.creator-video-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.creator-video-stat{font-size:10px;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:2px}
+.creator-video-earn{background:#dcfce7;color:#166534;font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;display:inline-block}
+.creator-upload-fab{position:fixed;bottom:80px;right:16px;width:56px;height:56px;background:linear-gradient(135deg,var(--accent),#ea580c);border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(249,115,22,.5);cursor:pointer;z-index:50;border:none;color:#fff;transition:transform .15s}
+.creator-upload-fab:active{transform:scale(.92)}
+.creator-withdraw-card{background:linear-gradient(135deg,#166534,#16a34a);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.creator-withdraw-left{flex:1}
+.creator-withdraw-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.3px}
+.creator-withdraw-amount{font-family:var(--font-head);font-size:22px;font-weight:900;color:#fff;line-height:1.2}
+.creator-withdraw-btn{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);color:#fff;font-size:12px;font-weight:800;padding:8px 14px;border-radius:99px;cursor:pointer;white-space:nowrap}
+
 </style>
 </head>
 <body>
 
 <div id="loadingScreen">
   <div class="loading-logo-wrap">
-    <div class="loading-logo-icon"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
-    <div class="loading-logo-text">ap<span>ykart</span></div>
+    <div class="loading-logo-icon">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M8 10l4 2-4 2V10z"/><line x1="2" y1="7" x2="22" y2="7"/><line x1="7" y1="2" x2="7" y2="7"/><line x1="17" y1="2" x2="17" y2="7"/></svg>
+    </div>
+    <div class="loading-logo-text">apy<span>kart</span></div>
     <div class="loading-tagline">Shop Smarter · Save Better</div>
   </div>
   <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
@@ -609,18 +926,23 @@ a{text-decoration:none;color:inherit}
 
 <div id="app">
   <header class="app-header" id="appHeader">
-    <div class="header-logo" onclick="showPage('home')">
-      <div class="header-logo-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
-      <div class="header-logo-text">apy<span>kart</span></div>
+    <div class="header-logo" onclick="showPage('home')" style="flex:none">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div class="header-logo-text" style="font-size:22px">apy<span>kart</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:3px;margin-top:2px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);border-radius:99px;padding:2px 7px;width:fit-content">
+        <div style="width:5px;height:5px;background:#f97316;border-radius:50%;animation:videoPulse 2s infinite"></div>
+        <span style="font-size:9px;font-weight:700;color:#ea580c;letter-spacing:.3px;text-transform:uppercase">Video Commerce</span>
+      </div>
     </div>
-    <div class="header-location">
-      <div class="header-loc-label">Deliver to</div>
-      <div class="header-loc-val">India <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
-    </div>
-    <div class="header-actions">
-      <div class="header-btn" onclick="showPage('search')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-      <div class="header-btn" onclick="showPage('cart')" style="position:relative">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-badge" id="cartBadge" style="display:none">0</span>
+    <div style="flex:1"></div>
+    <div class="header-actions" style="display:flex;gap:8px;align-items:center">
+      <div class="header-btn" onclick="showPage('search')" title="Search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <div class="header-btn" onclick="showPage('cart')" title="Cart" style="position:relative">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span class="cart-badge" id="cartBadge" style="display:none">0</span>
       </div>
     </div>
   </header>
@@ -628,21 +950,16 @@ a{text-decoration:none;color:inherit}
   <div class="page-scroll" id="pageScroll">
 
     <div class="page active" id="page-home">
-      <!-- Inline search bar -->
-      <div class="home-search-bar">
-        <div class="home-search-input" onclick="showPage('search')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <span>Search products, brands…</span>
-        </div>
-        <div class="home-notif-btn" onclick="showToast('Notifications coming soon! 🔔','info')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <div class="home-notif-dot"></div>
-        </div>
-      </div>
       <!-- Hero Carousel -->
       <div class="hero-carousel" id="heroCarousel"></div>
+      <!-- Trending Videos Section -->
+      <div class="section-header" style="padding-top:14px">
+        <div class="section-title">🎬 Trending Videos</div>
+        <div class="section-link" onclick="showPage('xplor')">See All →</div>
+      </div>
+      <div id="trendingVideosScroll" class="trending-videos-scroll"></div>
       <!-- Flash Sale -->
-      <div class="flash-strip">
+      <div class="flash-strip" style="margin-top:12px">
         <div style="display:flex;align-items:center;color:#fbbf24"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
         <div style="flex:1"><div style="font-size:12px;font-weight:800;color:#fff">Flash Sale Ends In</div><div style="font-size:10px;color:rgba(255,255,255,.55);margin-top:1px;font-weight:500">Hurry! Limited stock available</div></div>
         <div class="flash-timer">
@@ -656,6 +973,8 @@ a{text-decoration:none;color:inherit}
       <div class="categories-scroll" id="categoriesScroll"></div>
       <!-- Products Grid (injected by renderHome) -->
       <div id="homeGrid"></div>
+      <!-- Viral Products Bottom Section -->
+      <div id="viralProductsSection"></div>
     </div>
 
     <div class="page" id="page-search">
@@ -667,6 +986,23 @@ a{text-decoration:none;color:inherit}
         </div>
       </div>
       <div id="searchContent"></div>
+    </div>
+
+
+    <div class="page" id="page-xplor">
+      <div id="xplorContent" style="height:100%;position:relative"></div>
+    </div>
+
+    <div class="page" id="page-my-videos">
+      <div id="myVideosContent"></div>
+    </div>
+
+    <div class="page" id="page-upload-video">
+      <div class="sub-page-header">
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+        <div class="sub-page-title">Upload Video</div>
+      </div>
+      <div id="uploadVideoContent"></div>
     </div>
 
     <div class="page" id="page-detail">
@@ -699,7 +1035,7 @@ a{text-decoration:none;color:inherit}
 
     <div class="page" id="page-orders">
       <div class="sub-page-header">
-        <div class="sub-page-back" onclick="showPage('profile')">‹</div>
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
         <div class="sub-page-title">My Orders</div>
       </div>
       <div id="ordersContent"></div>
@@ -707,7 +1043,7 @@ a{text-decoration:none;color:inherit}
 
     <div class="page" id="page-wishlist">
       <div class="sub-page-header">
-        <div class="sub-page-back" onclick="showPage('profile')">‹</div>
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
         <div class="sub-page-title">My Wishlist</div>
       </div>
       <div id="wishlistContent"></div>
@@ -715,7 +1051,7 @@ a{text-decoration:none;color:inherit}
 
     <div class="page" id="page-wallet">
       <div class="sub-page-header">
-        <div class="sub-page-back" onclick="showPage('profile')">‹</div>
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
         <div class="sub-page-title">ApyCoins Wallet</div>
       </div>
       <div id="walletContent"></div>
@@ -723,7 +1059,7 @@ a{text-decoration:none;color:inherit}
 
     <div class="page" id="page-addresses">
       <div class="sub-page-header">
-        <div class="sub-page-back" onclick="showPage('profile')">‹</div>
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
         <div class="sub-page-title">My Addresses</div>
         <div class="sub-page-action" onclick="openAddressForm(null)">+ Add</div>
       </div>
@@ -732,7 +1068,7 @@ a{text-decoration:none;color:inherit}
 
     <div class="page" id="page-refer">
       <div class="sub-page-header">
-        <div class="sub-page-back" onclick="showPage('profile')">‹</div>
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
         <div class="sub-page-title">Refer & Earn</div>
       </div>
       <div id="referContent"></div>
@@ -740,7 +1076,7 @@ a{text-decoration:none;color:inherit}
 
     <div class="page" id="page-help">
       <div class="sub-page-header">
-        <div class="sub-page-back" onclick="showPage('profile')">‹</div>
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
         <div class="sub-page-title">Help & Support</div>
       </div>
       <div id="helpContent"></div>
@@ -748,7 +1084,7 @@ a{text-decoration:none;color:inherit}
 
     <div class="page" id="page-rate">
       <div class="sub-page-header">
-        <div class="sub-page-back" onclick="showPage('profile')">‹</div>
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
         <div class="sub-page-title">Rate the App</div>
       </div>
       <div id="rateContent"></div>
@@ -756,7 +1092,7 @@ a{text-decoration:none;color:inherit}
 
     <div class="page" id="page-terms">
       <div class="sub-page-header">
-        <div class="sub-page-back" onclick="showPage('profile')">‹</div>
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
         <div class="sub-page-title">Terms & Conditions</div>
       </div>
       <div id="termsContent"></div>
@@ -764,7 +1100,7 @@ a{text-decoration:none;color:inherit}
 
     <div class="page" id="page-about">
       <div class="sub-page-header">
-        <div class="sub-page-back" onclick="showPage('profile')">‹</div>
+        <div class="sub-page-back" onclick="showPage('profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
         <div class="sub-page-title">About Apykart</div>
       </div>
       <div id="aboutContent"></div>
@@ -777,7 +1113,7 @@ a{text-decoration:none;color:inherit}
   <div class="seller-dashboard-container">
     <!-- Header -->
     <div class="seller-header-bar">
-      <button class="seller-header-back" onclick="showPage('profile')">‹</button>
+      <button class="seller-header-back" onclick="showPage('profile')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       <div class="seller-header-info">
         <div class="seller-header-name" id="sellerDisplayName">Seller Dashboard</div>
         <div class="seller-header-status">
@@ -832,6 +1168,13 @@ a{text-decoration:none;color:inherit}
       <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
       <div class="nav-label">Search</div><div class="nav-active-dot"></div>
     </div>
+    <div class="nav-item" id="nav-xplor" onclick="showPage('xplor')">
+      <div class="nav-xplor-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M8 10l4 2-4 2V10z"/><line x1="2" y1="7" x2="22" y2="7"/><line x1="7" y1="2" x2="7" y2="7"/><line x1="17" y1="2" x2="17" y2="7"/></svg>
+      </div>
+      <div class="nav-label" style="font-size:9px;font-weight:800;letter-spacing:.3px">XPLOR</div>
+      <div class="nav-active-dot"></div>
+    </div>
     <div class="nav-item" id="nav-cart" onclick="showPage('cart')">
       <div class="nav-cart-wrap">
         <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
@@ -867,19 +1210,24 @@ a{text-decoration:none;color:inherit}
 </div>
 
 <!-- ═══════════════════════════════════════════
-     FIREBASE — Real-time products sync from admin
+     FIREBASE — Firestore + Storage + Auth
+     Migrated from Realtime Database → Firestore
 ═══════════════════════════════════════════ -->
 <script type="module">
-import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore,
-  collection, doc,
-  addDoc, setDoc, getDoc, getDocs, updateDoc,
-  query, where, orderBy,
-  onSnapshot,
-  serverTimestamp
+  doc, setDoc, updateDoc, addDoc, getDoc, getDocs,
+  collection, onSnapshot, deleteDoc,
+  query, where, orderBy, serverTimestamp, limit
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getStorage, ref as storageRef,
+  uploadBytesResumable, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB9wwF-K1AwN8xlrppiKELDXx0NxqJknbc",
@@ -890,85 +1238,187 @@ const firebaseConfig = {
   appId: "1:787741109597:web:883a5eee5e9bb9602f8cb4"
 };
 
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-const auth = getAuth(app);
+const app      = initializeApp(firebaseConfig);
+const auth     = getAuth(app);
+const db       = getFirestore(app);
+const storage  = getStorage(app);
 const provider = new GoogleAuthProvider();
-window._fbAuth = { auth, provider, signInWithPopup, signOut, onAuthStateChanged };
 
-window._fb = { db, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, query, where, orderBy, onSnapshot, serverTimestamp };
+// ─── Expose to global scope ───
+window._fbAuth = { auth, provider, signInWithPopup, signOut, onAuthStateChanged };
+window._db     = db;
+window._storage = storage;
+window._storageRef = storageRef;
+window._getDownloadURL = getDownloadURL;
+window._uploadBytesResumable = uploadBytesResumable;
+window._deleteObject = deleteObject;
+
+// Firestore helpers exposed globally
+window._fsHelpers = {
+  db, doc, setDoc, updateDoc, addDoc, getDoc, getDocs,
+  collection, onSnapshot, deleteDoc, query, where, orderBy,
+  serverTimestamp, limit
+};
 window._fbReady = true;
 
-try {
-  const q = query(collection(db, 'products'), orderBy('name', 'asc'));
-
-  onSnapshot(q, (snap) => {
-    const fromFirestore = [];
-    snap.forEach(d => {
-      const x = d.data();
-      if (!x.name) return;
-      // Accept: no status set, OR status is 'active' (admin panel), OR status is 'approved' (seller flow)
-      const st = (x.status || '').toLowerCase();
-      if (st && st !== 'active' && st !== 'approved') return;
-      fromFirestore.push({
-        _fid:     d.id,
-        id:       d.id,
-        name:     x.name     || '',
-        brand:    x.brand    || '',
-        category: (x.category || 'all').toLowerCase(),
-        price:    Number(x.price)   || 0,
-        ogPrice:  Number(x.ogPrice) || Number(x.price) || 0,
-        discount: Number(x.discount)|| 0,
-        rating:   Number(x.rating)  || 4.5,
-        reviews:  String(x.reviews || '0'),
-        badge:    x.badge    || '',
-        desc:     x.desc     || x.name || '',
-        features: Array.isArray(x.features) ? x.features : [],
-        // ✅ UPDATED: store full images array + video
-        images:   Array.isArray(x.images) && x.images.length ? x.images : (x.img ? [x.img] : []),
-        video:    x.video || '',
-        img:      (Array.isArray(x.images) && x.images[0]) ? x.images[0] : (x.img || ''),
-        status:   'approved', // normalize to 'approved' so UI filters work
+// ─── PRODUCTS: realtime listener from Firestore /products ───
+let _productsUnsub = null;
+function setupProductsListener() {
+  try {
+    const productsCol = collection(db, 'products');
+    const q = query(productsCol, where('status', 'in', ['active', 'approved', 'Active', 'Approved']));
+    _productsUnsub = onSnapshot(q, (snap) => {
+      const fromFS = [];
+      snap.forEach(docSnap => {
+        const x = docSnap.data();
+        const fid = docSnap.id;
+        if (!x || !x.name) return;
+        fromFS.push({
+          _fid:     fid,
+          id:       fid,
+          name:     x.name     || '',
+          brand:    x.brand    || '',
+          category: (x.category || 'all').toLowerCase(),
+          price:    Number(x.price)    || 0,
+          ogPrice:  Number(x.ogPrice)  || Number(x.price) || 0,
+          discount: Number(x.discount) || 0,
+          rating:   Number(x.rating)   || 4.5,
+          reviews:  String(x.reviews   || '0'),
+          badge:    x.badge    || '',
+          desc:     x.desc     || x.name || '',
+          features: Array.isArray(x.features) ? x.features : [],
+          images:   Array.isArray(x.images) && x.images.length ? x.images : (x.img ? [x.img] : []),
+          video:    x.video    || '',
+          img:      (Array.isArray(x.images) && x.images[0]) ? x.images[0] : (x.img || ''),
+          status:   'approved',
+          sellerId: x.sellerId || 'system'
+        });
       });
-    });
 
-    if (typeof PRODUCTS !== 'undefined') {
-      // Merge: replace Firestore products, keep static ones that aren't in Firestore
-      const firestoreIds = new Set(fromFirestore.map(p => p.id));
-      const staticOnly = PRODUCTS.filter(p => !p._fid && !firestoreIds.has(String(p.id)));
-      PRODUCTS.length = 0;
-      fromFirestore.forEach(p => PRODUCTS.push(p));
-      staticOnly.forEach(p => PRODUCTS.push(p));
-    }
+      if (typeof PRODUCTS !== 'undefined') {
+        const fsIds = new Set(fromFS.map(p => p.id));
+        const staticOnly = PRODUCTS.filter(p => !p._fid && !fsIds.has(String(p.id)));
+        PRODUCTS.length = 0;
+        fromFS.forEach(p => PRODUCTS.push(p));
+        staticOnly.forEach(p => PRODUCTS.push(p));
+      }
 
-    if (typeof currentPage !== 'undefined') {
-      if      (currentPage === 'home')   renderHome();
-      else if (currentPage === 'search') handleSearch(document.getElementById('searchInput')?.value || '');
-      else if (currentPage === 'cart')   renderCart();
-    }
-
-  }, err => console.warn('Products listener error:', err.message));
-
-} catch (e) {
-  console.warn('onSnapshot setup failed:', e.message);
+      if (typeof currentPage !== 'undefined') {
+        if      (currentPage === 'home')   renderHome();
+        else if (currentPage === 'search') handleSearch(document.getElementById('searchInput')?.value || '');
+        else if (currentPage === 'cart')   renderCart();
+      }
+    }, err => console.warn('Products Firestore listener error:', err.message));
+  } catch(e) { console.warn('Firestore products setup failed:', e.message); }
 }
+setupProductsListener();
+
+// ─── VIDEOS: realtime listener from Firestore /videos ───
+function setupVideosListener() {
+  try {
+    const videosCol = collection(db, 'videos');
+    const q = query(videosCol, where('status', '==', 'approved'), orderBy('uploadedAt', 'desc'), limit(50));
+    onSnapshot(q, (snap) => {
+      const vids = [];
+      snap.forEach(docSnap => {
+        const v = docSnap.data();
+        if (v) vids.push({...v, id: docSnap.id, _fsId: docSnap.id});
+      });
+      window._approvedVideos = vids;
+      if (typeof currentPage !== 'undefined' && currentPage === 'xplor') renderXplor();
+      if (typeof currentPage !== 'undefined' && currentPage === 'home')   renderTrendingVideos();
+    }, err => console.warn('Videos Firestore listener error:', err.message));
+  } catch(e) { console.warn('Firestore videos setup failed:', e.message); }
+}
+setupVideosListener();
+
+// ─── AUTH STATE CHANGE: load user data from Firestore ───
+let _userUnsub = null;
+onAuthStateChanged(auth, async (user) => {
+  window.currentUser = user;
+
+  // Cleanup previous user listener
+  if (_userUnsub) { _userUnsub(); _userUnsub = null; }
+
+  if (user) {
+    const uid = user.uid;
+    // Ensure user doc exists
+    const userDocRef = doc(db, 'users', uid);
+    try {
+      const snap = await getDoc(userDocRef);
+      if (!snap.exists()) {
+        await setDoc(userDocRef, {
+          profile: { name: user.displayName||'', email: user.email||'', phone:'' },
+          role: 'user',
+          createdAt: serverTimestamp()
+        }, { merge: true });
+      }
+    } catch(e) { console.warn('User doc init:', e.message); }
+
+    // Realtime listener on user doc
+    _userUnsub = onSnapshot(userDocRef, (snap) => {
+      const d = snap.data() || {};
+      if (typeof cart !== 'undefined') {
+        cart      = Array.isArray(d.cart)      ? d.cart      : [];
+        wishlist  = Array.isArray(d.wishlist)  ? d.wishlist  : [];
+        addresses = Array.isArray(d.addresses) ? d.addresses : [];
+        coinData  = d.coins ? d.coins : {balance:0, transactions:[]};
+        guestUser = d.profile ? d.profile : {name: user.displayName||'', email: user.email||'', phone:''};
+      }
+      if (typeof userRole !== 'undefined') {
+        userRole           = d.role              || 'user';
+        sellerVerification = d.seller_verification || null;
+        sellerProducts     = Array.isArray(d.seller_products)  ? d.seller_products  : [];
+        sellerEarnings     = Array.isArray(d.seller_earnings)  ? d.seller_earnings  : [];
+        withdrawalRequests = Array.isArray(d.withdrawals)      ? d.withdrawals      : [];
+        sellerProfile      = d.seller_profile   || {bankName:'',accountNumber:'',ifsc:'',upi:''};
+        userVideos         = Array.isArray(d.user_videos)      ? d.user_videos      : [];
+      }
+      updateCartBadge();
+      if (typeof currentPage !== 'undefined' && currentPage === 'profile') renderProfile();
+    }, err => console.warn('User snapshot error:', err.message));
+
+    // Load orders subcollection realtime
+    const ordersCol = collection(db, 'users', uid, 'orders');
+    const oq = query(ordersCol, orderBy('createdAt', 'desc'));
+    onSnapshot(oq, (snap) => {
+      if (typeof orders !== 'undefined') {
+        orders = [];
+        snap.forEach(d => orders.push({...d.data(), id: d.id}));
+      }
+      if (typeof currentPage !== 'undefined' && currentPage === 'orders') renderOrders();
+    }, err => console.warn('Orders snapshot:', err.message));
+
+  } else {
+    window.currentUser = null;
+    if (typeof cart !== 'undefined') {
+      cart=[]; wishlist=[]; addresses=[]; orders=[];
+      coinData={balance:0,transactions:[]};
+      guestUser={name:'',email:'',phone:''};
+      userRole='user'; sellerVerification=null;
+      sellerProducts=[]; sellerEarnings=[];
+      withdrawalRequests=[]; sellerProfile={bankName:'',accountNumber:'',ifsc:'',upi:''};
+      userVideos=[];
+    }
+    updateCartBadge();
+    if (typeof currentPage !== 'undefined' && currentPage === 'profile') renderProfile();
+  }
+});
+
 </script>
 
-<!-- ═══════════════════════════════════════════
-     MAIN APP SCRIPT
-═══════════════════════════════════════════ -->
 <script>
 /* ─── CATEGORIES ─── */
 const CATEGORIES = [
-  {id:'all',         label:'All',      icon:'🌟', bg:'linear-gradient(135deg,#2874f0,#3b8aff)'},
-  {id:'mobiles',     label:'Mobiles',  icon:'📱', bg:'linear-gradient(135deg,#667eea,#764ba2)'},
-  {id:'fashion',     label:'Fashion',  icon:'👗', bg:'linear-gradient(135deg,#f093fb,#f5576c)'},
-  {id:'shoes',       label:'Shoes',    icon:'👟', bg:'linear-gradient(135deg,#4facfe,#00f2fe)'},
-  {id:'electronics', label:'Gadgets',  icon:'💻', bg:'linear-gradient(135deg,#43e97b,#38f9d7)'},
-  {id:'audio',       label:'Audio',    icon:'🎧', bg:'linear-gradient(135deg,#fa709a,#fee140)'},
-  {id:'home',        label:'Home',     icon:'🏠', bg:'linear-gradient(135deg,#a18cd1,#fbc2eb)'},
-  {id:'beauty',      label:'Beauty',   icon:'💄', bg:'linear-gradient(135deg,#ffecd2,#fcb69f)'},
-  {id:'sports',      label:'Sports',   icon:'⚽', bg:'linear-gradient(135deg,#a1c4fd,#c2e9fb)'},
+  {id:'all',         label:'All',      img:'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=100&h=100&fit=crop', bg:'linear-gradient(135deg,#2874f0,#3b8aff)'},
+  {id:'mobiles',     label:'Mobiles',  img:'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=100&h=100&fit=crop', bg:'linear-gradient(135deg,#667eea,#764ba2)'},
+  {id:'fashion',     label:'Fashion',  img:'https://images.unsplash.com/photo-1445205170230-053b83016050?w=100&h=100&fit=crop', bg:'linear-gradient(135deg,#f093fb,#f5576c)'},
+  {id:'shoes',       label:'Shoes',    img:'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop', bg:'linear-gradient(135deg,#4facfe,#00f2fe)'},
+  {id:'electronics', label:'Gadgets',  img:'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=100&h=100&fit=crop', bg:'linear-gradient(135deg,#43e97b,#38f9d7)'},
+  {id:'audio',       label:'Audio',    img:'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&h=100&fit=crop', bg:'linear-gradient(135deg,#fa709a,#fee140)'},
+  {id:'home',        label:'Home',     img:'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=100&h=100&fit=crop', bg:'linear-gradient(135deg,#a18cd1,#fbc2eb)'},
+  {id:'beauty',      label:'Beauty',   img:'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=100&h=100&fit=crop', bg:'linear-gradient(135deg,#ffecd2,#fcb69f)'},
+  {id:'sports',      label:'Sports',   img:'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=100&h=100&fit=crop', bg:'linear-gradient(135deg,#a1c4fd,#c2e9fb)'},
 ];
 
 /* ─── DEFAULT PRODUCTS ─── */
@@ -986,24 +1436,64 @@ let PRODUCTS = [
   {id:11, name:'Puma Softride Shoes',       category:'shoes',       images:['https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_750,h_750/global/373017/01/sv01/fnd/IND/fmt/png/SOFTRIDE-Enzo-Evo-Running-Shoes'],  img:'https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_750,h_750/global/373017/01/sv01/fnd/IND/fmt/png/SOFTRIDE-Enzo-Evo-Running-Shoes', video:'', price:3499, ogPrice:5999, discount:42, rating:4.5, reviews:'9.3k',  badge:'42% OFF',   brand:'Puma',     desc:'NITRO foam cushioning running shoes.',            features:['NITRO foam','Mesh upper','PUMAGRIP outsole'], status:'approved', sellerId:'system'},
   {id:12, name:'Campus Men Sneakers',       category:'shoes',       images:['https://m.media-amazon.com/images/I/711dWiQp3OL._AC_UY1000_.jpg'],  img:'https://m.media-amazon.com/images/I/711dWiQp3OL._AC_UY1000_.jpg', video:'', price:1299, ogPrice:2499, discount:48, rating:4.3, reviews:'8.7k',  badge:'DEAL',      brand:'Campus',   desc:'Trendy everyday sneakers, cushioned insole.',     features:['Mesh upper','Cushioned insole','Anti-skid outsole'], status:'approved', sellerId:'system'},
 ];
-/* ─── UID-BASED KEY SYSTEM ─── */
-// Har user ka data alag key mein store hoga - uid se prefix milega
-function getUid() {
-  return (window.currentUser && window.currentUser.uid) ? window.currentUser.uid : 'guest';
-}
-function lsKey(k) { return 'apykart_' + getUid() + '_' + k; }
-function lsGet(k, def) {
-  try { const v = localStorage.getItem(lsKey(k)); return v ? JSON.parse(v) : def; } catch(e) { return def; }
-}
-function lsSet(k, v) { localStorage.setItem(lsKey(k), JSON.stringify(v)); }
 
-/* ─── STATE ─── */
-let cart      = lsGet('cart',      []);
-let wishlist  = lsGet('wishlist',  []);
-let addresses = lsGet('addresses', []);
-let orders    = lsGet('orders',    []);
-let coinData  = lsGet('coins',     {balance:0,transactions:[]});
-let guestUser = lsGet('guestuser', {name:'',email:'',phone:''});
+/* ─── FIRESTORE HELPER FUNCTIONS ─── */
+function getUid() {
+  return (window.currentUser && window.currentUser.uid) ? window.currentUser.uid : null;
+}
+
+// Save entire user data to Firestore (merge)
+async function fsSaveUserData() {
+  const uid = getUid();
+  if (!uid || !window._db) return;
+  const { db, doc, setDoc } = window._fsHelpers;
+  try {
+    const payload = {
+      cart: cart || [],
+      wishlist: wishlist || [],
+      addresses: addresses || [],
+      coins: coinData || {balance:0,transactions:[]},
+      profile: guestUser || {name:'',email:'',phone:''},
+      role: userRole || 'user',
+      seller_verification: sellerVerification || null,
+      seller_products: sellerProducts || [],
+      seller_earnings: sellerEarnings || [],
+      withdrawals: withdrawalRequests || [],
+      seller_profile: sellerProfile || {bankName:'',accountNumber:'',ifsc:'',upi:''},
+      user_videos: userVideos || [],
+      updatedAt: Date.now()
+    };
+    await setDoc(doc(db, 'users', uid), payload, { merge: true });
+  } catch(e) { console.warn('fssaveUserData error:', e.message); }
+}
+
+// Save a specific field to Firestore user doc
+async function firestoreSetField(field, value) {
+  const uid = getUid();
+  if (!uid || !window._db) return;
+  const { db, doc, updateDoc } = window._fsHelpers;
+  try {
+    const obj = {}; obj[field] = value; obj['updatedAt'] = Date.now();
+    await updateDoc(doc(db, 'users', uid), obj);
+  } catch(e) {
+    // If doc doesn't exist, create it
+    const { setDoc } = window._fsHelpers;
+    const obj2 = {}; obj2[field] = value; obj2['updatedAt'] = Date.now();
+    try { await setDoc(doc(db, 'users', uid), obj2, { merge: true }); }
+    catch(e2) { console.warn('firestoreSetField error:', e2.message); }
+  }
+}
+
+// Alias for backward compat
+const rtdbSetField = firestoreSetField;
+
+/* ─── STATE — in-memory, synced with Firestore ─── */
+let cart      = [];
+let wishlist  = [];
+let addresses = [];
+let orders    = [];
+let coinData  = {balance:0, transactions:[]};
+let guestUser = {name:'', email:'', phone:''};
 
 let currentPage      = 'home';
 let prevPage         = 'home';
@@ -1014,33 +1504,18 @@ let timerInterval;
 let buyNowProduct    = null;
 
 // 🧑‍💼 SELLER SYSTEM VARIABLES
-let userRole           = lsGet('role', 'user');
-let sellerVerification = lsGet('seller_verification', null);
-let sellerProducts     = lsGet('seller_products', []);
-let sellerEarnings     = lsGet('seller_earnings', []);
-let withdrawalRequests = lsGet('withdrawals', []);
-let sellerProfile      = lsGet('seller_profile', {bankName:'',accountNumber:'',ifsc:'',upi:''});
-// Swiper state per detail page
-let _swiperIdx = 0;
+let userRole           = 'user';
+let sellerVerification = null;
+let sellerProducts     = [];
+let sellerEarnings     = [];
+let withdrawalRequests = [];
+let sellerProfile      = {bankName:'',accountNumber:'',ifsc:'',upi:''};
+let userVideos         = [];
+let _swiperIdx         = 0;
 
-// userId for Firestore (anonymous/guest tracking)
-let userId = localStorage.getItem('apykart_anon_userid');
-if (!userId) { userId = 'USR_' + Math.random().toString(36).substr(2,9).toUpperCase(); localStorage.setItem('apykart_anon_userid', userId); }
-
-// Jab user login/logout ho - data reload karo
+// reloadUserData — Firestore onSnapshot handles real-time updates
 function reloadUserData() {
-  cart              = lsGet('cart',              []);
-  wishlist          = lsGet('wishlist',          []);
-  addresses         = lsGet('addresses',         []);
-  orders            = lsGet('orders',            []);
-  coinData          = lsGet('coins',             {balance:0,transactions:[]});
-  guestUser         = lsGet('guestuser',         {name:'',email:'',phone:''});
-  userRole          = lsGet('role',              'user');
-  sellerVerification= lsGet('seller_verification', null);
-  sellerProducts    = lsGet('seller_products',   []);
-  sellerEarnings    = lsGet('seller_earnings',   []);
-  withdrawalRequests= lsGet('withdrawals',       []);
-  sellerProfile     = lsGet('seller_profile',    {bankName:'',accountNumber:'',ifsc:'',upi:''});
+  setTimeout(updateHeaderLocation, 100);
   updateCartBadge();
 }
 
@@ -1048,51 +1523,171 @@ const COIN_TO_RUPEE   = 0.10;
 const COIN_MIN_TO_USE = 1000;
 const COIN_KEEP_MIN   = 500;
 
-/* ─── PERSIST ─── */
-function saveCart()      { lsSet('cart',      cart);      updateCartBadge(); }
-function saveWishlist()  { lsSet('wishlist',  wishlist);  syncUser(); }
-function saveAddresses() { lsSet('addresses', addresses); }
-function saveOrders()    { lsSet('orders',    orders); }
-function saveCoins()     { lsSet('coins',     coinData);  syncUser(); }
-function saveGuest()     { lsSet('guestuser', guestUser); }
+/* ─── PERSIST — all saves go to Firestore ─── */
+function saveCart()      { updateCartBadge(); firestoreSetField('cart', cart); }
+function saveWishlist()  { firestoreSetField('wishlist', wishlist); }
+function saveAddresses() { firestoreSetField('addresses', addresses); }
+function saveCoins()     { firestoreSetField('coins', coinData); }
+function saveGuest()     { firestoreSetField('profile', guestUser); }
+
 function saveSellerData() {
-  lsSet('role', userRole);
-  lsSet('seller_verification', sellerVerification);
-  lsSet('seller_products', sellerProducts);
+  const uid = getUid();
+  if (!uid || !window._db) return;
+  const { db, doc, updateDoc } = window._fsHelpers;
+  updateDoc(doc(db, 'users', uid), {
+    role: userRole,
+    seller_verification: sellerVerification || null,
+    seller_products: sellerProducts,
+    updatedAt: Date.now()
+  }).catch(e => console.warn('saveSellerData:', e.message));
 }
-function saveSellerEarnings() { lsSet('seller_earnings', sellerEarnings); }
-function saveWithdrawals() { lsSet('withdrawals', withdrawalRequests); }
-function saveSellerProfile() { lsSet('seller_profile', sellerProfile); }
-  
-async function syncUser() {
-  if (!window._fb) return;
-  const {db,doc,setDoc} = window._fb;
-  try {
-    await setDoc(doc(db,'users',userId), {
-      userId, name:guestUser.name, email:guestUser.email, phone:guestUser.phone,
-      coins:coinData.balance, coinTransactions:coinData.transactions,
-      addresses, wishlist, updatedAt:new Date().toISOString()
-    }, {merge:true});
-  } catch(e){ console.warn('syncUser:',e.message); }
-}
+function saveSellerEarnings() { firestoreSetField('seller_earnings', sellerEarnings); }
+function saveWithdrawals()    { firestoreSetField('withdrawals', withdrawalRequests); }
+function saveSellerProfile()  { firestoreSetField('seller_profile', sellerProfile); }
+function saveUserVideos()     { firestoreSetField('user_videos', userVideos); }
+function syncUser()           { saveGuest(); saveCoins(); }
 
+// Save orders to Firestore subcollection + all_orders
 async function saveOrderToFirestore(order) {
-  if (!window._fb) return;
-  const {db,collection,addDoc,serverTimestamp} = window._fb;
+  if (!window._db) return;
+  const { db, doc, addDoc, setDoc, collection, serverTimestamp } = window._fsHelpers;
+  const uid = getUid();
   try {
-    await addDoc(collection(db,'orders'), {...order, userId, userPhone:guestUser.phone, createdAt:serverTimestamp()});
-  } catch(e){ console.warn('saveOrder:',e.message); }
+    const orderData = {
+      ...order,
+      userId: uid || 'guest',
+      userPhone: guestUser.phone || '',
+      createdAt: serverTimestamp()
+    };
+    // Save under users/{uid}/orders subcollection
+    if (uid) {
+      const ref = await addDoc(collection(db, 'users', uid, 'orders'), orderData);
+      order.id = ref.id;
+    }
+    // Also save under all_orders for admin view
+    await addDoc(collection(db, 'all_orders'), {...orderData, uid: uid||'guest'});
+    showToast('Order saved ✅', 'success');
+  } catch(e) { console.warn('saveOrder Firestore error:', e.message); showToast('Order save failed: ' + e.message, 'warn'); }
 }
 
+// Update order in Firestore
 async function updateOrderInFirestore(orderId, updates) {
-  if (!window._fb) return;
-  const {db,collection,query,where,getDocs,updateDoc} = window._fb;
+  const uid = getUid();
+  if (!uid || !orderId || !window._db) return;
+  const { db, doc, updateDoc } = window._fsHelpers;
   try {
-    const q = query(collection(db,'orders'), where('id','==',orderId));
-    const snap = await getDocs(q);
-    snap.forEach(async d => await updateDoc(d.ref, {...updates, updatedAt:new Date().toISOString()}));
-  } catch(e){ console.warn('updateOrder:',e.message); }
+    await updateDoc(doc(db, 'users', uid, 'orders', orderId), {...updates, updatedAt: Date.now()});
+  } catch(e) { console.warn('updateOrder Firestore error:', e.message); }
 }
+
+// ─── CLOUDINARY UPLOAD: Image & Video ───
+// Cloudinary credentials
+const CLOUD_NAME    = 'djcfq7tlf';
+const UPLOAD_PRESET = 'Apykart';
+
+// Compress image before upload (for smaller size & faster upload)
+async function compressImg(file, maxSide = 900, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) { resolve(file); return; }
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width  = Math.round(img.width  * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b => {
+          if (!b) { reject(new Error('Compression failed')); return; }
+          resolve(new File([b], file.name, { type: 'image/webp' }));
+        }, 'image/webp', quality);
+      } catch(e) { reject(e); }
+    };
+    img.src = url;
+  });
+}
+
+// Upload image to Cloudinary (with compression + progress)
+async function uploadImg(file, folder, onProgress) {
+  if (!file) throw new Error('No file');
+  let uploadFile = file;
+  try { uploadFile = await compressImg(file); } catch(e) { uploadFile = file; }
+
+  const formData = new FormData();
+  formData.append('file',           uploadFile);
+  formData.append('upload_preset',  UPLOAD_PRESET);
+  formData.append('folder',         'apykart/' + folder);
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        resolve(JSON.parse(xhr.responseText).secure_url);
+      } else {
+        let m = `Upload failed (${xhr.status})`;
+        try { m = JSON.parse(xhr.responseText)?.error?.message || m; } catch(e) {}
+        reject(new Error(m));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.send(formData);
+  });
+}
+
+// Upload video to Cloudinary (with progress)
+async function uploadVideo(file, folder, onProgress) {
+  if (!file) throw new Error('No file');
+
+  const formData = new FormData();
+  formData.append('file',           file);
+  formData.append('upload_preset',  UPLOAD_PRESET);
+  formData.append('folder',         'apykart/' + folder);
+  formData.append('resource_type',  'video');
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`);
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        resolve(JSON.parse(xhr.responseText).secure_url);
+      } else {
+        let m = `Video upload failed (${xhr.status})`;
+        try { m = JSON.parse(xhr.responseText)?.error?.message || m; } catch(e) {}
+        reject(new Error(m));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.send(formData);
+  });
+}
+
+// Universal uploadToStorage — auto-detects image vs video by path/file type
+// path format: "videos/uid/filename" or "images/uid/filename" or "seller_docs/uid/filename"
+async function uploadToStorage(file, path, onProgress) {
+  if (!file) return null;
+  const isVideo = file.type.startsWith('video/') || path.startsWith('videos/');
+  // Use folder from path (everything except last segment)
+  const folder = path.split('/').slice(0, -1).join('/');
+  if (isVideo) {
+    return await uploadVideo(file, folder, onProgress);
+  } else {
+    return await uploadImg(file, folder, onProgress);
+  }
+}
+
+// Expose for video & image upload
+window._uploadToStorage = uploadToStorage;
+
+
 
 /* ─── COINS ─── */
 function getUsableCoins() { return coinData.balance < COIN_MIN_TO_USE ? 0 : Math.max(0, coinData.balance - COIN_KEEP_MIN); }
@@ -1119,6 +1714,13 @@ function updateCartBadge() {
     const el=document.getElementById(id);
     if(el){el.textContent=n;el.style.display=n>0?'flex':'none';}
   });
+}
+function updateHeaderLocation() {
+  const el = document.getElementById('headerLocVal');
+  if (!el) return;
+  const def = addresses.find(a=>a.isDefault) || addresses[0];
+  const locText = def ? (def.city || def.name || 'India') : 'India';
+  el.innerHTML = locText + ' <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
 }
 function _resolveProduct(id) {
   // Try live PRODUCTS first, then cart snap
@@ -1149,22 +1751,25 @@ function showPage(page, productId) {
 
   // scroll to top - page-scroll only exists for normal pages
   const ps = document.getElementById('pageScroll');
-  if (ps) ps.scrollTop = 0;
+  if (ps) { ps.scrollTop = 0; ps.classList.toggle('xplor-active', page==='xplor'); }
 
   currentPage = page;
 
   const hdr = document.getElementById('appHeader');
   // hide header on all pages except home, also hide on seller-dashboard (has own header)
-  if (hdr) hdr.className = page==='home' ? 'app-header' : 'app-header hidden';
+  if (hdr) hdr.className = (page==='home') ? 'app-header' : 'app-header hidden';
 
   // hide bottom-nav on seller-dashboard (has own tab bar)
   const bnav = document.querySelector('.bottom-nav');
   if (bnav) bnav.style.display = page==='seller-dashboard' ? 'none' : 'flex';
+  // xplor needs a black nav
+  if (bnav) bnav.style.background = page==='xplor' ? 'rgba(0,0,0,.85)' : '';
+  if (bnav) bnav.style.borderTopColor = page==='xplor' ? 'rgba(255,255,255,.1)' : '';
 
-  // hide page-scroll container when seller-dashboard is active (it has own scroll)
+  // hide page-scroll container only when seller-dashboard is active (xplor stays in scroll)
   if (ps) ps.style.display = page==='seller-dashboard' ? 'none' : '';
 
-  const navMap={home:'home',search:'search',cart:'cart',profile:'profile',orders:'profile',wishlist:'profile',wallet:'profile',addresses:'profile',refer:'profile',help:'profile',rate:'profile',terms:'profile',about:'profile'};
+  const navMap={home:'home',search:'search',xplor:'xplor',cart:'cart',profile:'profile',orders:'profile',wishlist:'profile',wallet:'profile',addresses:'profile',refer:'profile',help:'profile',rate:'profile',terms:'profile',about:'profile','my-videos':'profile','upload-video':'profile'};
   const nav = document.getElementById('nav-'+(navMap[page]||page));
   if (nav) nav.classList.add('active');
 
@@ -1183,6 +1788,9 @@ function showPage(page, productId) {
   else if (page==='terms')      renderTerms();
   else if (page==='about')      renderAbout();
   else if (page==='seller-dashboard') renderSellerDashboard();
+  else if (page==='xplor')      renderXplor();
+  else if (page==='my-videos')  renderMyVideos();
+  else if (page==='upload-video') renderVideoUpload();
 }
 
 /* ─── HOME ─── */
@@ -1217,11 +1825,17 @@ function goHeroSlide(n) {
 function renderHome() {
   // Hero Carousel
   initHeroCarousel();
+  updateHeaderLocation();
+
+  // Trending Videos
+  renderTrendingVideos();
 
   // Categories
   document.getElementById('categoriesScroll').innerHTML = CATEGORIES.map(c=>`
     <div class="cat-chip" onclick="filterByCategory('${c.id}')">
-      <div class="cat-icon" style="background:${c.bg}">${c.icon}</div>
+      <div class="cat-icon" style="background:${c.bg};overflow:hidden;padding:0">
+        <img src="${c.img}" alt="${c.label}" style="width:100%;height:100%;object-fit:cover;border-radius:16px" onerror="this.style.display='none'">
+      </div>
       <div class="cat-label">${c.label}</div>
     </div>`).join('');
 
@@ -1249,7 +1863,7 @@ function renderHome() {
         return `<div class="deal-card" onclick="showPage('detail','${p.id}')">
           <div class="deal-img">
             ${p.discount>0?`<div class="deal-off-badge">-${p.discount}%</div>`:''}
-            ${img?`<img src="${img}" alt="${p.name}" onerror="this.style.display='none'">`:`<span style="font-size:36px">📦</span>`}
+            ${img?`<img src="${img}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`:`<span style="font-size:36px">📦</span>`}
           </div>
           <div class="deal-info">
             <div class="deal-name">${p.name}</div>
@@ -1260,16 +1874,96 @@ function renderHome() {
       }).join('')}
     </div>
     <div class="section-header">
-      <div class="section-title">🛍️ All Products</div>
+      <div class="section-title">🛍️ Recommended for You</div>
       <div class="section-link" onclick="showPage('search')">See All →</div>
     </div>
-    <div class="products-grid">${approvedProds.map(p=>productCardHTML(p)).join('')}</div>`;
+    <div class="products-grid">${approvedProds.slice(0,8).map(p=>productCardHTML(p)).join('')}</div>`;
+
+  // Viral products bottom section
+  const viral = document.getElementById('viralProductsSection');
+  if (viral) {
+    const viralProds = [...approvedProds].sort(()=>Math.random()-.5).slice(0,6);
+    viral.innerHTML = `
+      <div style="margin:4px 12px 0;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 100%);border-radius:var(--radius-lg);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="showPage('xplor')">
+        <div>
+          <div style="font-family:var(--font-head);font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">🔥 Viral Products</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);font-weight:500">Watch videos · Shop instantly</div>
+        </div>
+        <div style="background:var(--accent);color:#fff;font-size:12px;font-weight:800;padding:8px 14px;border-radius:99px">Watch Now →</div>
+      </div>
+      <div class="section-header">
+        <div class="section-title">🌟 More Products</div>
+        <div class="section-link" onclick="showPage('search')">See All →</div>
+      </div>
+      <div class="products-grid">${approvedProds.slice(8).map(p=>productCardHTML(p)).join('')}</div>
+      <div style="height:20px"></div>
+    `;
+  }
 }
 function filterByCategory(catId) {
   showPage('search');
   const inp = document.getElementById('searchInput');
   if (catId==='all') { inp.value=''; handleSearch(''); }
   else { const c=CATEGORIES.find(c=>c.id===catId); inp.value=c?c.label:catId; handleSearch(inp.value); }
+}
+
+function renderTrendingVideos() {
+  const el = document.getElementById('trendingVideosScroll');
+  if (!el) return;
+  // Use demo videos + approved user videos
+  const approvedUserVids = (typeof userVideos !== 'undefined') ? userVideos.filter(v=>v.status==='approved') : [];
+  const demosForHome = (typeof DEMO_VIDEOS !== 'undefined') ? DEMO_VIDEOS : [];
+  const allVids = [...demosForHome, ...approvedUserVids.map(v=>({
+    id:v.id, creator:v.uploaderName||'Creator', creatorEmoji:'🎬',
+    videoSrc:v.videoDataUrl||'', thumb:'',
+    productId:v.productId, productName:v.productName,
+    price:v.price||0, ogPrice:v.ogPrice||0, desc:v.description||v.title||''
+  }))];
+
+  if (!allVids.length) {
+    // Show placeholder cards from products
+    const approvedProds = PRODUCTS.filter(p=>!p.status||p.status==='approved'||p.status==='active').slice(0,6);
+    el.innerHTML = approvedProds.map(p => {
+      const img = (Array.isArray(p.images)&&p.images[0])||p.img||'';
+      return `<div class="trending-vid-card" onclick="showPage('detail','${p.id}')">
+        ${img ? `<img class="trending-vid-card-bg" src="${img}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:block" onerror="this.style.display='none'">` : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#1e3a8a,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`}
+        <div class="trending-vid-overlay"></div>
+        <div class="trending-vid-play"><svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+        <div class="trending-vid-info">
+          <div class="trending-vid-price">₹${Number(p.price).toLocaleString()}</div>
+          <div class="trending-vid-name">${p.name}</div>
+          <div class="trending-vid-shop">Shop Now →</div>
+        </div>
+      </div>`;
+    }).join('') + `<div class="trending-vid-card" style="background:linear-gradient(135deg,#0f172a,#1e3a8a);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px;text-align:center" onclick="openVideoUpload()">
+      <div style="font-size:36px">🎬</div>
+      <div style="font-family:var(--font-head);font-size:13px;font-weight:800;color:#fff;line-height:1.2">Be the First Creator!</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.6)">Upload & earn</div>
+      <div style="background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:5px 12px;border-radius:99px;margin-top:4px">+ Upload</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = allVids.slice(0,8).map((v,i) => {
+    const p = (typeof findProd !== 'undefined') ? findProd(v.productId) : null;
+    const priceDisplay = v.price ? `₹${Number(v.price).toLocaleString()}` : (p ? `₹${Number(p.price).toLocaleString()}` : '');
+    const productName = v.productName || (p?p.name:'');
+    return `<div class="trending-vid-card" onclick="showPage('xplor')">
+      ${v.videoSrc
+        ? `<video src="${v.videoSrc}" muted playsinline loop autoplay style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:block"></video>`
+        : v.thumb
+          ? `<img src="${v.thumb}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:block" onerror="this.style.display='none'">`
+          : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a ${(i%3)*15+20}%,#${['7c3aed','2563eb','be123c'][i%3]} 100%);display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`
+      }
+      <div class="trending-vid-overlay"></div>
+      <div class="trending-vid-play"><svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+      <div class="trending-vid-info">
+        ${priceDisplay?`<div class="trending-vid-price">${priceDisplay}</div>`:''}
+        <div class="trending-vid-name">${productName||'Viral Product'}</div>
+        <div class="trending-vid-shop" onclick="event.stopPropagation();showPage('detail','${v.productId}')">Shop Now →</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function productCardHTML(p) {
@@ -1453,43 +2147,67 @@ function renderDetail(id) {
   const swiperHTML = buildSwiperWithBtns(media, p.discount, p.id, wished ? heartFilled : heartEmpty, heartFilled, heartEmpty, shareIcon);
 
   document.getElementById('detailContent').innerHTML = `
-    <div class="detail-back" onclick="showPage('${prevPage||'home'}')">← Back</div>
+    <div class="detail-back" onclick="showPage('${prevPage||'home'}')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </div>
     ${swiperHTML}
     <div class="detail-info">
-      ${p.brand?`<div class="detail-brand">${p.brand}</div>`:''}
+      ${p.brand?`<div class="detail-brand" style="display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;background:var(--primary);border-radius:50%;display:inline-block"></span> ${p.brand}</div>`:''}
       <div class="detail-title">${p.name}</div>
       <div class="detail-rating-row">
-        <div class="detail-rating-chip">⭐ ${p.rating}</div>
-        <div style="font-size:13px;color:var(--text3)">${p.reviews} Ratings & Reviews</div>
+        <div class="detail-rating-chip">★ ${p.rating}</div>
+        <div style="font-size:12px;color:var(--text3);font-weight:600">${p.reviews} Ratings & Reviews</div>
+        <div style="flex:1"></div>
+        <div onclick="shareProduct('${p.id}')" style="width:32px;height:32px;border-radius:9px;background:var(--primary-light);border:1px solid var(--primary-mid);display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </div>
       </div>
       <div class="detail-price-section">
-        <div class="detail-price-row">
-          <div class="detail-price">₹${Number(p.price).toLocaleString()}</div>
-          ${p.ogPrice>p.price?`<div class="detail-og-price">₹${Number(p.ogPrice).toLocaleString()}</div><div class="detail-discount-text">${p.discount}% off</div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="detail-price-row" style="margin-bottom:0">
+            <div class="detail-price">₹${Number(p.price).toLocaleString()}</div>
+            ${p.ogPrice>p.price?`<div class="detail-og-price">₹${Number(p.ogPrice).toLocaleString()}</div>`:''} 
+          </div>
+          ${p.discount>0?`<div style="background:#16a34a;color:#fff;font-size:12px;font-weight:800;padding:4px 10px;border-radius:99px">${p.discount}% OFF</div>`:''}
         </div>
-        ${p.ogPrice>p.price?`<div class="detail-offer-tag">🏷️ You save ₹${(p.ogPrice-p.price).toLocaleString()}</div>`:''}
+        ${p.ogPrice>p.price?`
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:12px;color:#15803d;font-weight:700">🏷️ You save ₹${(p.ogPrice-p.price).toLocaleString()}</span>
+          <span style="font-size:11px;color:var(--text3)">incl. all taxes</span>
+        </div>`:''}
       </div>
-      <div class="chip-row">
-        <div class="chip">🚚 Free Delivery</div>
-        <div class="chip">↩️ 7 Day Return</div>
-        <div class="chip">✅ Genuine Product</div>
-        <div class="chip">🔒 Secure Checkout</div>
+      <!-- Offer chips -->
+      <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:0 13px 14px;margin:0 -13px">
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px">
+          <span style="font-size:16px">🚚</span>
+          <div><div style="font-size:10px;font-weight:800;color:var(--text)">Free Delivery</div><div style="font-size:9px;color:var(--text3)">All orders</div></div>
+        </div>
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px">
+          <span style="font-size:16px">↩️</span>
+          <div><div style="font-size:10px;font-weight:800;color:var(--text)">7 Day Return</div><div style="font-size:9px;color:var(--text3)">Easy returns</div></div>
+        </div>
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px">
+          <span style="font-size:16px">✅</span>
+          <div><div style="font-size:10px;font-weight:800;color:var(--text)">Genuine</div><div style="font-size:9px;color:var(--text3)">100% authentic</div></div>
+        </div>
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px">
+          <span style="font-size:16px">🔒</span>
+          <div><div style="font-size:10px;font-weight:800;color:var(--text)">Secure Pay</div><div style="font-size:9px;color:var(--text3)">SSL encrypted</div></div>
+        </div>
       </div>
-      <div style="height:14px"></div>
-      <div class="detail-desc-title">Product Description</div>
-      <div class="detail-desc">${p.desc||''}</div>
+      
       ${(p.features||[]).length?`
-      <div style="margin-bottom:14px">
-        <div class="detail-feat-title">Key Highlights</div>
+      <div style="margin:0 0 14px;padding:14px;background:#f8faff;border-radius:12px;border:1px solid var(--border)">
+        <div class="detail-feat-title" style="margin-bottom:10px">⚡ Key Highlights</div>
         ${p.features.map(f=>`<div class="detail-feat-item">${f}</div>`).join('')}
       </div>`:''}
-      <div style="margin-bottom:14px;padding:12px 14px;background:#f0f9ff;border-radius:12px;border:1px solid #bae6fd">
-        <div style="font-size:12px;font-weight:800;color:#0369a1;margin-bottom:8px">📤 Share This Product</div>
-        <div style="display:flex;gap:8px">
-          <button onclick="shareProduct('${p.id}')" style="flex:1;background:#25d366;color:#fff;font-size:12px;font-weight:800;padding:9px;border-radius:8px;border:none;cursor:pointer">📱 WhatsApp</button>
-          <button onclick="navigator.clipboard?.writeText('https://apykart.vercel.app?product=${p.id}').then(()=>showToast('Link copied! 🔗','success'))" style="flex:1;background:var(--primary-light);color:var(--primary);font-size:12px;font-weight:800;padding:9px;border-radius:8px;border:1px solid var(--primary);cursor:pointer">🔗 Copy Link</button>
-        </div>
+      
+      <div style="margin-bottom:14px">
+        <div class="detail-desc-title" style="margin-bottom:8px">📝 About this Product</div>
+        <div class="detail-desc">${p.desc||''}</div>
       </div>
+      
     </div>`;
 
   initSwiperTouch();
@@ -1529,7 +2247,7 @@ function buildSwiperWithBtns(media, discount, pid, heartHTML, heartFilled, heart
   }).join('');
 
   const dots = media.length>1 ? `<div class="swiper-dots" id="swiperDots">${media.map((_,i)=>`<div class="swiper-dot ${i===0?'active':''}" onclick="goSlide(${i})"></div>`).join('')}</div>` : '';
-  const arrows = media.length>1 ? `<button class="swiper-prev" onclick="swiperPrev()">‹</button><button class="swiper-next" onclick="swiperNext()">›</button>` : '';
+  const arrows = media.length>1 ? `<button class="swiper-prev" onclick="swiperPrev()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><button class="swiper-next" onclick="swiperNext()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>` : '';
 
   return `<div class="media-swiper-wrap" id="mediaSwiperWrap" style="position:relative">
     <div class="media-swiper-track" id="mediaSwiperTrack">${slides}</div>
@@ -1855,7 +2573,7 @@ saveSellerEarnings();
 saveOrders();
 
   await saveOrderToFirestore(newOrder);
-  localStorage.setItem('apykart_last_order',JSON.stringify(newOrder));
+  window._lastOrder = newOrder;
 
   if (!buyNowProduct) { cart=[]; saveCart(); }
   buyNowProduct=null; useCoinsToggle=false; selectedPayment='cod';
@@ -1869,16 +2587,16 @@ function sendWAConfirmation(order) {
   const lines=order.items.map(i=>`• ${i.name} (×${i.qty}) ₹${(i.price*i.qty).toLocaleString()}`).join('\n');
   const dd=new Date(Date.now()+2*864e5).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
   const msg=`✅ *Order Confirmed – Apykart*\n\nHi ${order.customer.name} 👋\n\n📦 Order ID: ${order.id}\n${lines}\n\n💰 Total: ₹${order.total.toLocaleString()} (COD)\n📍 Deliver to: ${order.address.city}, ${order.address.state}\n🚚 Expected: ${dd}\n\n🪙 +${order.coinsEarned} ApyCoins credited!\n\nThank you for shopping with Apykart 🛒`;
-  localStorage.setItem('apykart_wa_msg',JSON.stringify({phone:(phone.startsWith('91')?phone:'91'+phone),msg}));
+  window._waMsgData = {phone:(phone.startsWith('91')?phone:'91'+phone),msg};
 }
 function openWAConfirmation() {
-  const d=JSON.parse(localStorage.getItem('apykart_wa_msg')||'{}');
+  const d = window._waMsgData || {};
   if(d.phone&&d.msg) window.open(`https://wa.me/${d.phone}?text=${encodeURIComponent(d.msg)}`,'_blank');
 }
 
 /* ─── SUCCESS ─── */
 function renderSuccess() {
-  const order=JSON.parse(localStorage.getItem('apykart_last_order')||'{}');
+  const order = window._lastOrder || {};
   const dd=new Date(Date.now()+2*864e5).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
   document.getElementById('successContent').innerHTML=`
   <div class="success-page">
@@ -2060,7 +2778,10 @@ function renderProfile() {
 
   document.getElementById('profileContent').innerHTML = `
     <div class="profile-header-section">
-      <div class="profile-avatar-row">
+      <div class="profile-avatar-row" style="position:relative">
+        <button class="profile-upload-fab" onclick="openVideoUpload()" title="Upload Video">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
         <div class="profile-avatar">${avatarHTML}</div>
         <div class="profile-user-info">
           <div class="profile-name">${name}</div>
@@ -2107,6 +2828,7 @@ function renderProfile() {
       <div class="profile-menu-card">
         ${mi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>','My Orders','Track & reorder','orders',orders.length>0?`<span class="profile-menu-badge">${orders.length}</span>`:'')}
         ${mi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>','My Wishlist','Saved products','wishlist',wishlist.length>0?`<span class="profile-menu-badge">${wishlist.length}</span>`:'')}
+        ${mi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>','My Videos',`${userVideos.length} videos uploaded`,'my-videos',userVideos.length>0?`<span class="profile-menu-badge">${userVideos.length}</span>`:'')}
         ${mi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>','ApyCoins Wallet','Earn & redeem coins','wallet',`<span style="font-size:12px;font-weight:800;color:#92400e">${coinData.balance} 🪙</span>`)}
       </div>
     </div>
@@ -2320,13 +3042,13 @@ function renderSellerDashboard() {
   statusEl.style.cssText = 'background:#dcfce7;color:#166534;';
   statusEl.textContent = '✅ Verified Seller';
 
-  const activeTab = localStorage.getItem('sellerActiveTab') || 'overview';
+  const activeTab = window._sellerActiveTab || 'overview';
   document.querySelectorAll('.seller-tab-item').forEach(item => {
     item.classList.toggle('active', item.dataset.tab === activeTab);
     item.onclick = () => {
       document.querySelectorAll('.seller-tab-item').forEach(i => i.classList.remove('active'));
       item.classList.add('active');
-      localStorage.setItem('sellerActiveTab', item.dataset.tab);
+      window._sellerActiveTab = item.dataset.tab;
       renderSellerTab(item.dataset.tab);
     };
   });
@@ -2460,18 +3182,17 @@ function previewImages(e) {
   const previewDiv = document.getElementById('imagePreview');
   previewDiv.innerHTML = '';
   for (let file of files) {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = document.createElement('img');
-      img.src = ev.target.result;
-      img.style.width = '80px'; img.style.height = '80px'; img.style.objectFit = 'cover'; img.style.borderRadius = '8px';
-      previewDiv.appendChild(img);
-    };
-    reader.readAsDataURL(file);
+    // Use Object URL for local preview (no base64 needed)
+    const url = URL.createObjectURL(file);
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--border)';
+    img.onload = () => URL.revokeObjectURL(url); // Free memory after load
+    previewDiv.appendChild(img);
   }
 }
 
-function submitNewProductBtn() {
+async function submitNewProductBtn() {
   if (!window.currentUser) { showToast('Pehle login karo bhai', 'warn'); return; }
   const name = (document.getElementById('prodName')?.value || '').trim();
   const price = parseFloat(document.getElementById('prodPrice')?.value || 0);
@@ -2480,27 +3201,66 @@ function submitNewProductBtn() {
   const stock = parseInt(document.getElementById('prodStock')?.value) || 10;
   if (!name) { showToast('Product name dalo', 'warn'); return; }
   if (!price || price <= 0) { showToast('Valid price dalo', 'warn'); return; }
-  const imageFiles = document.getElementById('prodImages')?.files || [];
-  const imagePromises = Array.from(imageFiles).map(file => new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result);
-    reader.readAsDataURL(file);
-  }));
-  Promise.all(imagePromises).then(images => {
-    const newProduct = {
-      id: 'sp_' + Date.now(), name, price, ogPrice: price, discount: 0,
-      category, images, desc, stock, status: 'pending',
-      sellerId: window.currentUser.uid, sellerName: window.currentUser.displayName,
-      rating: 0, reviews: '0', createdAt: new Date().toISOString()
-    };
-    sellerProducts.push(newProduct);
-    PRODUCTS.push(newProduct);
-    saveSellerData();
-    showToast('Product submit ho gaya! Approval ka wait karo. ✅', 'success');
-    document.querySelectorAll('.seller-tab-item').forEach(i => i.classList.toggle('active', i.dataset.tab === 'products'));
-    localStorage.setItem('sellerActiveTab', 'products');
-    renderMyProducts();
-  });
+
+  const imageFiles = Array.from(document.getElementById('prodImages')?.files || []).slice(0, 5);
+  const uid = getUid();
+
+  // Show uploading state
+  const btn = document.querySelector('[onclick="submitNewProductBtn()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading images...'; }
+  showToast('Images upload ho rahi hain...', 'info');
+
+  let imageUrls = [];
+  try {
+    // Upload each image to Firebase Storage
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
+      if (file.size > 5 * 1024 * 1024) { showToast(`Image ${i+1} 5MB se badi hai, skip kar raha hoon`, 'warn'); continue; }
+      if (!file.type.startsWith('image/')) { showToast(`File ${i+1} image nahi hai`, 'warn'); continue; }
+
+      const path = `images/${uid}/products/${Date.now()}_${i}_${file.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
+      if (window._uploadToStorage) {
+        const url = await window._uploadToStorage(file, path, (pct) => {
+          if (btn) btn.textContent = `⏳ Image ${i+1}/${imageFiles.length}: ${pct}%`;
+        });
+        if (url) imageUrls.push(url);
+      }
+    }
+  } catch(e) {
+    console.warn('Image upload error:', e.message);
+    showToast('Image upload mein issue: ' + e.message, 'warn');
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '🚀 Submit for Approval'; }
+
+  const prodId = 'sp_' + Date.now();
+  const newProduct = {
+    id: prodId, name, price, ogPrice: price, discount: 0,
+    category, images: imageUrls, img: imageUrls[0] || '', desc, stock,
+    status: 'pending',
+    sellerId: uid, sellerName: window.currentUser.displayName || '',
+    rating: 0, reviews: '0', createdAt: new Date().toISOString()
+  };
+
+  // Save to Firestore products collection
+  if (uid && window._fsHelpers) {
+    try {
+      const { db, addDoc, collection, serverTimestamp } = window._fsHelpers;
+      const ref = await addDoc(collection(db, 'products'), {
+        ...newProduct,
+        createdAt: serverTimestamp()
+      });
+      newProduct._fsId = ref.id;
+      newProduct.id = ref.id;
+    } catch(e) { console.warn('Firestore product add error:', e.message); }
+  }
+
+  sellerProducts.push(newProduct);
+  saveSellerData();
+  showToast('Product submit ho gaya! Approval ka wait karo ✅', 'success');
+  document.querySelectorAll('.seller-tab-item').forEach(i => i.classList.toggle('active', i.dataset.tab === 'products'));
+  window._sellerActiveTab = 'products';
+  renderMyProducts();
 }
 
 async function submitNewProduct(e) {
@@ -2698,30 +3458,65 @@ async function submitSellerVerificationWithFiles() {
   const docNumber = document.getElementById('docNumber').value.trim();
   const frontFile = document.getElementById('docFrontImage').files[0];
   const backFile = document.getElementById('docBackImage')?.files[0];
-  
+  const uid = getUid();
+
   if (!docNumber) { showToast('Document number daal', 'warn'); return; }
   if (!frontFile) { showToast('Front image upload kar', 'warn'); return; }
-  
-  const toBase64 = (file) => new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
-    reader.readAsDataURL(file);
-  });
-  
-  const frontBase64 = await toBase64(frontFile);
-  const backBase64 = backFile ? await toBase64(backFile) : null;
-  
+  if (!uid) { showToast('Login required', 'warn'); return; }
+
+  // Update submit button
+  const btn = document.querySelector('[onclick="submitSellerVerificationWithFiles()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading...'; }
+  showToast('Documents upload ho rahe hain...', 'info');
+
+  let frontImageUrl = null, backImageUrl = null;
+
+  try {
+    // Upload front image to Firebase Storage
+    if (window._uploadToStorage) {
+      const frontPath = `seller_docs/${uid}/${docType}_front_${Date.now()}.${frontFile.name.split('.').pop()}`;
+      frontImageUrl = await window._uploadToStorage(frontFile, frontPath, (pct) => {
+        if (btn) btn.textContent = `⏳ Front: ${pct}%`;
+      });
+
+      // Upload back image if provided
+      if (backFile) {
+        const backPath = `seller_docs/${uid}/${docType}_back_${Date.now()}.${backFile.name.split('.').pop()}`;
+        backImageUrl = await window._uploadToStorage(backFile, backPath, (pct) => {
+          if (btn) btn.textContent = `⏳ Back: ${pct}%`;
+        });
+      }
+    }
+  } catch(e) {
+    console.warn('KYC upload error:', e.message);
+    showToast('Upload failed: ' + e.message, 'warn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit for Verification'; }
+    return;
+  }
+
   sellerVerification = {
     docType, docNumber,
-    frontImage: frontBase64,
-    backImage: backBase64,
+    frontImageUrl: frontImageUrl || '',
+    backImageUrl: backImageUrl || '',
     status: 'pending',
     submittedAt: new Date().toISOString()
   };
   userRole = 'seller';
   saveSellerData();
+
+  // Also save to Firestore for admin review
+  if (uid && window._fsHelpers) {
+    const { db, doc, setDoc } = window._fsHelpers;
+    setDoc(doc(db, 'users', uid), {
+      seller_verification: sellerVerification,
+      role: 'seller',
+      updatedAt: Date.now()
+    }, { merge: true }).catch(e => console.warn('KYC Firestore save:', e.message));
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Submit for Verification'; }
   closeModal();
-  showToast('Verification submit ho gaya!', 'success');
+  showToast('Verification documents submit ho gaye! ✅', 'success');
   renderProfile();
 }
 // 👇 YEH FUNCTION ADD KARO openSellerVerificationModal KE BAAD
@@ -2886,7 +3681,7 @@ function toggleFaq(i) {
 /* ─── RATE THE APP ─── */
 let _selectedRating = 0;
 function renderRate() {
-  const stored = JSON.parse(localStorage.getItem('apykart_rating') || 'null');
+  const stored = window._userRating || null;
   document.getElementById('rateContent').innerHTML = `
     <div style="padding:20px 16px 40px;display:flex;flex-direction:column;align-items:center">
 
@@ -2908,7 +3703,7 @@ function renderRate() {
         </div>
         ${stored.review ? `<div style="margin-top:12px;font-size:13px;color:var(--text2);font-style:italic;line-height:1.5">"${stored.review}"</div>` : ''}
       </div>
-      <button onclick="localStorage.removeItem('apykart_rating');renderRate()" style="background:var(--bg);color:var(--text2);font-size:13px;font-weight:700;padding:11px 24px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer">Edit My Review</button>
+      <button onclick="window._userRating = null; firestoreSetField('app_rating', null); renderRate()" style="background:var(--bg);color:var(--text2);font-size:13px;font-weight:700;padding:11px 24px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer">Edit My Review</button>
       ` : `
       <!-- Rating Stars -->
       <div style="font-family:var(--font-head);font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;text-align:center">How was your experience?</div>
@@ -2963,7 +3758,7 @@ function setRating(n) {
 function submitRating() {
   if (!_selectedRating) { showToast('Please select a star rating', 'warn'); return; }
   const review = document.getElementById('reviewText')?.value.trim() || '';
-  localStorage.setItem('apykart_rating', JSON.stringify({ rating:_selectedRating, review, date:new Date().toISOString() }));
+  window._userRating = { rating:_selectedRating, review, date:new Date().toISOString() }; firestoreSetField('app_rating', window._userRating);
   addCoins(50, '⭐ App review bonus');
   showToast('Thank you for your review! +50 coins credited 🪙', 'coin');
   renderRate();
@@ -3174,18 +3969,20 @@ function logoutUser() {
   });
 }
 
-// ─── DYNAMIC BRANDING & THEME from Firebase ───
+// ─── DYNAMIC BRANDING & THEME from Firestore ───
 async function loadDynamicBranding() {
-  if (!window._fb) return;
-  const { db, doc, getDoc } = window._fb;
+  if (!window._db) return;
+  const { db, doc, getDoc } = window._fsHelpers;
   try {
     const [brandSnap, themeSnap] = await Promise.all([
       getDoc(doc(db, 'settings', 'app_branding')).catch(() => null),
       getDoc(doc(db, 'settings', 'app_theme')).catch(() => null),
     ]);
+    const exists = (s) => s && s.exists();
+    const data   = (s) => s ? s.data() : null;
 
-    if (themeSnap?.exists()) {
-      const t = themeSnap.data();
+    if (exists(themeSnap)) {
+      const t = data(themeSnap);
       const root = document.documentElement;
       if (t.primaryColor)  root.style.setProperty('--primary', t.primaryColor);
       if (t.accentColor)   root.style.setProperty('--accent',  t.accentColor);
@@ -3200,8 +3997,8 @@ async function loadDynamicBranding() {
       root.style.setProperty('--primary-light', (t.primaryColor||'#2874f0')+'22');
     }
 
-    if (brandSnap?.exists()) {
-      const b = brandSnap.data();
+    if (exists(brandSnap)) {
+      const b = data(brandSnap);
       const emoji = b.logoEmoji || '🛒';
       const name  = b.appName  || 'apykart';
       const split = parseInt(b.nameSplit) || 3;
@@ -3248,7 +4045,7 @@ function setupAuthListener() {
         email: user.email,
         photoURL: user.photoURL
       };
-      localStorage.setItem('apykart_user', JSON.stringify(window.currentUser));
+      /* user data loaded via Firestore onSnapshot */
       // ✅ FIX: Login hone ke baad us user ka data load karo (uid-based keys se)
       reloadUserData();
       if (!guestUser.name) guestUser.name = user.displayName || '';
@@ -3256,7 +4053,7 @@ function setupAuthListener() {
       saveGuest();
     } else {
       window.currentUser = null;
-      localStorage.removeItem('apykart_user');
+      /* user logged out - clear state */
       // ✅ FIX: Logout hone ke baad guest data load karo
       reloadUserData();
     }
@@ -3267,6 +4064,746 @@ function setupAuthListener() {
 }
 setupAuthListener();
 
+
+/* ─── VIDEO SYSTEM ─── */
+// saveUserVideos — defined above using Firestore
+
+/* ─── XPLOR FEED ─── */
+let _xplorVideos = [];
+let _xplorIdx = 0;
+let _xplorTouchY = 0;
+let _xplorTouchX = 0;
+let _xplorDragging = false;
+let _xplorDragOffset = 0;
+let _xplorLiked = {};
+
+const DEMO_VIDEOS = [
+  {
+    id:'v1', creator:'ApyKart Official', creatorEmoji:'🛍️',
+    videoSrc:'https://www.w3schools.com/html/mov_bbb.mp4',
+    thumb:'https://www.boat-lifestyle.com/cdn/shop/products/Airdopes141_black_01.jpg?v=1627461045&width=533',
+    productId:7, productName:'boAt Airdopes 141', price:1299, ogPrice:3990,
+    desc:'True wireless earbuds with 42hr playback & IPX4 rating 🎧'
+  },
+  {
+    id:'v2', creator:'TechReviewer', creatorEmoji:'💻',
+    videoSrc:'https://www.w3schools.com/html/movie.mp4',
+    thumb:'https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/i1-0f3f36b5-89b5-41e8-82be-28a3e57ad3f6/air-max-270-shoes-2V5C4p.png',
+    productId:4, productName:'Nike Air Max 270', price:8495, ogPrice:12995,
+    desc:'Experience the tallest Air unit ever for all-day comfort 👟'
+  },
+  {
+    id:'v3', creator:'StyleGuru', creatorEmoji:'👗',
+    videoSrc:'https://www.w3schools.com/html/mov_bbb.mp4',
+    thumb:'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-7inch-naturaltitanium?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1693009278140',
+    productId:1, productName:'iPhone 15 Pro Max', price:134900, ogPrice:159900,
+    desc:'Titanium design meets A17 Pro power 📱'
+  }
+];
+
+function renderXplor() {
+  const cont = document.getElementById('xplorContent');
+  if (!cont) return;
+  
+  // Merge demo + approved user videos
+  const approvedUserVids = userVideos.filter(v => v.status === 'approved');
+  _xplorVideos = [...DEMO_VIDEOS, ...approvedUserVids.map(v => ({
+    id: v.id, creator: v.uploaderName || 'Creator', creatorEmoji: '🎬',
+    videoSrc: v.videoDataUrl || '', thumb: '',
+    productId: v.productId, productName: v.productName,
+    price: v.price || 0, ogPrice: v.ogPrice || 0,
+    desc: v.description || v.title || ''
+  }))];
+  
+  if (!_xplorVideos.length) {
+    cont.innerHTML = `<div class="xplor-empty">
+      <div style="font-size:64px">🎬</div>
+      <div style="font-family:var(--font-head);font-size:20px;font-weight:800">No Videos Yet</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.6)">Upload the first product video!</div>
+      <button onclick="openVideoUpload()" style="margin-top:14px;background:var(--accent);color:#fff;font-size:13px;font-weight:800;padding:12px 24px;border-radius:12px;border:none;cursor:pointer">+ Upload Video</button>
+    </div>`;
+    return;
+  }
+  
+  _xplorIdx = 0;
+  _xplorBuildFeed();
+  _xplorActivate(0);
+  _xplorSetupTouch(cont);
+}
+
+function _xplorBuildFeed() {
+  const cont = document.getElementById('xplorContent');
+  if (!cont) return;
+  
+  cont.style.cssText = 'position:relative;width:100%;height:100%;background:#000;overflow:hidden;';
+  
+  // Create a wrapper that holds all slides in vertical stack
+  const wrapper = document.createElement('div');
+  wrapper.id = 'xplorWrapper';
+  wrapper.style.cssText = `
+    position:absolute;top:0;left:0;width:100%;
+    height:${_xplorVideos.length * 100}%;
+    transform:translateY(0);
+    transition:transform 0.38s cubic-bezier(0.4,0,0.2,1);
+    will-change:transform;
+  `;
+  
+  _xplorVideos.forEach((v, i) => {
+    const slide = document.createElement('div');
+    slide.id = 'xslide_' + i;
+    slide.style.cssText = `
+      position:relative;width:100%;
+      height:${100 / _xplorVideos.length}%;
+      background:#000;overflow:hidden;
+    `;
+    slide.innerHTML = _xplorSlideHTML(v, i);
+    wrapper.appendChild(slide);
+  });
+  
+  cont.innerHTML = '';
+  cont.appendChild(wrapper);
+  
+  // First video autoplay
+  setTimeout(() => {
+    const vid = document.getElementById('xvid_0');
+    if (vid) vid.play().catch(()=>{});
+  }, 100);
+}
+
+function _xplorSlideHTML(v, i) {
+  const discount = v.ogPrice > v.price ? Math.round((v.ogPrice - v.price) / v.ogPrice * 100) : 0;
+  return `
+    ${v.videoSrc
+      ? `<video id="xvid_${i}" src="${v.videoSrc}" loop playsinline muted
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;cursor:pointer"
+           onclick="xplorTogglePlay(${i})"></video>`
+      : v.thumb
+        ? `<img src="${v.thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">`
+        : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:64px">🎬</div>`
+    }
+    
+    <!-- Gradient overlay -->
+    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.1) 35%,rgba(0,0,0,.05) 60%,rgba(0,0,0,.3) 100%);pointer-events:none"></div>
+    
+    <!-- Top: creator + counter -->
+    <div style="position:absolute;top:14px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;pointer-events:none">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ec4899);display:flex;align-items:center;justify-content:center;font-size:15px;border:2px solid rgba(255,255,255,.4);flex-shrink:0">${v.creatorEmoji||'🎬'}</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)">${v.creator||'Creator'}</div>
+      </div>
+      <div style="background:rgba(0,0,0,.4);backdrop-filter:blur(6px);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(255,255,255,.15)">${i+1}/${_xplorVideos.length}</div>
+    </div>
+    
+    <!-- Play/Pause icon (center, hidden by default) -->
+    <div id="xplayicon_${i}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s">
+      <div style="width:64px;height:64px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.5)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+    </div>
+    
+    <!-- Right action buttons -->
+    <div style="position:absolute;bottom:130px;right:12px;display:flex;flex-direction:column;gap:18px;align-items:center">
+      
+      <!-- Like -->
+      <div onclick="xplorLike(${i})" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+        <div id="xlike_${i}" style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25);transition:all .2s">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="${_xplorLiked[i]?'#ef4444':'none'}" stroke="${_xplorLiked[i]?'#ef4444':'white'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Like</span>
+      </div>
+      
+      <!-- Share -->
+      <div onclick="shareXplorVideo('${v.id}','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+        <div style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </div>
+        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Share</span>
+      </div>
+      
+      <!-- View Product -->
+      <div onclick="showPage('detail','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+        <div style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">View</span>
+      </div>
+    </div>
+    
+    <!-- Bottom: product info + buy buttons -->
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:0 14px 14px">
+      <!-- Product name & price -->
+      <div style="margin-bottom:10px">
+        ${v.productName ? `<div style="font-family:var(--font-head);font-size:16px;font-weight:800;color:#fff;margin-bottom:4px;line-height:1.3;text-shadow:0 2px 8px rgba(0,0,0,.5);max-width:75%">${v.productName}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          ${v.price ? `<span style="font-size:15px;font-weight:800;color:#fff">₹${Number(v.price).toLocaleString()}</span>` : ''}
+          ${discount > 0 ? `<span style="background:#f97316;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px">${discount}% OFF</span>` : ''}
+          ${v.ogPrice > v.price ? `<span style="font-size:12px;color:rgba(255,255,255,.55);text-decoration:line-through">₹${Number(v.ogPrice).toLocaleString()}</span>` : ''}
+        </div>
+        ${v.desc ? `<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;line-height:1.4;max-width:80%">${v.desc}</div>` : ''}
+      </div>
+      
+      <!-- Buy buttons -->
+      <div style="display:flex;gap:8px">
+        <button onclick="addToCart('${v.productId}');showToast('Added to cart! 🛒','success')" 
+          style="flex:1;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;cursor:pointer;letter-spacing:.1px">
+          🛒 Add to Cart
+        </button>
+        <button onclick="buyNow('${v.productId}')"
+          style="flex:1;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,.45);letter-spacing:.1px">
+          ⚡ Buy Now
+        </button>
+      </div>
+    </div>
+    
+    <!-- First video swipe hint -->
+    ${i === 0 ? `
+    <div id="xswipehint" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;animation:xhintFade 3s 1.5s forwards">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:xhintBounce 1s infinite"><polyline points="18 15 12 9 6 15"/></svg>
+        <div style="font-size:12px;font-weight:700;color:#fff;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);padding:6px 14px;border-radius:99px">Swipe up for next</div>
+      </div>
+    </div>
+    <style>
+      @keyframes xhintFade{0%,80%{opacity:1}100%{opacity:0;visibility:hidden}}
+      @keyframes xhintBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+    </style>` : ''}
+  `;
+}
+
+function _xplorActivate(idx) {
+  _xplorIdx = idx;
+  const wrapper = document.getElementById('xplorWrapper');
+  if (!wrapper) return;
+  
+  // Slide wrapper up/down
+  const pct = -(idx * (100 / _xplorVideos.length));
+  wrapper.style.transform = `translateY(${pct}%)`;
+  
+  // Pause all, play current
+  _xplorVideos.forEach((_, i) => {
+    const vid = document.getElementById('xvid_' + i);
+    if (!vid) return;
+    if (i === idx) {
+      vid.play().catch(()=>{});
+    } else {
+      vid.pause();
+      vid.currentTime = 0;
+    }
+  });
+}
+
+function _xplorSetupTouch(cont) {
+  let startY = 0, startTime = 0;
+  
+  cont.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
+    startTime = Date.now();
+  }, {passive:true});
+  
+  cont.addEventListener('touchend', e => {
+    const dy = e.changedTouches[0].clientY - startY;
+    const dt = Date.now() - startTime;
+    // Quick flick OR slow drag past threshold
+    const isFlick = dt < 300 && Math.abs(dy) > 30;
+    const isDrag  = Math.abs(dy) > 60;
+    if (isFlick || isDrag) {
+      if (dy < 0 && _xplorIdx < _xplorVideos.length - 1) {
+        _xplorActivate(_xplorIdx + 1);
+      } else if (dy > 0 && _xplorIdx > 0) {
+        _xplorActivate(_xplorIdx - 1);
+      }
+    }
+  }, {passive:true});
+}
+
+function renderXplorSlide() {
+  // Legacy wrapper - now handled by _xplorActivate
+  _xplorActivate(_xplorIdx);
+}
+
+function xplorTogglePlay(idx) {
+  const i = (idx !== undefined) ? idx : _xplorIdx;
+  const vid = document.getElementById('xvid_' + i);
+  const icon = document.getElementById('xplayicon_' + i);
+  if (!vid) return;
+  if (vid.paused) {
+    vid.play().catch(()=>{});
+    if (icon) icon.style.opacity = '0';
+  } else {
+    vid.pause();
+    if (icon) icon.style.opacity = '1';
+  }
+}
+
+function xplorLike(idx) {
+  _xplorLiked[idx] = !_xplorLiked[idx];
+  const btn = document.getElementById('xlike_' + idx);
+  if (btn) {
+    const isLiked = _xplorLiked[idx];
+    btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="${isLiked?'#ef4444':'none'}" stroke="${isLiked?'#ef4444':'white'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+    btn.style.background = isLiked ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.15)';
+    btn.style.borderColor = isLiked ? '#ef4444' : 'rgba(255,255,255,.25)';
+    if (isLiked) showToast('❤️ Liked!', 'success');
+  }
+}
+
+function shareXplorVideo(vid, productId) {
+  const url = `https://apykart.vercel.app?video=${vid}&product=${productId}`;
+  const text = `🎬 Watch this amazing product video on Apykart!
+
+${url}`;
+  if (navigator.share) { navigator.share({title:'Apykart Video', url}).catch(()=>{}); }
+  else { navigator.clipboard?.writeText(text).then(()=>showToast('Video link copied! 🔗','success')); }
+}
+
+/* ─── VIDEO UPLOAD FLOW ─── */
+let _uploadStep = 1;
+let _uploadVideoFile = null;
+let _uploadVideoDataUrl = null;
+let _uploadSelectedProductId = null;
+
+function openVideoUpload() {
+  if (!window.currentUser) {
+    showLoginPrompt('video');
+    return;
+  }
+  _uploadStep = 1;
+  _uploadVideoFile = null;
+  _uploadVideoDataUrl = null;
+  _uploadSelectedProductId = null;
+  showPage('upload-video');
+}
+
+function renderVideoUpload() {
+  const cont = document.getElementById('uploadVideoContent');
+  if (!cont) return;
+  
+  const steps = ['Select Video', 'Details', 'Product', 'Publish'];
+  const stepsHTML = steps.map((s,i) => 
+    `<div class="upload-step-tab ${i+1===_uploadStep?'active':i+1<_uploadStep?'done':''}" onclick="${i+1<_uploadStep?`_uploadStep=${i+1};renderVideoUpload()`:''}">${i+1<_uploadStep?'✓ ':''} ${s}</div>`
+  ).join('');
+  
+  let bodyHTML = '';
+  
+  if (_uploadStep === 1) {
+    bodyHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;gap:0">
+        ${!_uploadVideoDataUrl ? `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+            <div style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(249,115,22,.35)">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M8 10l4 2-4 2V10z"/><line x1="2" y1="7" x2="22" y2="7"/></svg>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px">Choose your Video</div>
+              <div style="font-size:13px;color:var(--text3);font-weight:500">MP4, MOV • 15–60 sec recommended</div>
+            </div>
+            <button onclick="document.getElementById('videoFileInput').click()" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:15px;font-weight:800;padding:15px 40px;border-radius:99px;border:none;cursor:pointer;box-shadow:0 6px 20px rgba(249,115,22,.4);letter-spacing:.2px">
+              📂 Choose from Gallery
+            </button>
+            <input type="file" id="videoFileInput" accept="video/*" style="display:none" onchange="handleVideoSelect(this)">
+          </div>
+        ` : `
+          <div style="width:100%">
+            <video src="${_uploadVideoDataUrl}" muted playsinline style="width:100%;max-height:220px;object-fit:cover;border-radius:14px;display:block"></video>
+            <div style="display:flex;gap:10px;margin-top:14px">
+              <button onclick="_uploadVideoDataUrl=null;_uploadVideoFile=null;renderVideoUpload()" style="flex:1;background:#fee2e2;color:#b91c1c;font-size:13px;font-weight:700;padding:13px;border-radius:12px;border:none;cursor:pointer">✕ Change</button>
+              <button onclick="_uploadStep=2;renderVideoUpload()" style="flex:2;background:var(--primary);color:#fff;font-size:14px;font-weight:800;padding:13px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,.3)">Continue →</button>
+            </div>
+          </div>
+        `}
+      </div>
+    `;
+  } else if (_uploadStep === 2) {
+    bodyHTML = `
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:5px">Video Title *</label>
+          <input class="form-input" id="vUploadTitle" placeholder="E.g. Best earbuds under ₹2000!" value="${window._vTitle||''}">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:5px">Description</label>
+          <textarea class="form-input" id="vUploadDesc" placeholder="Tell viewers about this product..." rows="3" style="resize:none">${window._vDesc||''}</textarea>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:5px">Tags (optional, max 5)</label>
+          <input class="form-input" id="vUploadTags" placeholder="earbuds, wireless, budget" value="${window._vTags||''}">
+        </div>
+        <button onclick="
+          window._vTitle=document.getElementById('vUploadTitle').value;
+          window._vDesc=document.getElementById('vUploadDesc').value;
+          window._vTags=document.getElementById('vUploadTags').value;
+          if(!window._vTitle){showToast('Title zaroor daalo','warn');return;}
+          _uploadStep=3;renderVideoUpload()
+        " style="background:var(--primary);color:#fff;font-size:14px;font-weight:800;padding:14px;border-radius:12px;border:none;cursor:pointer;margin-top:4px">Next: Attach Product →</button>
+      </div>
+    `;
+  } else if (_uploadStep === 3) {
+    const approvedProds = PRODUCTS.filter(p => !p.status || p.status==='approved'||p.status==='active').slice(0,20);
+    bodyHTML = `
+      <div style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px">⚠️ Product attachment is mandatory</div>
+        <div style="font-size:12px;color:var(--text2)">Your video must showcase this product to be approved.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${approvedProds.map(p => {
+          const fi = (Array.isArray(p.images)&&p.images[0])||p.img||'';
+          const sel = _uploadSelectedProductId === String(p.id);
+          return `<div onclick="_uploadSelectedProductId='${p.id}';renderVideoUpload()" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;border:1.5px solid ${sel?'var(--primary)':'var(--border)'};background:${sel?'var(--primary-light)':'#fff'};cursor:pointer">
+            <div style="width:44px;height:44px;border-radius:8px;overflow:hidden;background:#f8fafc;flex-shrink:0">${fi?`<img src="${fi}" style="width:100%;height:100%;object-fit:contain;padding:3px">`:'<span style="font-size:22px;margin:auto;display:flex;align-items:center;justify-content:center;height:100%">📦</span>'}</div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700;color:var(--text)">${p.name}</div>
+              <div style="font-size:12px;color:var(--text2);font-weight:600">₹${Number(p.price).toLocaleString()}</div>
+            </div>
+            ${sel?'<span style="font-size:18px">✅</span>':''}
+          </div>`;
+        }).join('')}
+      </div>
+      <button onclick="
+        if(!_uploadSelectedProductId){showToast('Product select karo','warn');return;}
+        _uploadStep=4;renderVideoUpload()
+      " style="width:100%;background:var(--primary);color:#fff;font-size:14px;font-weight:800;padding:14px;border-radius:12px;border:none;cursor:pointer;margin-top:16px">Next: Publish →</button>
+    `;
+  } else if (_uploadStep === 4) {
+    const prod = findProd(_uploadSelectedProductId);
+    bodyHTML = `
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px;margin-bottom:12px">🚀</div>
+        <div style="font-family:var(--font-head);font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px">Ready to Upload!</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Your video will be reviewed by admin before going live on the feed.</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:20px;border:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Upload Summary</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:var(--text3)">Title</span><span style="font-size:12px;font-weight:700;color:var(--text);text-align:right;max-width:60%">${window._vTitle||'—'}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:var(--text3)">Product</span><span style="font-size:12px;font-weight:700;color:var(--primary)">${prod?prod.name:'—'}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:var(--text3)">Status</span><span style="font-size:12px;font-weight:700;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:5px">Pending Review</span></div>
+        </div>
+      </div>
+      <button onclick="submitVideoUpload()" style="width:100%;background:linear-gradient(135deg,var(--accent),#ea580c);color:#fff;font-size:15px;font-weight:800;padding:15px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,.4)">⚡ Submit for Review</button>
+    `;
+  }
+  
+  cont.innerHTML = `
+    <div style="overflow-x:auto;display:flex;padding:0 16px;gap:0;border-bottom:1px solid var(--border);scrollbar-width:none">${stepsHTML}</div>
+    <div style="flex:1;overflow-y:auto;padding:16px;padding-bottom:20px">${bodyHTML}</div>
+  `;
+}
+
+function handleVideoSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 100 * 1024 * 1024) { showToast('Video 100MB se chhota hona chahiye', 'warn'); return; }
+  _uploadVideoFile = file;
+  // Create object URL for local preview (no base64)
+  _uploadVideoDataUrl = URL.createObjectURL(file);
+  renderVideoUpload();
+}
+
+async function submitVideoUpload() {
+  if (!_uploadVideoFile && !_uploadVideoDataUrl) { showToast('Video select karo','warn'); return; }
+  if (!_uploadSelectedProductId) { showToast('Product select karo','warn'); return; }
+  const prod = findProd(_uploadSelectedProductId);
+  const uid = getUid();
+  const name = window.currentUser?.displayName || guestUser.name || 'Anonymous';
+
+  showToast('Uploading video... ⏳', 'info');
+
+  let videoUrl = _uploadVideoDataUrl || '';
+
+  // Upload to Firebase Storage if file is available
+  if (_uploadVideoFile && uid && window._uploadToStorage) {
+    try {
+      const path = `videos/${uid}/${Date.now()}_${_uploadVideoFile.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
+      const progEl = document.querySelector('.upload-progress-bar');
+      videoUrl = await window._uploadToStorage(_uploadVideoFile, path, (pct) => {
+        if (progEl) progEl.style.width = pct + '%';
+        showToast(`Uploading: ${pct}%`, 'info');
+      });
+    } catch(e) {
+      showToast('Video upload failed: ' + e.message, 'warn');
+      return;
+    }
+  }
+
+  const newVid = {
+    id: 'vid_' + Date.now(),
+    title: window._vTitle || '',
+    description: window._vDesc || '',
+    tags: (window._vTags||'').split(',').map(t=>t.trim()).filter(Boolean),
+    productId: _uploadSelectedProductId,
+    productName: prod ? prod.name : '',
+    price: prod ? prod.price : 0,
+    ogPrice: prod ? prod.ogPrice : 0,
+    videoUrl: videoUrl,
+    videoDataUrl: videoUrl,  // Keep compat
+    status: 'pending',
+    uploaderName: name,
+    uploaderUid: uid || 'guest',
+    uploadedAt: new Date().toISOString()
+  };
+
+  // Save to Firestore videos collection
+  if (uid && window._fsHelpers) {
+    try {
+      const { db, addDoc, collection, serverTimestamp } = window._fsHelpers;
+      await addDoc(collection(db, 'videos'), {
+        ...newVid,
+        createdAt: serverTimestamp()
+      });
+    } catch(e) { console.warn('Firestore video save error:', e.message); }
+  }
+
+  userVideos.unshift(newVid);
+  saveUserVideos();
+  showToast('Video submitted! Admin approval pending ⏳','success');
+  window._vTitle=''; window._vDesc=''; window._vTags='';
+  _uploadVideoFile=null; _uploadVideoDataUrl=null; _uploadSelectedProductId=null;
+  showPage('my-videos');
+}
+
+/* ─── CREATOR DASHBOARD (My Videos) ─── */
+function renderMyVideos() {
+  const cont = document.getElementById('myVideosContent');
+  if (!cont) return;
+
+  const name = window.currentUser?.displayName || guestUser.name || 'Creator';
+  const photo = window.currentUser?.photoURL;
+  const avatarHTML = photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px">` : `<span style="font-size:26px">${name.charAt(0).toUpperCase()||'👤'}</span>`;
+
+  // Compute fake but realistic earnings from videos
+  const approvedVids = userVideos.filter(v=>v.status==='approved');
+  const pendingVids  = userVideos.filter(v=>v.status==='pending');
+  const totalViews   = approvedVids.length * 1240 + Math.floor(Math.random()*500);
+  const totalSales   = approvedVids.length * 3 + Math.floor(Math.random()*5);
+  const totalEarnings = approvedVids.reduce((s,v,i)=>{
+    const base = (v.price||0) * (2 + (i%3)); 
+    return s + (base * 0.12);
+  }, 0);
+  const todayEarn   = totalEarnings > 0 ? Math.floor(totalEarnings * 0.08) : 0;
+  const weekEarn    = totalEarnings > 0 ? Math.floor(totalEarnings * 0.35) : 0;
+  const monthEarn   = Math.floor(totalEarnings);
+
+  cont.innerHTML = `
+    <!-- Creator Header -->
+    <div class="creator-header-wrap">
+      <div class="creator-profile-row">
+        <div class="creator-avatar">${avatarHTML}</div>
+        <div class="creator-info">
+          <div class="creator-name">${name}</div>
+          <div class="creator-badge">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#fb923c" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span class="creator-badge-text">VIDEO CREATOR</span>
+          </div>
+        </div>
+        <div class="sub-page-back" onclick="showPage('profile')" style="width:36px;height:36px;background:rgba(255,255,255,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,.2)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+      </div>
+
+      <div class="creator-earnings-big">
+        <div class="creator-earn-label">💰 Total Earnings</div>
+        <div class="creator-earn-amount">₹${monthEarn.toLocaleString()}</div>
+        <div class="creator-earn-sub">${totalSales} sales · ${totalViews.toLocaleString()} views</div>
+      </div>
+
+      <div class="creator-stats-grid">
+        <div class="creator-stat-card">
+          <div class="creator-stat-val">${userVideos.length}</div>
+          <div class="creator-stat-label">Videos</div>
+        </div>
+        <div class="creator-stat-card">
+          <div class="creator-stat-val">${approvedVids.length}</div>
+          <div class="creator-stat-label">Live</div>
+        </div>
+        <div class="creator-stat-card">
+          <div class="creator-stat-val">${pendingVids.length}</div>
+          <div class="creator-stat-label">Pending</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Creator Body -->
+    <div class="creator-body">
+
+      <!-- Withdraw Card -->
+      ${monthEarn > 0 ? `
+      <div class="creator-withdraw-card" onclick="showToast('Withdrawal feature coming soon! 🚀','info')">
+        <div class="creator-withdraw-left">
+          <div class="creator-withdraw-label">Available to Withdraw</div>
+          <div class="creator-withdraw-amount">₹${Math.floor(monthEarn * 0.9).toLocaleString()}</div>
+        </div>
+        <button class="creator-withdraw-btn">Withdraw →</button>
+      </div>` : ''}
+
+      <!-- Earnings Breakdown -->
+      <div class="creator-section-title">📊 Earnings Breakdown</div>
+      <div class="creator-earn-breakdown">
+        <div class="creator-earn-period">
+          <div class="creator-earn-period-amt">₹${todayEarn}</div>
+          <div class="creator-earn-period-label">Today</div>
+        </div>
+        <div class="creator-earn-period">
+          <div class="creator-earn-period-amt">₹${weekEarn}</div>
+          <div class="creator-earn-period-label">This Week</div>
+        </div>
+        <div class="creator-earn-period">
+          <div class="creator-earn-period-amt">₹${monthEarn}</div>
+          <div class="creator-earn-period-label">This Month</div>
+        </div>
+      </div>
+
+      <!-- Video Performance -->
+      <div class="creator-section-title">🎬 My Videos</div>
+      ${userVideos.length === 0 ? `
+        <div style="background:#fff;border:1.5px dashed var(--border);border-radius:14px;padding:40px 20px;text-align:center">
+          <div style="font-size:48px;margin-bottom:10px">🎬</div>
+          <div style="font-family:var(--font-head);font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px">No Videos Yet</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:16px">Upload your first product video and start earning real money!</div>
+          <button onclick="openVideoUpload()" style="background:var(--accent);color:#fff;font-size:13px;font-weight:800;padding:12px 24px;border-radius:12px;border:none;cursor:pointer">🎬 Upload First Video</button>
+        </div>
+      ` : `
+        <div class="creator-video-list">
+          ${userVideos.map((v,i) => {
+            const prod = findProd(v.productId);
+            const vViews  = 800 + i * 340 + Math.floor((v.title||'').length * 12);
+            const vSales  = Math.max(0, Math.floor(vViews * 0.003));
+            const vEarn   = Math.floor(vSales * (v.price||0) * 0.12);
+            return `<div class="creator-video-card" onclick="previewMyVideo(${i})">
+              <div class="creator-video-thumb">
+                ${v.videoDataUrl
+                  ? `<video src="${v.videoDataUrl}" muted playsinline preload="metadata" class="creator-video-thumb-bg"></video>`
+                  : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:24px">🎬</div>`
+                }
+                <div class="creator-video-thumb-overlay">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </div>
+                <div style="position:absolute;top:4px;left:4px" class="my-video-status ${v.status}">${v.status==='pending'?'⏳':v.status==='approved'?'✅':'❌'}</div>
+              </div>
+              <div class="creator-video-details">
+                <div class="creator-video-title">${v.title||'Untitled Video'}</div>
+                <div style="font-size:10px;font-weight:700;color:var(--primary);margin-bottom:5px">${prod?prod.name:v.productName||'—'}</div>
+                <div class="creator-video-meta">
+                  <div class="creator-video-stat">👁 ${vViews.toLocaleString()}</div>
+                  <div class="creator-video-stat">🛒 ${vSales} sales</div>
+                </div>
+                ${v.status==='approved'?`<div class="creator-video-earn">+₹${vEarn} earned</div>`:''}
+                ${v.status==='pending'?`<div style="font-size:10px;color:#92400e;font-weight:600">⏳ Under review</div>`:''}
+                ${v.status==='rejected'?`<div style="font-size:10px;color:#b91c1c;font-weight:600">❌ Rejected</div>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      `}
+
+      <!-- Tips Card -->
+      <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe;border-radius:14px;padding:14px 16px;margin-top:4px">
+        <div style="font-family:var(--font-head);font-size:13px;font-weight:800;color:var(--primary);margin-bottom:8px">💡 Earn More Tips</div>
+        <div style="font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:5px">
+          <div>✅ Tag products clearly in your video</div>
+          <div>✅ Use trending hashtags & good lighting</div>
+          <div>✅ Upload 3+ videos to 3× your reach</div>
+          <div>✅ 12% commission on every sale via your video</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAB Upload Button -->
+    <button class="creator-upload-fab" onclick="openVideoUpload()">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  `;
+}
+
+function previewMyVideo(idx) {
+  const v = userVideos[idx];
+  if (!v) return;
+  const prod = findProd(v.productId);
+  document.getElementById('modalPortal').innerHTML = `
+    <div class="modal-overlay" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()" style="border-radius:22px 22px 0 0">
+        <div class="modal-handle"></div>
+        <div class="modal-header"><div class="modal-title">${v.title}</div><div class="modal-close" onclick="closeModal()">✕</div></div>
+        <div class="modal-body">
+          ${v.videoDataUrl ? `<video src="${v.videoDataUrl}" controls playsinline style="width:100%;border-radius:10px;max-height:240px;object-fit:cover;background:#000;display:block;margin-bottom:12px"></video>` : ''}
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Product: <strong style="color:var(--primary)">${prod?prod.name:v.productName||'—'}</strong></div>
+          <div style="font-size:12px;color:var(--text3)">${v.description||''}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+            <span class="my-video-status ${v.status}" style="position:static;font-size:11px">${v.status==='pending'?'⏳ Pending Review':v.status==='approved'?'✅ Approved & Live':'❌ Rejected'}</span>
+          </div>
+          ${v.status==='pending' ? `<div style="margin-top:10px;padding:10px;background:#fef9e7;border-radius:8px;font-size:12px;color:#92400e">Admin review mein hai. Approved hone ke baad feed mein show hoga.</div>` : ''}
+          <button onclick="deleteMyVideo('${v.id}');closeModal()" style="width:100%;margin-top:14px;background:#fee2e2;color:#b91c1c;font-size:13px;font-weight:700;padding:11px;border-radius:10px;border:none;cursor:pointer">🗑️ Delete Video</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function deleteMyVideo(id) {
+  userVideos = userVideos.filter(v => v.id !== id);
+  saveUserVideos();
+  renderMyVideos();
+  showToast('Video deleted','info');
+}
+
+/* ─── NOTIFICATION PANEL ─── */
+const NOTIFICATIONS = [
+  {id:'n1', icon:'🎉', title:'Flash Sale is LIVE! Up to 70% off top brands', time:'2 min ago', unread:true},
+  {id:'n2', icon:'📦', title:'Your order has been confirmed!', time:'1 hr ago', unread:true},
+  {id:'n3', icon:'🪙', title:'You earned 10 ApyCoins on your last order', time:'3 hr ago', unread:false},
+  {id:'n4', icon:'🔥', title:'New arrivals in Mobiles category', time:'Yesterday', unread:false},
+  {id:'n5', icon:'🎬', title:'Video Commerce is now live! Upload your first video', time:'2 days ago', unread:false},
+];
+let _notifOpen = false;
+
+function toggleNotifications() {
+  const existing = document.getElementById('notifPanel');
+  if (existing) { existing.remove(); _notifOpen = false; return; }
+  _notifOpen = true;
+  const panel = document.createElement('div');
+  panel.id = 'notifPanel';
+  panel.className = 'notifications-panel';
+  panel.innerHTML = `
+    <div class="notif-header">
+      <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--text)">Notifications</div>
+      <div style="font-size:12px;color:var(--primary);font-weight:700;cursor:pointer" onclick="document.getElementById('notifPanel')?.remove()">✕</div>
+    </div>
+    ${NOTIFICATIONS.map(n => `
+      <div class="notif-item ${n.unread?'unread':''}">
+        <div class="notif-icon">${n.icon}</div>
+        <div class="notif-text">
+          <div class="notif-title">${n.title}</div>
+          <div class="notif-time">${n.time}</div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+  document.getElementById('app').appendChild(panel);
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!panel.contains(e.target)) { panel.remove(); _notifOpen=false; document.removeEventListener('click', handler); }
+    });
+  }, 100);
+}
+
+/* ─── PRODUCT DEEP LINK ON LOAD ─── */
+function checkDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const productId = params.get('product');
+  const videoId = params.get('video');
+  if (productId) {
+    // Wait for products to load
+    const tryOpen = () => {
+      const p = findProd(productId);
+      if (p) { setTimeout(()=>showPage('detail',productId),400); }
+      else if (PRODUCTS.length === 0) { setTimeout(tryOpen, 500); }
+    };
+    tryOpen();
+  } else if (videoId) {
+    setTimeout(()=>showPage('xplor'),400);
+  }
+}
+
 /* ─── INIT ─── */
 function init() {
   renderHome();
@@ -3276,6 +4813,8 @@ function init() {
   setTimeout(hideLoadingScreen, 2200);
   // Load Firebase-controlled branding & theme
   setTimeout(loadDynamicBranding, 500);
+  // Check product/video deep links
+  checkDeepLink();
 }
 
 init();
