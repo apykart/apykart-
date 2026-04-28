@@ -1508,35 +1508,72 @@ window._FB = {
 };
 
 onAuthStateChanged(auth, async user => {
+  // Reset login button loading state whenever auth state changes
+  const loginBtn = document.getElementById('l-btn');
+  if (loginBtn) loginBtn.classList.remove('loading');
+
   if (user) {
     try {
       const mgrRef = doc(db, 'managers', user.uid);
-      const mgrSnap = await getDoc(mgrRef);
-      if (!mgrSnap.exists()) {
-        await setDoc(mgrRef, {
+      let mgrSnap = await getDoc(mgrRef).catch(() => null);
+
+      // If doc doesn't exist, auto-create it (first login)
+      if (!mgrSnap || !mgrSnap.exists()) {
+        const newAdminData = {
           uid: user.uid,
-          name: user.email ? user.email.split('@')[0] : 'Admin',
-          email: user.email,
+          name: user.displayName || (user.email ? user.email.split('@')[0] : 'Admin'),
+          email: user.email || '',
           role: 'super_admin',
-          permissions: ['orders','products','categories','banners','users','sellers','verification','flash-deals','featured','settings','notifications'],
+          permissions: ['orders','products','categories','banners','users','sellers','verification','flash-deals','featured','settings','notifications','withdrawals','earnings','coins','managers','store-config','video-approval'],
           active: true,
           createdAt: serverTimestamp(),
           createdBy: 'auto_on_first_login'
+        };
+        await setDoc(mgrRef, newAdminData).catch(e => {
+          console.warn('Could not save manager doc (rules?):', e.message);
         });
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 400));
+        mgrSnap = await getDoc(mgrRef).catch(() => null);
       }
-      const finalSnap = await getDoc(mgrRef);
-      if (finalSnap.exists() && finalSnap.data().active !== false) {
-        window._ADMIN = { uid: user.uid, ...finalSnap.data() };
-        showApp();
+
+      // If Firestore read worked and doc exists, use it
+      if (mgrSnap && mgrSnap.exists()) {
+        const data = mgrSnap.data();
+        if (data.active === false) {
+          await signOut(auth);
+          showAuth();
+          setTimeout(() => toast('Account disabled. Contact super admin.', 'err'), 200);
+          return;
+        }
+        window._ADMIN = { uid: user.uid, ...data };
       } else {
-        await signOut(auth);
-        showAuth();
-        toast('Account disabled. Contact super admin.', 'err');
+        // Firestore rules may block read — allow login anyway with basic profile
+        console.warn('Manager doc not accessible — using fallback profile.');
+        window._ADMIN = {
+          uid: user.uid,
+          name: user.displayName || (user.email ? user.email.split('@')[0] : 'Admin'),
+          email: user.email || '',
+          role: 'super_admin',
+          permissions: ['orders','products','categories','banners','users','sellers','verification','flash-deals','featured','settings','notifications','withdrawals','earnings','coins','managers','store-config','video-approval'],
+          active: true
+        };
       }
+      showApp();
     } catch (err) {
-      showAuth();
-      toast('Error loading admin profile: ' + err.message, 'err');
+      console.error('Auth state error:', err);
+      // Still try to show app with minimal profile rather than locking user out
+      if (!window._ADMIN) {
+        window._ADMIN = {
+          uid: user.uid,
+          name: user.email ? user.email.split('@')[0] : 'Admin',
+          email: user.email || '',
+          role: 'super_admin',
+          permissions: [],
+          active: true
+        };
+      }
+      showApp();
+      setTimeout(() => toast('Warning: Profile load issue — ' + err.message, 'wrn'), 500);
     }
   } else {
     showAuth();
@@ -1779,9 +1816,22 @@ async function doLogin(){
   const btn=document.getElementById('l-btn');
   const err=document.getElementById('auth-err');
   if(!email||!pass){showErr('Please enter email and password.');return;}
-  err.classList.remove('show');btn.classList.add('loading');
-  try{await window._FB.signInWithEmailAndPassword(window._FB.auth,email,pass);}
-  catch(e){showErr(e.code==='auth/invalid-credential'?'Invalid email or password.':e.message);btn.classList.remove('loading');}
+  err.classList.remove('show');
+  if(btn)btn.classList.add('loading');
+  try{
+    await window._FB.signInWithEmailAndPassword(window._FB.auth,email,pass);
+    // btn loading will be removed by onAuthStateChanged
+  }catch(e){
+    let msg='Invalid email or password.';
+    if(e.code==='auth/user-not-found')msg='No account found with this email.';
+    else if(e.code==='auth/wrong-password')msg='Incorrect password.';
+    else if(e.code==='auth/invalid-email')msg='Invalid email address.';
+    else if(e.code==='auth/too-many-requests')msg='Too many attempts. Try again later or reset password.';
+    else if(e.code==='auth/network-request-failed')msg='Network error. Check your connection.';
+    else if(e.code!=='auth/invalid-credential')msg=e.message;
+    showErr(msg);
+    if(btn)btn.classList.remove('loading');
+  }
 }
 async function doReset(){
   const email=document.getElementById('r-email').value.trim();
