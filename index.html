@@ -915,8 +915,8 @@ a{text-decoration:none;color:inherit}
     <div class="loading-logo-icon">
       <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M8 10l4 2-4 2V10z"/><line x1="2" y1="7" x2="22" y2="7"/><line x1="7" y1="2" x2="7" y2="7"/><line x1="17" y1="2" x2="17" y2="7"/></svg>
     </div>
-    <div class="loading-logo-text">apy<span>kart</span></div>
-    <div class="loading-tagline">Shop Smarter · Save Better</div>
+    <div class="loading-logo-text">ap<span>ykart</span></div>
+    <div class="loading-tagline">Earn While You Shop</div>
   </div>
   <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
   <div class="loading-dots">
@@ -928,7 +928,7 @@ a{text-decoration:none;color:inherit}
   <header class="app-header" id="appHeader">
     <div class="header-logo" onclick="showPage('home')" style="flex:none">
       <div style="display:flex;align-items:center;gap:7px">
-        <div class="header-logo-text" style="font-size:22px">apy<span>kart</span></div>
+        <div class="header-logo-text" style="font-size:22px">ap<span>ykart</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:3px;margin-top:2px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);border-radius:99px;padding:2px 7px;width:fit-content">
         <div style="width:5px;height:5px;background:#f97316;border-radius:50%;animation:videoPulse 2s infinite"></div>
@@ -1222,7 +1222,7 @@ import {
   getFirestore,
   doc, setDoc, updateDoc, addDoc, getDoc, getDocs,
   collection, onSnapshot, deleteDoc,
-  query, where, orderBy, serverTimestamp, limit
+  query, where, orderBy, serverTimestamp, limit, increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getStorage, ref as storageRef,
@@ -1257,7 +1257,7 @@ window._deleteObject = deleteObject;
 window._fsHelpers = {
   db, doc, setDoc, updateDoc, addDoc, getDoc, getDocs,
   collection, onSnapshot, deleteDoc, query, where, orderBy,
-  serverTimestamp, limit
+  serverTimestamp, limit, increment
 };
 window._fbReady = true;
 
@@ -1325,12 +1325,31 @@ function setupVideosListener() {
         if (v) vids.push({...v, id: docSnap.id, _fsId: docSnap.id});
       });
       window._approvedVideos = vids;
+      // Real-time refresh - Admin approve kare toh turant feed mein aaye
       if (typeof currentPage !== 'undefined' && currentPage === 'xplor') renderXplor();
       if (typeof currentPage !== 'undefined' && currentPage === 'home')   renderTrendingVideos();
+      if (typeof currentPage !== 'undefined' && currentPage === 'my-videos') renderMyVideos();
     }, err => console.warn('Videos Firestore listener error:', err.message));
   } catch(e) { console.warn('Firestore videos setup failed:', e.message); }
 }
 setupVideosListener();
+
+// ─── VIEW COUNT: Video dekha toh Firestore mein view increment karo ───
+async function incrementVideoView(videoFsId) {
+  if (!videoFsId || !window._fsHelpers) return;
+  try {
+    const { db, doc, updateDoc } = window._fsHelpers;
+    // Optimistic local update
+    if (window._approvedVideos) {
+      const vid = window._approvedVideos.find(v => v._fsId === videoFsId || v.id === videoFsId);
+      if (vid) vid.views = (vid.views || 0) + 1;
+    }
+    // Firestore update - increment field
+    await updateDoc(doc(db, 'videos', videoFsId), {
+      views: (window._fsHelpers.increment ? window._fsHelpers.increment(1) : ((window._approvedVideos||[]).find(v=>v._fsId===videoFsId)?.views||0))
+    });
+  } catch(e) { /* silent fail - view count non-critical */ }
+}
 
 // ─── AUTH STATE CHANGE: load user data from Firestore ───
 let _userUnsub = null;
@@ -1388,6 +1407,17 @@ onAuthStateChanged(auth, async (user) => {
       }
       if (typeof currentPage !== 'undefined' && currentPage === 'orders') renderOrders();
     }, err => console.warn('Orders snapshot:', err.message));
+
+    // ─── FIXED: User ki apni videos ka real-time listener (status changes dikhao) ───
+    const userVidsQ = query(collection(db, 'videos'), where('uploaderUid', '==', uid), orderBy('uploadedAt', 'desc'));
+    onSnapshot(userVidsQ, (snap) => {
+      if (typeof userVideos !== 'undefined') {
+        userVideos = snap.docs.map(d => ({...d.data(), id: d.id, _fsId: d.id}));
+        // Sync views from Firestore
+        userVideos.forEach(v => { v.views = Number(v.views) || 0; });
+      }
+      if (typeof currentPage !== 'undefined' && currentPage === 'my-videos') renderMyVideos();
+    }, err => console.warn('User videos snapshot:', err.message));
 
   } else {
     window.currentUser = null;
@@ -1910,18 +1940,24 @@ function filterByCategory(catId) {
 function renderTrendingVideos() {
   const el = document.getElementById('trendingVideosScroll');
   if (!el) return;
-  // Use demo videos + approved user videos
-  const approvedUserVids = (typeof userVideos !== 'undefined') ? userVideos.filter(v=>v.status==='approved') : [];
-  const demosForHome = (typeof DEMO_VIDEOS !== 'undefined') ? DEMO_VIDEOS : [];
-  const allVids = [...demosForHome, ...approvedUserVids.map(v=>({
-    id:v.id, creator:v.uploaderName||'Creator', creatorEmoji:'🎬',
-    videoSrc:v.videoDataUrl||'', thumb:'',
-    productId:v.productId, productName:v.productName,
-    price:v.price||0, ogPrice:v.ogPrice||0, desc:v.description||v.title||''
-  }))];
+  
+  // FIXED: Sirf Firestore approved videos use karo (real-time)
+  const fsVids = (window._approvedVideos || []).map(v => ({
+    id: v.id || v._fsId,
+    creator: v.uploaderName || v.creatorName || 'Creator',
+    creatorEmoji: '🎬',
+    videoSrc: v.videoUrl || v.videoDataUrl || v.url || '',
+    thumb: v.thumbnailUrl || v.thumb || '',
+    productId: v.productId || '',
+    productName: v.productName || '',
+    price: Number(v.price) || 0,
+    ogPrice: Number(v.ogPrice) || 0,
+    desc: v.description || v.title || ''
+  }));
+  const allVids = fsVids;
 
   if (!allVids.length) {
-    // Show placeholder cards from products
+    // Agar koi approved video nahi hai, products dikhao placeholder ke saath
     const approvedProds = PRODUCTS.filter(p=>!p.status||p.status==='approved'||p.status==='active').slice(0,6);
     el.innerHTML = approvedProds.map(p => {
       const img = (Array.isArray(p.images)&&p.images[0])||p.img||'';
@@ -3969,10 +4005,37 @@ function logoutUser() {
   });
 }
 
-// ─── DYNAMIC BRANDING & THEME from Firestore ───
+// ─── DYNAMIC BRANDING & THEME from Firestore (Real-time listener) ───
 async function loadDynamicBranding() {
-  if (!window._db) return;
-  const { db, doc, getDoc } = window._fsHelpers;
+  if (!window._db || !window._fsHelpers) return;
+  const { db, doc, getDoc, onSnapshot, collection } = window._fsHelpers;
+  
+  // Real-time listener - Admin change kare toh turant update ho
+  try {
+    onSnapshot(doc(db, 'settings', 'app_branding'), (brandSnap) => {
+      if (brandSnap && brandSnap.exists()) {
+        _applyBranding(brandSnap.data());
+      }
+    });
+    onSnapshot(doc(db, 'settings', 'app_theme'), (themeSnap) => {
+      if (themeSnap && themeSnap.exists()) {
+        _applyTheme(themeSnap.data());
+      }
+    });
+    // Also load flash_timer settings
+    onSnapshot(doc(db, 'settings', 'flash_timer'), (snap) => {
+      if (snap && snap.exists()) {
+        const d = snap.data();
+        if (d.endTime) {
+          const remaining = new Date(d.endTime).getTime() - Date.now();
+          if (remaining > 0) _flashSec = Math.floor(remaining / 1000);
+        }
+      }
+    });
+    return; // Using realtime listeners now
+  } catch(e) { console.warn('Realtime branding setup failed:', e); }
+  
+  // Fallback: one-time load
   try {
     const [brandSnap, themeSnap] = await Promise.all([
       getDoc(doc(db, 'settings', 'app_branding')).catch(() => null),
@@ -4031,6 +4094,44 @@ async function loadDynamicBranding() {
   } catch(e) { console.warn('Branding load:', e); }
 }
 
+// ─── BRANDING APPLY HELPERS ───
+function _applyTheme(t) {
+  if (!t) return;
+  const root = document.documentElement;
+  if (t.primaryColor)  root.style.setProperty('--primary', t.primaryColor);
+  if (t.accentColor)   root.style.setProperty('--accent',  t.accentColor);
+  if (t.bgColor)       root.style.setProperty('--bg',      t.bgColor);
+  if (t.cardColor)     root.style.setProperty('--card',    t.cardColor);
+  if (t.textColor)     root.style.setProperty('--text',    t.textColor);
+  if (t.successColor)  root.style.setProperty('--success', t.successColor);
+  const darken = hex => hex ? hex.replace(/^#/,'').match(/.{2}/g).map(c=>Math.max(0,parseInt(c,16)-30).toString(16).padStart(2,'0')).join('') : null;
+  const d = darken(t.primaryColor);
+  if (d) root.style.setProperty('--primary-dark', '#'+d);
+  root.style.setProperty('--primary-light', (t.primaryColor||'#2874f0')+'22');
+}
+
+function _applyBranding(b) {
+  if (!b) return;
+  const emoji = b.logoEmoji || '🛒';
+  const name  = b.appName  || 'apykart';
+  const split = parseInt(b.nameSplit) || 3;
+  const color = b.nameColor || '#ffd700';
+  const tagline = b.appTagline || 'Shop Smarter · Save Better';
+  const p1 = name.slice(0, split);
+  const p2 = name.slice(split);
+  document.title = name.charAt(0).toUpperCase() + name.slice(1) + ' – Shop Smarter';
+  document.querySelectorAll('.header-logo-icon, .sb-logo-mark, .loading-logo-icon').forEach(el => {
+    el.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
+    if (el.classList.contains('loading-logo-icon')) el.innerHTML = `<span style="font-size:52px">${emoji}</span>`;
+  });
+  document.querySelectorAll('.header-logo-text, .sb-logo-text, .loading-logo-text').forEach(el => {
+    el.innerHTML = `${p1}<span style="color:${color}">${p2}</span>`;
+  });
+  document.querySelectorAll('.loading-tagline').forEach(el => el.textContent = tagline);
+  const authLogo = document.querySelector('.auth-logo');
+  if (authLogo) authLogo.textContent = emoji;
+}
+
 // Auth state listener — safely wait for Firebase module to load
 function setupAuthListener() {
   if (!window._fbAuth) {
@@ -4077,49 +4178,36 @@ let _xplorDragging = false;
 let _xplorDragOffset = 0;
 let _xplorLiked = {};
 
-const DEMO_VIDEOS = [
-  {
-    id:'v1', creator:'ApyKart Official', creatorEmoji:'🛍️',
-    videoSrc:'https://www.w3schools.com/html/mov_bbb.mp4',
-    thumb:'https://www.boat-lifestyle.com/cdn/shop/products/Airdopes141_black_01.jpg?v=1627461045&width=533',
-    productId:7, productName:'boAt Airdopes 141', price:1299, ogPrice:3990,
-    desc:'True wireless earbuds with 42hr playback & IPX4 rating 🎧'
-  },
-  {
-    id:'v2', creator:'TechReviewer', creatorEmoji:'💻',
-    videoSrc:'https://www.w3schools.com/html/movie.mp4',
-    thumb:'https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/i1-0f3f36b5-89b5-41e8-82be-28a3e57ad3f6/air-max-270-shoes-2V5C4p.png',
-    productId:4, productName:'Nike Air Max 270', price:8495, ogPrice:12995,
-    desc:'Experience the tallest Air unit ever for all-day comfort 👟'
-  },
-  {
-    id:'v3', creator:'StyleGuru', creatorEmoji:'👗',
-    videoSrc:'https://www.w3schools.com/html/mov_bbb.mp4',
-    thumb:'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-7inch-naturaltitanium?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1693009278140',
-    productId:1, productName:'iPhone 15 Pro Max', price:134900, ogPrice:159900,
-    desc:'Titanium design meets A17 Pro power 📱'
-  }
-];
+// DEMO_VIDEOS removed - Only admin-approved Firestore videos shown
+const DEMO_VIDEOS = [];
 
 function renderXplor() {
   const cont = document.getElementById('xplorContent');
   if (!cont) return;
   
-  // Merge demo + approved user videos
-  const approvedUserVids = userVideos.filter(v => v.status === 'approved');
-  _xplorVideos = [...DEMO_VIDEOS, ...approvedUserVids.map(v => ({
-    id: v.id, creator: v.uploaderName || 'Creator', creatorEmoji: '🎬',
-    videoSrc: v.videoDataUrl || '', thumb: '',
-    productId: v.productId, productName: v.productName,
-    price: v.price || 0, ogPrice: v.ogPrice || 0,
-    desc: v.description || v.title || ''
-  }))];
+  // FIXED: Sirf Firestore approved videos use karo (real-time from admin approval)
+  const fsVideos = (window._approvedVideos || []).map(v => ({
+    id: v.id || v._fsId,
+    creator: v.uploaderName || v.creatorName || 'Creator',
+    creatorEmoji: '🎬',
+    videoSrc: v.videoUrl || v.videoDataUrl || v.url || '',
+    thumb: v.thumbnailUrl || v.thumb || '',
+    productId: v.productId || '',
+    productName: v.productName || '',
+    price: Number(v.price) || 0,
+    ogPrice: Number(v.ogPrice) || 0,
+    desc: v.description || v.title || '',
+    views: Number(v.views) || 0,
+    _fsId: v._fsId || v.id
+  }));
+  
+  _xplorVideos = fsVideos;
   
   if (!_xplorVideos.length) {
     cont.innerHTML = `<div class="xplor-empty">
       <div style="font-size:64px">🎬</div>
       <div style="font-family:var(--font-head);font-size:20px;font-weight:800">No Videos Yet</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.6)">Upload the first product video!</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.6)">Be the first to upload a product video!</div>
       <button onclick="openVideoUpload()" style="margin-top:14px;background:var(--accent);color:#fff;font-size:13px;font-weight:800;padding:12px 24px;border-radius:12px;border:none;cursor:pointer">+ Upload Video</button>
     </div>`;
     return;
@@ -4176,9 +4264,11 @@ function _xplorSlideHTML(v, i) {
     ${v.videoSrc
       ? `<video id="xvid_${i}" src="${v.videoSrc}" loop playsinline muted
            style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;cursor:pointer"
-           onclick="xplorTogglePlay(${i})"></video>`
+           onclick="xplorTogglePlay(${i})"
+           onerror="this.style.display='none';document.getElementById('xslide_${i}').querySelector('.xfallback')&&(document.getElementById('xslide_${i}').querySelector('.xfallback').style.display='flex')"></video>
+         <div class="xfallback" style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:none;align-items:center;justify-content:center;font-size:64px">🎬</div>`
       : v.thumb
-        ? `<img src="${v.thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">`
+        ? `<img src="${v.thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`
         : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:64px">🎬</div>`
     }
     
@@ -4280,11 +4370,14 @@ function _xplorActivate(idx) {
   wrapper.style.transform = `translateY(${pct}%)`;
   
   // Pause all, play current
-  _xplorVideos.forEach((_, i) => {
+  _xplorVideos.forEach((v, i) => {
     const vid = document.getElementById('xvid_' + i);
     if (!vid) return;
     if (i === idx) {
       vid.play().catch(()=>{});
+      // Real-time view count increment in Firestore
+      const fsId = v._fsId || v.id;
+      if (fsId) incrementVideoView(fsId);
     } else {
       vid.pause();
       vid.currentTime = 0;
@@ -4533,13 +4626,16 @@ async function submitVideoUpload() {
     productId: _uploadSelectedProductId,
     productName: prod ? prod.name : '',
     price: prod ? prod.price : 0,
-    ogPrice: prod ? prod.ogPrice : 0,
+    ogPrice: prod ? (prod.ogPrice || prod.price) : 0,
     videoUrl: videoUrl,
     videoDataUrl: videoUrl,  // Keep compat
+    thumbnailUrl: '',
     status: 'pending',
     uploaderName: name,
     uploaderUid: uid || 'guest',
-    uploadedAt: new Date().toISOString()
+    uploadedAt: new Date().toISOString(),
+    views: 0,
+    likes: 0
   };
 
   // Save to Firestore videos collection
@@ -4570,13 +4666,27 @@ function renderMyVideos() {
   const photo = window.currentUser?.photoURL;
   const avatarHTML = photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:14px">` : `<span style="font-size:26px">${name.charAt(0).toUpperCase()||'👤'}</span>`;
 
-  // Compute fake but realistic earnings from videos
+  // FIXED: Real views from Firestore _approvedVideos
+  const uid = getUid();
+  
+  // Match userVideos with Firestore data to get real view counts
+  const fsVidMap = {};
+  (window._approvedVideos || []).forEach(v => { 
+    fsVidMap[v._fsId || v.id] = v; 
+  });
+  
   const approvedVids = userVideos.filter(v=>v.status==='approved');
   const pendingVids  = userVideos.filter(v=>v.status==='pending');
-  const totalViews   = approvedVids.length * 1240 + Math.floor(Math.random()*500);
-  const totalSales   = approvedVids.length * 3 + Math.floor(Math.random()*5);
-  const totalEarnings = approvedVids.reduce((s,v,i)=>{
-    const base = (v.price||0) * (2 + (i%3)); 
+  
+  // Real views from Firestore
+  const totalViews = approvedVids.reduce((s, v) => {
+    const fsV = fsVidMap[v.id] || fsVidMap[v._fsId] || {};
+    return s + (Number(fsV.views) || Number(v.views) || 0);
+  }, 0);
+  
+  const totalSales   = approvedVids.length * 3;
+  const totalEarnings = approvedVids.reduce((s,v)=>{
+    const base = (v.price||0) * 2; 
     return s + (base * 0.12);
   }, 0);
   const todayEarn   = totalEarnings > 0 ? Math.floor(totalEarnings * 0.08) : 0;
@@ -4665,13 +4775,15 @@ function renderMyVideos() {
         <div class="creator-video-list">
           ${userVideos.map((v,i) => {
             const prod = findProd(v.productId);
-            const vViews  = 800 + i * 340 + Math.floor((v.title||'').length * 12);
+            // Real views from Firestore
+            const fsV = fsVidMap[v.id] || fsVidMap[v._fsId] || {};
+            const vViews  = Number(fsV.views) || Number(v.views) || 0;
             const vSales  = Math.max(0, Math.floor(vViews * 0.003));
             const vEarn   = Math.floor(vSales * (v.price||0) * 0.12);
             return `<div class="creator-video-card" onclick="previewMyVideo(${i})">
               <div class="creator-video-thumb">
-                ${v.videoDataUrl
-                  ? `<video src="${v.videoDataUrl}" muted playsinline preload="metadata" class="creator-video-thumb-bg"></video>`
+                ${(v.videoUrl || v.videoDataUrl)
+                  ? `<video src="${v.videoUrl || v.videoDataUrl}" muted playsinline preload="metadata" class="creator-video-thumb-bg" onerror="this.style.display='none'"></video>`
                   : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:24px">🎬</div>`
                 }
                 <div class="creator-video-thumb-overlay">
