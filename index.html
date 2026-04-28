@@ -915,8 +915,8 @@ a{text-decoration:none;color:inherit}
     <div class="loading-logo-icon">
       <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M8 10l4 2-4 2V10z"/><line x1="2" y1="7" x2="22" y2="7"/><line x1="7" y1="2" x2="7" y2="7"/><line x1="17" y1="2" x2="17" y2="7"/></svg>
     </div>
-    <div class="loading-logo-text">ap<span>ykart</span></div>
-    <div class="loading-tagline">Earn While You Shop</div>
+    <div class="loading-logo-text">apy<span>kart</span></div>
+    <div class="loading-tagline">Shop Smarter · Save Better</div>
   </div>
   <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
   <div class="loading-dots">
@@ -928,7 +928,7 @@ a{text-decoration:none;color:inherit}
   <header class="app-header" id="appHeader">
     <div class="header-logo" onclick="showPage('home')" style="flex:none">
       <div style="display:flex;align-items:center;gap:7px">
-        <div class="header-logo-text" style="font-size:22px">ap<span>ykart</span></div>
+        <div class="header-logo-text" style="font-size:22px">apykart</div>
       </div>
       <div style="display:flex;align-items:center;gap:3px;margin-top:2px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);border-radius:99px;padding:2px 7px;width:fit-content">
         <div style="width:5px;height:5px;background:#f97316;border-radius:50%;animation:videoPulse 2s infinite"></div>
@@ -1957,26 +1957,13 @@ function renderTrendingVideos() {
   const allVids = fsVids;
 
   if (!allVids.length) {
-    // Agar koi approved video nahi hai, products dikhao placeholder ke saath
-    const approvedProds = PRODUCTS.filter(p=>!p.status||p.status==='approved'||p.status==='active').slice(0,6);
-    el.innerHTML = approvedProds.map(p => {
-      const img = (Array.isArray(p.images)&&p.images[0])||p.img||'';
-      return `<div class="trending-vid-card" onclick="showPage('detail','${p.id}')">
-        ${img ? `<img class="trending-vid-card-bg" src="${img}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:block" onerror="this.style.display='none'">` : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#1e3a8a,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`}
-        <div class="trending-vid-overlay"></div>
-        <div class="trending-vid-play"><svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
-        <div class="trending-vid-info">
-          <div class="trending-vid-price">₹${Number(p.price).toLocaleString()}</div>
-          <div class="trending-vid-name">${p.name}</div>
-          <div class="trending-vid-shop">Shop Now →</div>
-        </div>
+    el.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:10px;text-align:center;width:100%">
+        <div style="font-size:52px">🎬</div>
+        <div style="font-family:var(--font-head);font-size:16px;font-weight:800;color:var(--text)">No Videos Yet</div>
+        <div style="font-size:12px;color:var(--text2)">Be the first to upload a product video!</div>
+        <button onclick="openVideoUpload()" style="background:var(--accent);color:#fff;font-size:13px;font-weight:800;padding:10px 22px;border-radius:99px;border:none;cursor:pointer;margin-top:4px">🎬 Upload Video</button>
       </div>`;
-    }).join('') + `<div class="trending-vid-card" style="background:linear-gradient(135deg,#0f172a,#1e3a8a);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px;text-align:center" onclick="openVideoUpload()">
-      <div style="font-size:36px">🎬</div>
-      <div style="font-family:var(--font-head);font-size:13px;font-weight:800;color:#fff;line-height:1.2">Be the First Creator!</div>
-      <div style="font-size:10px;color:rgba(255,255,255,.6)">Upload & earn</div>
-      <div style="background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:5px 12px;border-radius:99px;margin-top:4px">+ Upload</div>
-    </div>`;
     return;
   }
 
