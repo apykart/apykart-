@@ -1644,7 +1644,7 @@ function startGlobalListeners(){
     snap=>{
       _CATS=snap.docs.map(d=>({_did:d.id,...d.data()}));
       if(_PAGE==='categories')renderCats();
-      // Refresh category dropdowns in modals
+      // Refresh category dropdowns in modals — changes sync to user app via Firestore onSnapshot
       const sel=document.getElementById('prd-cat-f');
       if(sel){sel.innerHTML='<option value="">All Categories</option>'+_CATS.map(c=>`<option value="${c.id}">${c.icon||''} ${c.name}</option>`).join('');}
     },
@@ -1709,9 +1709,17 @@ function startGlobalListeners(){
   if(_VID_UNSUB)_VID_UNSUB();
   try{
     _VID_UNSUB=onSnapshot(
-      query(collection(db,'videos'),orderBy('uploadedAt','desc')),
+      collection(db,'videos'),
       snap=>{
-        _VIDEOS=snap.docs.map(d=>({_did:d.id,...d.data()}));
+        _VIDEOS=snap.docs.map(d=>({_did:d.id,...d.data()}))
+          // Normalize missing status → 'pending'
+          .map(v=>({...v, status:v.status||'pending'}))
+          // Sort by uploadedAt desc (safe fallback if field missing)
+          .sort((a,b)=>{
+            const ta=a.uploadedAt?.seconds||a.uploadedAt?.toMillis?.()?.valueOf()/1000||0;
+            const tb=b.uploadedAt?.seconds||b.uploadedAt?.toMillis?.()?.valueOf()/1000||0;
+            return tb-ta;
+          });
         const pendingVids=_VIDEOS.filter(v=>v.status==='pending').length;
         const b=document.getElementById('sb-badge-videos');
         if(b){b.textContent=pendingVids;b.style.display=pendingVids>0?'flex':'none';}
@@ -1808,7 +1816,7 @@ function showApp(){
   const urole=document.getElementById('sb-urole');if(urole)urole.textContent=(a.role||'super_admin').replace(/_/g,' ').toUpperCase();
   const aname=document.getElementById('st-aname');if(aname)aname.textContent=n;
   const uidSpan=document.getElementById('st-uid');if(uidSpan)uidSpan.textContent=a.uid||'—';
-  buildNav();startGlobalListeners();nav('dashboard');
+  buildNav();startGlobalListeners();startSellerVerificationsListener();nav('dashboard');
 }
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
@@ -2045,7 +2053,7 @@ async function saveProduct(){
     closeOv('ov-product');
   }catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
 }
-async function togProdSt(docId,active){const{db,doc,updateDoc}=window._FB;await updateDoc(doc(db,'products',docId),{status:active?'active':'inactive'});toast('Status updated','inf');}
+async function togProdSt(docId,active){const{db,doc,updateDoc,serverTimestamp}=window._FB;try{await updateDoc(doc(db,'products',docId),{status:active?'active':'inactive',updatedAt:serverTimestamp()});toast('Status updated — user app reflects immediately','inf');}catch(e){toast('Update failed: '+e.message,'err');}}
 function delProd(docId,name){confirm2('Delete Product',`Remove "${name}"?`,async()=>{const{db,doc,deleteDoc}=window._FB;try{await deleteDoc(doc(db,'products',docId));toast('Product deleted','inf');}catch(e){toast('Delete failed: '+e.message,'err');}});}
 
 /* ════════ PRODUCT APPROVAL ════════ */
@@ -2075,21 +2083,20 @@ function renderPendingProducts(){
 async function approveProduct(docId){
   const{db,doc,collection,updateDoc,addDoc,serverTimestamp}=window._FB;
   const prod=_PRODUCTS.find(p=>p._did===docId);
-  await updateDoc(doc(db,'products',docId),{approvalStatus:'approved',status:'active',approvedAt:serverTimestamp(),approvedBy:window._ADMIN?.name||'Admin'});
-  // Notify seller
-  if(prod?.sellerId){
-    addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_approved',title:'Product Approved ✅',body:`Your product "${prod.name}" has been approved and is now live!`,read:false,createdAt:serverTimestamp()}).catch(()=>{});
-  }
-  toast('Product approved ✅ Seller notified.','suc');
+  try{
+    await updateDoc(doc(db,'products',docId),{approvalStatus:'approved',status:'active',approvedAt:serverTimestamp(),approvedBy:window._ADMIN?.name||'Admin'});
+    if(prod?.sellerId){addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_approved',title:'Product Approved ✅',body:`Your product "${prod.name}" has been approved and is now live!`,read:false,createdAt:serverTimestamp()}).catch(()=>{});}
+    toast('Product approved ✅ — Now visible in user app!','suc');
+  }catch(e){toast('Approve failed: '+e.message,'err');}
 }
 async function rejectProduct(docId){
   const{db,doc,collection,updateDoc,addDoc,serverTimestamp}=window._FB;
   const prod=_PRODUCTS.find(p=>p._did===docId);
-  await updateDoc(doc(db,'products',docId),{approvalStatus:'rejected',status:'inactive',rejectedAt:serverTimestamp(),rejectedBy:window._ADMIN?.name||'Admin'});
-  if(prod?.sellerId){
-    addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_rejected',title:'Product Rejected ❌',body:`Your product "${prod.name}" was not approved. Please review and resubmit.`,read:false,createdAt:serverTimestamp()}).catch(()=>{});
-  }
-  toast('Product rejected. Seller notified.','wrn');
+  try{
+    await updateDoc(doc(db,'products',docId),{approvalStatus:'rejected',status:'inactive',rejectedAt:serverTimestamp(),rejectedBy:window._ADMIN?.name||'Admin'});
+    if(prod?.sellerId){addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_rejected',title:'Product Rejected ❌',body:`Your product "${prod.name}" was not approved. Please review and resubmit.`,read:false,createdAt:serverTimestamp()}).catch(()=>{});}
+    toast('Product rejected. Seller notified.','wrn');
+  }catch(e){toast('Reject failed: '+e.message,'err');}
 }
 
 /* ════════ SELLER VERIFICATION ════════ */
@@ -2320,12 +2327,12 @@ async function saveFeaturedPicks(){
 }
 
 /* ════════ HOME THEME BUILDER ════════ */
-let _homeThemeImgUrl=null;
+// Uses global _HOME_IMG_URL
 async function loadHomeTheme(){
   const{db,doc,getDoc,collection,getDocs}=window._FB;
   try{
     const snap=await getDoc(doc(db,'settings','home_theme')).catch(()=>null);
-    if(snap?.exists()){const d=snap.data();document.getElementById('ht-name').value=d.name||'';document.getElementById('ht-primary').value=d.primaryColor||'#3b82f6';document.getElementById('ht-secondary').value=d.secondaryColor||'#6366f1';document.getElementById('ht-bg').value=d.bgColor||'#f8faff';document.getElementById('ht-hero').value=d.heroText||'';document.getElementById('ht-herosub').value=d.heroSubText||'';document.getElementById('ht-font').value=d.font||'Outfit';document.getElementById('ht-dark').checked=d.darkSupport!==false;_homeThemeImgUrl=d.heroImageUrl||null;if(_homeThemeImgUrl){const prev=document.getElementById('ht-img-prev');if(prev)prev.innerHTML=`<div class="uthumb" style="width:120px;height:60px"><img src="${_homeThemeImgUrl}" alt="hero"><div class="uthumb-x" onclick="_homeThemeImgUrl=null;this.closest('.uthumb').remove()">✕</div></div>`;}}
+    if(snap?.exists()){const d=snap.data();document.getElementById('ht-name').value=d.name||'';document.getElementById('ht-primary').value=d.primaryColor||'#3b82f6';document.getElementById('ht-secondary').value=d.secondaryColor||'#6366f1';document.getElementById('ht-bg').value=d.bgColor||'#f8faff';document.getElementById('ht-hero').value=d.heroText||'';document.getElementById('ht-herosub').value=d.heroSubText||'';document.getElementById('ht-font').value=d.font||'Outfit';document.getElementById('ht-dark').checked=d.darkSupport!==false;_HOME_IMG_URL=d.heroImageUrl||null;if(_HOME_IMG_URL){const prev=document.getElementById('ht-img-prev');if(prev)prev.innerHTML=`<div class="uthumb" style="width:120px;height:60px"><img src="${_HOME_IMG_URL}" alt="hero"><div class="uthumb-x" onclick="_HOME_IMG_URL=null;this.closest('.uthumb').remove()">✕</div></div>`;}}
     const pubSnap=await getDocs(collection(db,'home_themes')).catch(()=>({docs:[]}));
     const pubEl=document.getElementById('ht-published');
     if(pubEl){const themes=pubSnap.docs.map(d=>({_did:d.id,...d.data()}));pubEl.innerHTML=themes.length?themes.map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:700">${esc(t.name||'Unnamed')}</div><div style="font-size:10px;color:var(--text3)">${t.published?'🟢 Live':'⚪ Draft'} · ${relTime(t.publishedAt)}</div></div><div style="display:flex;gap:5px">${!t.published?`<button class="btn btn-s btn-xs" onclick="setThemeLive('${t._did}')">🚀 Go Live</button>`:''}<button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="delTheme('${t._did}')">🗑️</button></div></div>`).join(''):'<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No published themes yet</div>';}
@@ -2341,20 +2348,20 @@ function updatePreview(){
   const heroDiv=document.getElementById('prev-hero');if(heroDiv){heroDiv.textContent=hero;heroDiv.closest('div')&&(heroDiv.closest('[style*="background"]').style.background=`linear-gradient(135deg,${p},${s})`);}
   const subDiv=document.getElementById('prev-herosub');if(subDiv)subDiv.textContent=herosub;
 }
-async function handleHomeImg(file){if(!file)return;try{_homeThemeImgUrl=await uploadImg(file,'home_themes',()=>{});const prev=document.getElementById('ht-img-prev');if(prev)prev.innerHTML=`<div class="uthumb" style="width:120px;height:60px"><img src="${_homeThemeImgUrl}" alt="hero"><div class="uthumb-x" onclick="_homeThemeImgUrl=null;this.closest('.uthumb').remove()">✕</div></div>`;toast('Hero image uploaded ✅','suc');}catch(e){toast('Upload failed: '+e.message,'err');}}
+async function handleHomeImg(file){if(!file)return;try{_HOME_IMG_URL=await uploadImg(file,'home_themes',()=>{});const prev=document.getElementById('ht-img-prev');if(prev)prev.innerHTML=`<div class="uthumb" style="width:120px;height:60px"><img src="${_HOME_IMG_URL}" alt="hero"><div class="uthumb-x" onclick="_HOME_IMG_URL=null;this.closest('.uthumb').remove()">✕</div></div>`;toast('Hero image uploaded ✅','suc');}catch(e){toast('Upload failed: '+e.message,'err');}}
 async function saveHomeDraft(){
   const gv=id=>document.getElementById(id)?.value||'';
-  const data={name:gv('ht-name')||'Unnamed Theme',primaryColor:gv('ht-primary'),secondaryColor:gv('ht-secondary'),bgColor:gv('ht-bg'),heroText:gv('ht-hero'),heroSubText:gv('ht-herosub'),font:gv('ht-font'),darkSupport:document.getElementById('ht-dark')?.checked,heroImageUrl:_homeThemeImgUrl||null,published:false,updatedAt:new Date().toISOString(),updatedBy:window._ADMIN?.name||'Admin'};
+  const data={name:gv('ht-name')||'Unnamed Theme',primaryColor:gv('ht-primary'),secondaryColor:gv('ht-secondary'),bgColor:gv('ht-bg'),heroText:gv('ht-hero'),heroSubText:gv('ht-herosub'),font:gv('ht-font'),darkSupport:document.getElementById('ht-dark')?.checked,heroImageUrl:_HOME_IMG_URL||null,published:false,updatedAt:new Date().toISOString(),updatedBy:window._ADMIN?.name||'Admin'};
   const{db,doc,setDoc}=window._FB;await setDoc(doc(db,'settings','home_theme'),data,{merge:true});toast('Draft saved 💾','suc');
 }
 async function publishHomeTheme(){
   const gv=id=>document.getElementById(id)?.value||'';
   const name=gv('ht-name')||'Unnamed Theme';
-  const data={name,primaryColor:gv('ht-primary'),secondaryColor:gv('ht-secondary'),bgColor:gv('ht-bg'),heroText:gv('ht-hero'),heroSubText:gv('ht-herosub'),font:gv('ht-font'),darkSupport:document.getElementById('ht-dark')?.checked,heroImageUrl:_homeThemeImgUrl||null,published:true,publishedAt:new Date().toISOString(),publishedBy:window._ADMIN?.name||'Admin'};
+  const data={name,primaryColor:gv('ht-primary'),secondaryColor:gv('ht-secondary'),bgColor:gv('ht-bg'),heroText:gv('ht-hero'),heroSubText:gv('ht-herosub'),font:gv('ht-font'),darkSupport:document.getElementById('ht-dark')?.checked,heroImageUrl:_HOME_IMG_URL||null,published:true,publishedAt:new Date().toISOString(),publishedBy:window._ADMIN?.name||'Admin'};
   const{db,doc,setDoc,collection,addDoc}=window._FB;
   await setDoc(doc(db,'settings','home_theme'),data,{merge:true});
   await addDoc(collection(db,'home_themes'),data);
-  toast('Theme published! 🚀 Users will see this now.','suc','Theme Live');await loadHomeTheme();
+  toast('Theme published! 🚀 User app homepage updated instantly!','suc','Theme Live');await loadHomeTheme();
 }
 async function setThemeLive(docId){
   const{db,collection,getDocs,doc,updateDoc,setDoc}=window._FB;
@@ -2386,7 +2393,7 @@ function openUserDrawer(docId){
   document.getElementById('drw-usr-body').innerHTML=`<div style="display:flex;align-items:center;gap:16px;margin-bottom:22px"><div class="ava ava-lg" style="background:${strColor(u.name)}">${initials(u.name)}</div><div><div style="font-size:19px;font-weight:700">${esc(u.name||'Guest')}</div><div style="font-size:12px;color:var(--text3);margin-top:2px">${u.userId||u._did||''}</div>${u.banned?'<span class="bdg bdg-r" style="margin-top:6px">Banned</span>':'<span class="bdg bdg-g" style="margin-top:6px">Active</span>'}</div></div><div class="g2" style="margin-bottom:14px"><div class="card"><div class="cb" style="padding:12px 14px"><div class="info-row"><span class="ik">📞 Phone</span><span class="iv">${u.phone||'—'}</span></div><div class="info-row"><span class="ik">📧 Email</span><span class="iv" style="font-size:11px">${u.email||'—'}</span></div><div class="info-row"><span class="ik">🪙 Coins</span><span class="iv" style="color:var(--amber)">${u.coins||0}</span></div><div class="info-row"><span class="ik">❤️ Wishlist</span><span class="iv">${u.wishlist?.length||0}</span></div><div class="info-row"><span class="ik">📍 Addresses</span><span class="iv">${(u.addresses||[]).length}</span></div><div class="info-row"><span class="ik">Last Seen</span><span class="iv">${relTime(u.updatedAt)}</span></div></div></div><div class="card"><div class="ch"><div class="ct">🪙 Coin Transactions</div></div><div style="max-height:160px;overflow-y:auto">${(u.coinTransactions||[]).slice(0,10).map(t=>`<div style="display:flex;align-items:center;gap:9px;padding:8px 13px;border-bottom:1px solid var(--border)"><div style="font-size:15px">${t.type==='earned'?'⬆️':'⬇️'}</div><div style="flex:1;font-size:11px">${esc(t.desc||'')}</div><div style="font-size:12px;font-weight:700;color:${t.type==='earned'?'var(--green)':'var(--red)'}">${t.type==='earned'?'+':'-'}${t.amount} 🪙</div></div>`).join('')||'<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px">No transactions</div>'}</div></div></div><div style="display:flex;gap:9px">${u.phone?`<button class="btn btn-s" onclick="window.open('https://wa.me/${(u.phone+'').replace(/\D/g,'').replace(/^(?!91)/,'91')}','_blank')">💬 WhatsApp</button>`:''}<button class="btn ${u.banned?'btn-s':'btn-d'}" onclick="banUser('${u._did}',${!u.banned});closeDrw('drw-user')">${u.banned?'Unban User':'Ban User'}</button></div>`;
   openDrw('drw-user');
 }
-async function banUser(docId,ban){const{db,doc,updateDoc}=window._FB;await updateDoc(doc(db,'users',docId),{banned:ban});toast(ban?'User banned':'User unbanned',ban?'wrn':'suc');await loadUsers();}
+async function banUser(docId,ban){const{db,doc,updateDoc,serverTimestamp}=window._FB;try{await updateDoc(doc(db,'users',docId),{banned:ban,bannedAt:ban?new Date().toISOString():null,bannedBy:ban?(window._ADMIN?.name||'Admin'):null});toast(ban?'User banned':'User unbanned',ban?'wrn':'suc');}catch(e){toast('Error: '+e.message,'err');}}
 
 /* ════════ SELLERS ════════ */
 async function loadSellers(){ filterSellers(); }
@@ -2663,7 +2670,7 @@ async function saveSettings(){
   };
   const{db,doc,setDoc}=window._FB;
   const btn=document.getElementById('st-save-btn');if(btn)btn.classList.add('btn-ld');
-  try{await setDoc(doc(db,'settings','config'),data,{merge:true});toast('Store settings saved ✅','suc');}
+  try{await setDoc(doc(db,'settings','config'),data,{merge:true});toast('Store settings saved ✅ — User app updated instantly!','suc');}
   catch(e){toast('Save failed: '+e.message,'err');}
   finally{if(btn)btn.classList.remove('btn-ld');}
 }
@@ -2970,8 +2977,8 @@ async function rejectWithdrawal(docId){
   },'❌','Reject');
 }
 
-function updateWithdrawalBadge(){
-  const pending=_WITHDRAWALS.filter(w=>w.status==='pending').length;
+function updateWithdrawalBadge(cnt){
+  const pending=(cnt!==undefined)?cnt:_WITHDRAWALS.filter(w=>w.status==='pending').length;
   const badge=document.getElementById('sb-badge-withdrawals');
   if(badge){badge.textContent=pending;badge.style.display=pending>0?'flex':'none';}
 }
@@ -3205,7 +3212,7 @@ async function approveVerification(docId,userId){
         const verData=_VER_LIST.find(v=>v._did===docId)||{};
         await setDoc(doc(db,'sellers',userId),{uid:userId,name:verData.userName||'',phone:verData.userPhone||'',status:'verified',verifiedAt:serverTimestamp(),verifiedBy:window._ADMIN?.name||'Admin',docType:verData.docType||'',createdAt:serverTimestamp()},{merge:true});
       }
-      toast('Seller approved ✅ They can now list products.','suc');
+      toast('Seller approved ✅ User role updated — they can now list products!','suc');
     }catch(e){toast('Error: '+e.message,'err');}
   },'✅','Approve');
 }
@@ -3227,6 +3234,8 @@ async function rejectVerification(docId,userId){
 
 /* ════════ VIDEO APPROVAL ════════ */
 function loadVideoApproval(){
+  // Initialize _VIDEOS_F if empty (first load)
+  if(!_VIDEOS_F.length&&_VIDEOS.length)_VIDEOS_F=[..._VIDEOS];
   // _VIDEOS kept live by global listener
   filterVideos();
 }
@@ -3234,20 +3243,22 @@ function loadVideoApproval(){
 function filterVideos(q){
   const sq=(q||document.querySelector('#pg-video-approval .f-search input')?.value||'').toLowerCase();
   const st=document.getElementById('vid-st-f')?.value||'';
-  _VIDEOS_F=_VIDEOS.filter(v=>{
+  _VIDEOS_F=(_VIDEOS||[]).filter(v=>{
+    // Normalize status
+    const status=v.status||'pending';
     const mq=!sq
       ||(v.title||'').toLowerCase().includes(sq)
       ||(v.productName||v.product||'').toLowerCase().includes(sq)
       ||(v.uploaderName||v.sellerName||v.userName||'').toLowerCase().includes(sq)
       ||(v.uploaderId||v.userId||'').toLowerCase().includes(sq);
-    const ms=!st||v.status===st;
+    const ms=!st||status===st;
     return mq&&ms;
   });
   _VIDEOS_P=1;
   // Update mini stats
-  setEl('vid-stat-pending',_VIDEOS.filter(v=>v.status==='pending').length);
-  setEl('vid-stat-approved',_VIDEOS.filter(v=>v.status==='approved').length);
-  setEl('vid-stat-rejected',_VIDEOS.filter(v=>v.status==='rejected').length);
+  setEl('vid-stat-pending',(_VIDEOS||[]).filter(v=>(v.status||'pending')==='pending').length);
+  setEl('vid-stat-approved',(_VIDEOS||[]).filter(v=>v.status==='approved').length);
+  setEl('vid-stat-rejected',(_VIDEOS||[]).filter(v=>v.status==='rejected').length);
   renderVideos();
 }
 
@@ -3260,7 +3271,8 @@ function renderVideos(){
     rejected:{b:'bdg-r',l:'❌ Rejected'}
   };
   tbody.innerHTML=items.length?items.map(v=>{
-    const st=stMap[v.status||'pending']||{b:'bdg-n',l:v.status||'Unknown'};
+    const status=v.status||'pending'; // normalize missing status
+    const st=stMap[status]||{b:'bdg-n',l:status||'Unknown'};
     const thumb=v.thumbnailUrl||v.thumb||'';
     const videoUrl=v.videoUrl||v.url||'';
     const title=esc(v.title||v.name||'Untitled Video');
@@ -3294,12 +3306,12 @@ function renderVideos(){
       <td>
         <div style="display:flex;gap:5px;flex-wrap:wrap">
           ${videoUrl?`<button class="btn btn-g btn-xs" onclick="previewVideo('${v._did}')">▶ Preview</button>`:''}
-          ${v.status==='pending'?`
+          ${status==='pending'?`
             <button class="btn btn-s btn-xs" onclick="approveVideo('${v._did}')">✅ Approve</button>
             <button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="rejectVideo('${v._did}')">❌ Reject</button>
           `:''}
-          ${v.status==='approved'?`<button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="rejectVideo('${v._did}')">❌ Reject</button>`:''}
-          ${v.status==='rejected'?`<button class="btn btn-s btn-xs" onclick="approveVideo('${v._did}')">✅ Approve</button>`:''}
+          ${status==='approved'?`<button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="rejectVideo('${v._did}')">❌ Reject</button>`:''}
+          ${status==='rejected'?`<button class="btn btn-s btn-xs" onclick="approveVideo('${v._did}')">✅ Approve</button>`:''}
         </div>
       </td>
     </tr>`;
@@ -3323,8 +3335,8 @@ function previewVideo(docId){
   if(actEl){
     actEl.innerHTML=`
       <button class="btn btn-g btn-sm" onclick="closeVideoPreview()">Close</button>
-      ${v.status!=='rejected'?`<button class="btn btn-sm" style="background:var(--red-g);color:var(--red)" onclick="rejectVideo('${v._did}');closeVideoPreview()">❌ Reject</button>`:''}
-      ${v.status!=='approved'?`<button class="btn btn-s btn-sm" onclick="approveVideo('${v._did}');closeVideoPreview()">✅ Approve</button>`:''}
+      ${v.status!=='rejected'?`<button class="btn btn-sm" style="background:var(--red-g);color:var(--red)" onclick="closeVideoPreview();rejectVideo('${v._did}')">❌ Reject</button>`:''}
+      ${v.status!=='approved'?`<button class="btn btn-s btn-sm" onclick="closeVideoPreview();approveVideo('${v._did}')">✅ Approve</button>`:''}
     `;
   }
   openOv('ov-video-preview');
@@ -3339,33 +3351,71 @@ function closeVideoPreview(){
 async function approveVideo(docId){
   const{db,doc,updateDoc,serverTimestamp}=window._FB;
   try{
+    // Optimistic local update — instant UI refresh without waiting for Firestore onSnapshot
+    const idx=_VIDEOS.findIndex(v=>v._did===docId);
+    if(idx!==-1){
+      _VIDEOS[idx]={..._VIDEOS[idx],status:'approved',approvedAt:{seconds:Date.now()/1000},approvedBy:window._ADMIN?.name||'Admin'};
+    }
+    filterVideos(); // re-render immediately
     await updateDoc(doc(db,'videos',docId),{
       status:'approved',
       approvedAt:serverTimestamp(),
       approvedBy:window._ADMIN?.name||'Admin'
     });
-    toast('Video approved ✅','suc');
-  }catch(e){toast('Error: '+e.message,'err');}
+    toast('Video approved ✅ — will now appear in user feed','suc');
+  }catch(e){
+    // Rollback on error
+    const idx=_VIDEOS.findIndex(v=>v._did===docId);
+    if(idx!==-1)_VIDEOS[idx]={..._VIDEOS[idx],status:'pending'};
+    filterVideos();
+    toast('Error: '+e.message,'err');
+  }
 }
 
 async function rejectVideo(docId){
   confirm2('Reject Video','Are you sure you want to reject this video?',async()=>{
     const{db,doc,updateDoc,serverTimestamp}=window._FB;
     try{
+      // Optimistic local update
+      const idx=_VIDEOS.findIndex(v=>v._did===docId);
+      if(idx!==-1){
+        _VIDEOS[idx]={..._VIDEOS[idx],status:'rejected',rejectedAt:{seconds:Date.now()/1000},rejectedBy:window._ADMIN?.name||'Admin'};
+      }
+      filterVideos();
       await updateDoc(doc(db,'videos',docId),{
         status:'rejected',
         rejectedAt:serverTimestamp(),
         rejectedBy:window._ADMIN?.name||'Admin'
       });
       toast('Video rejected','wrn');
-    }catch(e){toast('Error: '+e.message,'err');}
+    }catch(e){
+      // Rollback
+      const idx=_VIDEOS.findIndex(v=>v._did===docId);
+      if(idx!==-1)_VIDEOS[idx]={..._VIDEOS[idx],status:'pending'};
+      filterVideos();
+      toast('Error: '+e.message,'err');
+    }
   },'❌','Reject');
 }
 
-function updateWithdrawalBadge_count(count){
-  const badge=document.getElementById('sb-badge-withdrawals');
-  if(badge){badge.textContent=count;badge.style.display=count>0?'flex':'none';}
+function updateWithdrawalBadge_count(count){updateWithdrawalBadge(count);} // alias
+
+/* ════ SELLER VERIFICATIONS LIVE LISTENER ════
+   Ensures admin KYC approvals reflect instantly on user side */
+function startSellerVerificationsListener(){
+  const{db,collection,onSnapshot}=window._FB;
+  try{
+    onSnapshot(collection(db,'seller_verifications'),snap=>{
+      _VER_LIST=snap.docs.map(d=>({_did:d.id,...d.data()}));
+      const pendingVer=_VER_LIST.filter(v=>v.status==='pending').length;
+      const b=document.getElementById('sb-badge-verification');
+      if(b){b.textContent=pendingVer;b.style.display=pendingVer>0?'flex':'none';}
+      if(_PAGE==='verification')filterVerification();
+      setEl('ds-ver',pendingVer);
+    },e=>console.warn('SellerVer listener:',e));
+  }catch(e){console.warn('SellerVer setup failed:',e);}
 }
+
 function syncMobileBadges(){
   const ob=document.getElementById('sb-badge-orders');
   const mob=document.getElementById('mbn-badge-orders');
