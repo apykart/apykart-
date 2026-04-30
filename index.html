@@ -1984,7 +1984,24 @@ function findProd(id) {
 }
 
 /* ─── ROUTING ─── */
+// ✅ FIX 2: Stop all xplor videos - sound sirf xplor page par hi aana chahiye
+function stopAllXplorVideos() {
+  document.querySelectorAll('[id^="xvid_"]').forEach(v => {
+    try {
+      v.pause();
+      v.currentTime = 0;
+    } catch(e) {}
+  });
+  // Reset mute state so next time xplor opens fresh
+  _xplorMuted = true;
+}
+
 function showPage(page, productId) {
+  // ✅ FIX 2: Jab bhi xplor se kisi aur page par jao → videos band karo
+  if (currentPage === 'xplor' && page !== 'xplor') {
+    stopAllXplorVideos();
+  }
+
   prevPage = currentPage;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -2031,7 +2048,11 @@ function showPage(page, productId) {
   else if (page==='terms')      renderTerms();
   else if (page==='about')      renderAbout();
   else if (page==='seller-dashboard') renderSellerDashboard();
-  else if (page==='xplor')      renderXplor();
+  else if (page==='xplor') {
+    renderXplor();
+    // ✅ FIX 2: Reset mute state visually when xplor reopens
+    _xplorMuted = true;
+  }
   else if (page==='my-videos')  renderMyVideos();
   else if (page==='upload-video') renderVideoUpload();
 }
@@ -2541,7 +2562,46 @@ function updateQty(id,delta) {
   if(currentPage==='cart') renderCart();
   else if(currentPage==='detail') renderDetail(currentProductId);
 }
-function buyNow(id) { buyNowProduct={id,qty:1}; useCoinsToggle=false; showPage('checkout'); }
+function buyNow(id) {
+  buyNowProduct = {id, qty:1};
+  useCoinsToggle = false;
+  // ✅ FIX 1: Store productId in buyNowProduct so checkout back button
+  // can return to correct page even when called from xplor (where currentProductId=null)
+  buyNowProduct._fromPage = currentPage;       // remember where we came from
+  buyNowProduct._productId = id;               // store product ID explicitly
+  if (currentPage !== 'detail') {
+    currentProductId = id;                     // set it so detail back works
+  }
+  showPage('checkout');
+}
+
+// ✅ FIX 1: Smart checkout back navigation
+// Xplor se Buy Now → checkout → back = xplor (NOT blank detail page)
+// Cart se checkout → back = cart
+// Detail se Buy Now → checkout → back = detail page
+function checkoutGoBack() {
+  if (!buyNowProduct) {
+    // Came from cart → go back to cart
+    showPage('cart');
+    return;
+  }
+  const fromPage = buyNowProduct._fromPage || prevPage || 'home';
+  const pid = buyNowProduct._productId || buyNowProduct.id;
+  buyNowProduct = null;
+
+  if (fromPage === 'xplor') {
+    // Xplor se aaya tha → xplor pe wapas jao (videos feed)
+    showPage('xplor');
+  } else if (fromPage === 'detail' && pid) {
+    // Detail page se aaya tha → detail pe wapas jao
+    showPage('detail', pid);
+  } else if (pid) {
+    // Fallback: product detail show karo
+    showPage('detail', pid);
+  } else {
+    showPage('home');
+  }
+}
 
 function renderCart() {
   const cont=document.getElementById('cartContent'), cta=document.getElementById('cartCta');
@@ -2646,7 +2706,7 @@ function renderCheckout() {
   const items=getCheckoutItems(), canUseCoins=coinData.balance>=COIN_MIN_TO_USE;
 
   document.getElementById('checkoutContent').innerHTML=`
-    <div class="checkout-back" onclick="${buyNowProduct?"buyNowProduct=null;showPage('detail',currentProductId)":"showPage('cart')"}">← Back${buyNowProduct?' to Product':' to Cart'}</div>
+    <div class="checkout-back" onclick="checkoutGoBack()">← Back${buyNowProduct ? (buyNowProduct._fromPage==='xplor' ? ' to Videos' : ' to Product') : ' to Cart'}</div>
     <div class="checkout-section">
       <div class="checkout-card">
         <div class="checkout-card-header"><div class="checkout-card-icon">👤</div><div><div class="checkout-card-title">Your Details</div><div class="checkout-card-sub">Required for order</div></div></div>
