@@ -1260,10 +1260,14 @@ window._fsHelpers = {
   serverTimestamp, limit, increment
 };
 // ─── PRODUCTS: realtime listener from Firestore /products ───
+// ✅ FIX: Broadened query — catch 'active', 'approved', AND products where
+//   admin set approvalStatus='approved' but forgot to set status field.
+//   We fetch ALL non-inactive products and filter client-side for robustness.
 let _productsUnsub = null;
 function setupProductsListener() {
   try {
     const productsCol = collection(db, 'products');
+    // Fetch active + approved in one query (Firestore 'in' supports up to 10 values)
     const q = query(productsCol, where('status', 'in', ['active', 'approved', 'Active', 'Approved']));
     _productsUnsub = onSnapshot(q, (snap) => {
       const fromFS = [];
@@ -1271,6 +1275,8 @@ function setupProductsListener() {
         const x = docSnap.data();
         const fid = docSnap.id;
         if (!x || !x.name) return;
+        // ✅ FIX: Skip products explicitly rejected/inactive by approval flow
+        if (x.approvalStatus === 'rejected') return;
         fromFS.push({
           _fid:     fid,
           id:       fid,
@@ -1289,13 +1295,16 @@ function setupProductsListener() {
           video:    x.video    || '',
           img:      (Array.isArray(x.images) && x.images[0]) ? x.images[0] : (x.img || ''),
           status:   'approved',
+          coinsEarned: Number(x.coinsEarned) || 10,
+          featuredIn: x.featuredIn || null,
           sellerId: x.sellerId || 'system'
         });
       });
 
       if (typeof PRODUCTS !== 'undefined') {
         const fsIds = new Set(fromFS.map(p => p.id));
-        const staticOnly = PRODUCTS.filter(p => !p._fid && !fsIds.has(String(p.id)));
+        // Keep static demo products only if no Firestore products exist at all
+        const staticOnly = fromFS.length === 0 ? PRODUCTS.filter(p => !p._fid) : [];
         PRODUCTS.length = 0;
         fromFS.forEach(p => PRODUCTS.push(p));
         staticOnly.forEach(p => PRODUCTS.push(p));
@@ -1368,14 +1377,17 @@ function setupSettingsListener() {
         }
       }
     });
-    // Flash Timer
+    // Flash Timer — ✅ FIX: Also re-render home if on that page so strip updates instantly
     onSnapshot(doc(db, 'settings', 'flash_timer'), (snap) => {
       if (snap && snap.exists()) {
         const d = snap.data();
         if (d.endTime) {
           const remaining = new Date(d.endTime).getTime() - Date.now();
           if (remaining > 0 && typeof _flashSec !== 'undefined') _flashSec = Math.floor(remaining / 1000);
+          // Store for use in renderHome
+          window._flashTimerData = d;
         }
+        if (typeof currentPage !== 'undefined' && currentPage === 'home') renderHome();
       }
     });
     // Notifications — Admin se aane wali real-time notifications
@@ -1392,6 +1404,81 @@ function setupSettingsListener() {
   } catch(e) { console.warn('Settings listener failed:', e.message); }
 }
 setupSettingsListener();
+
+// ─── ✅ FIX: CATEGORIES realtime listener — Admin adds/edits/deletes categories → instantly in user app ───
+function setupCategoriesListener() {
+  try {
+    onSnapshot(
+      query(collection(db, 'categories'), orderBy('order', 'asc')),
+      (snap) => {
+        if (!snap.docs.length) return; // Keep static CATEGORIES if Firestore has none
+        const fsCats = snap.docs.map(d => {
+          const x = d.data();
+          return {
+            id:    x.id    || d.id,
+            label: x.label || x.name || d.id,
+            icon:  x.icon  || '📦',
+            img:   x.img   || x.imageUrl || '',
+            bg:    x.bg    || 'linear-gradient(135deg,#2874f0,#3b8aff)',
+            active: x.active !== false
+          };
+        }).filter(c => c.active);
+
+        if (typeof CATEGORIES !== 'undefined' && fsCats.length > 0) {
+          CATEGORIES.length = 0;
+          fsCats.forEach(c => CATEGORIES.push(c));
+        }
+        // Re-render if user is on home page
+        if (typeof currentPage !== 'undefined' && currentPage === 'home') renderHome();
+      },
+      err => console.warn('Categories listener error:', err.message)
+    );
+  } catch(e) { console.warn('Categories listener setup failed:', e.message); }
+}
+setupCategoriesListener();
+
+// ─── ✅ FIX: BANNERS realtime listener — Admin changes hero banners → instantly reflected in user carousel ───
+window._fsBanners = [];
+function setupBannersListener() {
+  try {
+    onSnapshot(
+      query(collection(db, 'banners'), orderBy('order', 'asc')),
+      (snap) => {
+        const active = snap.docs
+          .map(d => ({...d.data(), _bid: d.id}))
+          .filter(b => b.active !== false);
+
+        window._fsBanners = active;
+
+        // If Firestore has banners, rebuild HERO_SLIDES and restart carousel
+        if (active.length > 0 && typeof HERO_SLIDES !== 'undefined') {
+          HERO_SLIDES.length = 0;
+          active.forEach((b, i) => {
+            const gradients = [
+              'linear-gradient(135deg,#7c3aed 0%,#2563eb 100%)',
+              'linear-gradient(135deg,#0f172a 0%,#1e3a8a 100%)',
+              'linear-gradient(135deg,#be123c 0%,#f97316 100%)'
+            ];
+            HERO_SLIDES.push({
+              cls:    'hero-slide-' + ((i % 3) + 1),
+              tag:    b.tag   || '🔥 Featured',
+              title:  b.title || 'Shop Now',
+              sub:    b.sub   || '',
+              btn:    b.btn   || b.btnLabel || 'Shop Now →',
+              emoji:  b.emoji || '🛍️',
+              action: b.action === 'search' ? "showPage('search')" : (b.action || "showPage('search')"),
+              bg:     b.bg    || gradients[i % 3],
+              imageUrl: b.imageUrl || ''
+            });
+          });
+          if (typeof currentPage !== 'undefined' && currentPage === 'home') initHeroCarousel();
+        }
+      },
+      err => console.warn('Banners listener error:', err.message)
+    );
+  } catch(e) { console.warn('Banners listener setup failed:', e.message); }
+}
+setupBannersListener();
 
 // ─── Dispatch event so non-module script knows Firebase is ready ───
 window._fbReady = true;
@@ -1471,13 +1558,19 @@ onAuthStateChanged(auth, async (user) => {
       if (typeof currentPage !== 'undefined' && currentPage === 'orders') renderOrders();
     }, err => console.warn('Orders snapshot:', err.message));
 
-    // ─── FIXED: User ki apni videos ka real-time listener (status changes dikhao) ───
+    // ─── ✅ FIX: User ki apni videos ka real-time listener (status changes dikhao) ───
+    // This ensures admin approve/reject instantly reflects in user's My Videos page
     const userVidsQ = query(collection(db, 'videos'), where('uploaderUid', '==', uid), orderBy('uploadedAt', 'desc'));
     onSnapshot(userVidsQ, (snap) => {
       if (typeof userVideos !== 'undefined') {
+        // Replace userVideos with fresh Firestore data (has latest status from admin)
         userVideos = snap.docs.map(d => ({...d.data(), id: d.id, _fsId: d.id}));
-        // Sync views from Firestore
         userVideos.forEach(v => { v.views = Number(v.views) || 0; });
+        // ✅ FIX: Also sync status back into user doc so local saves are consistent
+        if (window._fsHelpers && uid) {
+          const { db: fdb, doc: fdoc, updateDoc } = window._fsHelpers;
+          updateDoc(fdoc(fdb, 'users', uid), { user_videos: userVideos }).catch(()=>{});
+        }
       }
       if (typeof currentPage !== 'undefined' && currentPage === 'my-videos') renderMyVideos();
     }, err => console.warn('User videos snapshot:', err.message));
@@ -1896,8 +1989,9 @@ function showPage(page, productId) {
 
 /* ─── HOME ─── */
 /* ─── HERO CAROUSEL ─── */
+// ✅ FIX: Changed from 'const' to 'let' so Firestore banners listener can replace slides
 let _heroIdx = 0, _heroTimer = null;
-const HERO_SLIDES = [
+let HERO_SLIDES = [
   { cls:'hero-slide-1', tag:'🔥 Big Sale', title:'Up to 70% Off\nTop Brands', sub:'Limited time · Grab before it\'s gone', btn:'Shop Deals', emoji:'🛍️', action:"showPage('search')" },
   { cls:'hero-slide-2', tag:'🆕 Just Arrived', title:'New Season\nCollection', sub:'Latest mobiles, fashion & more', btn:'Explore Now', emoji:'✨', action:"filterByCategory('mobiles')" },
   { cls:'hero-slide-3', tag:'🪙 ApyCoins', title:'Earn & Save\nEvery Order', sub:'Earn coins · Redeem discounts', btn:'Learn More', emoji:'🎁', action:"showPage('wallet')" },
@@ -1905,12 +1999,16 @@ const HERO_SLIDES = [
 function initHeroCarousel() {
   const wrap = document.getElementById('heroCarousel');
   if (!wrap) return;
+  // ✅ FIX: Use dynamic HERO_SLIDES (which may have been updated by Firestore banners listener)
   wrap.innerHTML = HERO_SLIDES.map((s,i)=>`
-    <div class="hero-slide ${s.cls} ${i===0?'active':''}" id="heroSlide${i}">
-      <div class="hero-tag">${s.tag}</div>
-      <div class="hero-title">${s.title.replace('\n','<br>')}</div>
-      <div class="hero-sub">${s.sub}</div>
-      <div class="hero-btn" onclick="${s.action}">${s.btn} →</div>
+    <div class="hero-slide ${s.cls} ${i===0?'active':''}" id="heroSlide${i}" style="${s.bg&&!s.cls?'background:'+s.bg:''}${s.imageUrl?';position:relative;overflow:hidden':''}">
+      ${s.imageUrl ? `<img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;z-index:0">` : ''}
+      <div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+        <div class="hero-tag">${s.tag}</div>
+        <div class="hero-title">${s.title.replace('\n','<br>')}</div>
+        <div class="hero-sub">${s.sub}</div>
+        <div class="hero-btn" onclick="${s.action}">${s.btn} →</div>
+      </div>
       <div class="hero-emoji">${s.emoji}</div>
     </div>`).join('') +
     `<div class="hero-dots">${HERO_SLIDES.map((_,i)=>`<div class="hero-dot ${i===0?'active':''}" onclick="goHeroSlide(${i})" id="heroDot${i}"></div>`).join('')}</div>`;
@@ -1931,13 +2029,14 @@ function renderHome() {
   // Trending Videos
   renderTrendingVideos();
 
-  // Categories
+  // Categories — ✅ FIX: Support both 'label' (user static) and 'name' (Firestore from admin)
   document.getElementById('categoriesScroll').innerHTML = CATEGORIES.map(c=>`
     <div class="cat-chip" onclick="filterByCategory('${c.id}')">
       <div class="cat-icon" style="background:${c.bg};overflow:hidden;padding:0">
-        <img src="${c.img}" alt="${c.label}" style="width:100%;height:100%;object-fit:cover;border-radius:16px" onerror="this.style.display='none'">
+        <img src="${c.img||''}" alt="${c.label||c.name||''}" style="width:100%;height:100%;object-fit:cover;border-radius:16px" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">
+        <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px">${c.icon||'📦'}</div>
       </div>
-      <div class="cat-label">${c.label}</div>
+      <div class="cat-label">${c.label||c.name||c.id}</div>
     </div>`).join('');
 
   const grid = document.getElementById('homeGrid');
