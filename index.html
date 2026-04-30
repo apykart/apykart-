@@ -4307,6 +4307,52 @@ function setupAuthListener() {
       reloadUserData();
       if (!guestUser.name) guestUser.name = user.displayName || '';
       if (!guestUser.email) guestUser.email = user.email || '';
+
+      // ✅ FIX B: Real-time seller earnings listener from Firestore /orders
+      // Jab bhi koi customer order kare jisme seller ka product ho,
+      // seller ko real-time earnings update milega — no fake calculations
+      try {
+        const ordersQ = query(
+          collection(db, 'orders'),
+          where('status', 'in', ['placed','confirmed','delivered','processing'])
+        );
+        onSnapshot(ordersQ, (snap) => {
+          const realEarns = [];
+          snap.forEach(docSnap => {
+            const o = docSnap.data();
+            if (!o || !o.items) return;
+            o.items.forEach(item => {
+              // Check if this item belongs to current seller
+              const prod = PRODUCTS.find(p => p.id === item.id || p._fid === item.id);
+              if (prod && prod.sellerId === user.uid) {
+                const commission = (item.price || 0) * 0.10;
+                const net = (item.price || 0) * item.qty - commission;
+                realEarns.push({
+                  id: docSnap.id + '_' + item.id,
+                  order_id: o.id || docSnap.id,
+                  product_id: item.id,
+                  product_name: item.name,
+                  product_price: item.price,
+                  commission: commission,
+                  net_earning: net,
+                  status: o.status === 'delivered' ? 'available' : 'pending',
+                  sellerId: user.uid,
+                  date: o.date || new Date().toISOString(),
+                  createdAt: o.createdAt
+                });
+              }
+            });
+          });
+          // Merge with local sellerEarnings (local order placements)
+          const localOnly = sellerEarnings.filter(e =>
+            !realEarns.find(r => r.order_id === e.order_id && r.product_id === e.product_id)
+          );
+          sellerEarnings = [...realEarns, ...localOnly];
+          // Re-render if on creator dashboard
+          if (typeof currentPage !== 'undefined' && currentPage === 'my-videos') renderMyVideos();
+          if (typeof currentPage !== 'undefined' && currentPage === 'seller') renderSellerDashboard();
+        }, e => console.warn('Seller earnings listener:', e.message));
+      } catch(e) { console.warn('Seller earnings setup:', e.message); }
       saveGuest();
     } else {
       window.currentUser = null;
@@ -4407,10 +4453,14 @@ function _xplorBuildFeed() {
   cont.innerHTML = '';
   cont.appendChild(wrapper);
   
-  // First video autoplay
+  // First video autoplay - with current mute state
   setTimeout(() => {
     const vid = document.getElementById('xvid_0');
-    if (vid) vid.play().catch(()=>{});
+    if (vid) {
+      // ✅ FIX: Apply current mute state to new videos
+      vid.muted = _xplorMuted;
+      vid.play().catch(()=>{});
+    }
   }, 100);
 }
 
@@ -4422,7 +4472,21 @@ function _xplorSlideHTML(v, i) {
            style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;cursor:pointer"
            onclick="xplorTogglePlay(${i})"
            onerror="this.style.display='none';document.getElementById('xslide_${i}').querySelector('.xfallback')&&(document.getElementById('xslide_${i}').querySelector('.xfallback').style.display='flex')"></video>
-         <div class="xfallback" style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:none;align-items:center;justify-content:center;font-size:64px">🎬</div>`
+         <div class="xfallback" style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:none;align-items:center;justify-content:center;font-size:64px">🎬</div>
+         <!-- ✅ FIX: Sound toggle button - browser mein autoplay sirf muted kaam karta hai
+              lekin user tap kare tab sound ON ho jaye -->
+         <div id="xmute_${i}" onclick="xplorToggleMute(${i},event)"
+              style="position:absolute;top:60px;right:14px;z-index:10;
+                     width:38px;height:38px;border-radius:50%;
+                     background:rgba(0,0,0,.55);backdrop-filter:blur(8px);
+                     border:1.5px solid rgba(255,255,255,.35);
+                     display:flex;align-items:center;justify-content:center;cursor:pointer">
+           <svg id="xmute_icon_${i}" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+             <line x1="23" y1="9" x2="17" y2="15" stroke="white" stroke-width="2"/>
+             <line x1="17" y1="9" x2="23" y2="15" stroke="white" stroke-width="2"/>
+           </svg>
+         </div>`
       : v.thumb
         ? `<img src="${v.thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`
         : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:64px">🎬</div>`
@@ -4570,6 +4634,9 @@ function renderXplorSlide() {
   _xplorActivate(_xplorIdx);
 }
 
+// Global mute state — sab videos ek saath mute/unmute honge
+let _xplorMuted = true;
+
 function xplorTogglePlay(idx) {
   const i = (idx !== undefined) ? idx : _xplorIdx;
   const vid = document.getElementById('xvid_' + i);
@@ -4582,6 +4649,40 @@ function xplorTogglePlay(idx) {
     vid.pause();
     if (icon) icon.style.opacity = '1';
   }
+}
+
+// ✅ FIX A: Sound toggle function
+// Browser autoplay policy: video starts muted.
+// User jab mute button tap kare tab sound ON ho jata hai.
+function xplorToggleMute(idx, event) {
+  if (event) event.stopPropagation(); // play/pause trigger mat ho
+  _xplorMuted = !_xplorMuted;
+
+  // Sab visible videos ka mute toggle karo
+  document.querySelectorAll('[id^="xvid_"]').forEach(v => {
+    v.muted = _xplorMuted;
+    // Agar muted tha aur ab unmute kar raha hai toh play bhi karo
+    if (!_xplorMuted && v.paused) v.play().catch(()=>{});
+  });
+
+  // Sab mute icons update karo
+  document.querySelectorAll('[id^="xmute_icon_"]').forEach((iconEl, i) => {
+    if (_xplorMuted) {
+      // Muted icon (X lines visible)
+      iconEl.innerHTML = `
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <line x1="23" y1="9" x2="17" y2="15" stroke="white" stroke-width="2"/>
+        <line x1="17" y1="9" x2="23" y2="15" stroke="white" stroke-width="2"/>`;
+    } else {
+      // Unmuted icon (sound waves)
+      iconEl.innerHTML = `
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" fill="none"/>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none"/>`;
+    }
+  });
+
+  showToast(_xplorMuted ? '🔇 Muted' : '🔊 Sound ON', 'info');
 }
 
 function xplorLike(idx) {
@@ -4844,14 +4945,35 @@ function renderMyVideos() {
     return s + (Number(fsV.views) || Number(v.views) || 0);
   }, 0);
   
-  const totalSales   = approvedVids.length * 3;
-  const totalEarnings = approvedVids.reduce((s,v)=>{
-    const base = (v.price||0) * 2; 
-    return s + (base * 0.12);
-  }, 0);
-  const todayEarn   = totalEarnings > 0 ? Math.floor(totalEarnings * 0.08) : 0;
-  const weekEarn    = totalEarnings > 0 ? Math.floor(totalEarnings * 0.35) : 0;
-  const monthEarn   = Math.floor(totalEarnings);
+  // ✅ FIX B: REAL EARNINGS — sellerEarnings array (Firestore se aata hai)
+  // Pehle fake calculated values thi: approvedVids.length*3 aur price*2*0.12
+  // Ab real order data se earnings calculate ho rahi hai
+  const uid2 = getUid() || window.currentUser?.uid;
+  const myRealEarnings = sellerEarnings.filter(e =>
+    e.sellerId === uid2 || e.sellerId === uid
+  );
+
+  // Total sales = real order count
+  const totalSales = myRealEarnings.length;
+
+  // Real earnings: net_earning field from sellerEarnings (order placement pe save hota hai)
+  const totalEarnings = myRealEarnings.reduce((s, e) => s + (Number(e.net_earning) || 0), 0);
+
+  // Today/Week/Month breakdown — real dates se filter
+  const now = Date.now();
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const weekAgo  = now - 7  * 24 * 60 * 60 * 1000;
+  const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+  const todayEarn = myRealEarnings
+    .filter(e => new Date(e.date || e.createdAt?.seconds*1000 || 0) >= todayStart)
+    .reduce((s, e) => s + (Number(e.net_earning) || 0), 0);
+  const weekEarn = myRealEarnings
+    .filter(e => new Date(e.date || e.createdAt?.seconds*1000 || 0).getTime() >= weekAgo)
+    .reduce((s, e) => s + (Number(e.net_earning) || 0), 0);
+  const monthEarn = myRealEarnings
+    .filter(e => new Date(e.date || e.createdAt?.seconds*1000 || 0).getTime() >= monthAgo)
+    .reduce((s, e) => s + (Number(e.net_earning) || 0), 0);
 
   cont.innerHTML = `
     <!-- Creator Header -->
@@ -4900,7 +5022,8 @@ function renderMyVideos() {
       <div class="creator-withdraw-card" onclick="showToast('Withdrawal feature coming soon! 🚀','info')">
         <div class="creator-withdraw-left">
           <div class="creator-withdraw-label">Available to Withdraw</div>
-          <div class="creator-withdraw-amount">₹${Math.floor(monthEarn * 0.9).toLocaleString()}</div>
+          <!-- ✅ FIX B: Real available earnings from sellerEarnings (status='available' or 'pending') -->
+          <div class="creator-withdraw-amount">₹${myRealEarnings.filter(e=>e.status==='available'||e.status==='pending').reduce((s,e)=>s+(Number(e.net_earning)||0),0).toFixed(0)}</div>
         </div>
         <button class="creator-withdraw-btn">Withdraw →</button>
       </div>` : ''}
@@ -4937,9 +5060,16 @@ function renderMyVideos() {
             const prod = findProd(v.productId);
             // Real views from Firestore
             const fsV = fsVidMap[v.id] || fsVidMap[v._fsId] || {};
+            // ✅ FIX B: Real per-video earnings from sellerEarnings array
+            // Pehle: vViews*0.003 fake sales formula tha
+            // Ab: Real orders jo is video ke through aaye (productId match)
             const vViews  = Number(fsV.views) || Number(v.views) || 0;
-            const vSales  = Math.max(0, Math.floor(vViews * 0.003));
-            const vEarn   = Math.floor(vSales * (v.price||0) * 0.12);
+            const videoProductId = v.productId || v._productId || '';
+            const vidRealEarns = sellerEarnings.filter(e =>
+              e.product_id === videoProductId && (e.sellerId === uid || e.sellerId === getUid())
+            );
+            const vSales = vidRealEarns.length;
+            const vEarn  = Math.floor(vidRealEarns.reduce((s,e) => s + (Number(e.net_earning)||0), 0));
             return `<div class="creator-video-card" onclick="previewMyVideo(${i})">
               <div class="creator-video-thumb">
                 ${(v.videoUrl || v.videoDataUrl)
@@ -4996,7 +5126,7 @@ function previewMyVideo(idx) {
         <div class="modal-handle"></div>
         <div class="modal-header"><div class="modal-title">${v.title}</div><div class="modal-close" onclick="closeModal()">✕</div></div>
         <div class="modal-body">
-          ${v.videoDataUrl ? `<video src="${v.videoDataUrl}" controls playsinline style="width:100%;border-radius:10px;max-height:240px;object-fit:cover;background:#000;display:block;margin-bottom:12px"></video>` : ''}
+          ${(v.videoUrl || v.videoDataUrl) ? `<video src="${v.videoUrl || v.videoDataUrl}" controls playsinline style="width:100%;border-radius:10px;max-height:240px;object-fit:cover;background:#000;display:block;margin-bottom:12px"></video>` : ''}
           <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Product: <strong style="color:var(--primary)">${prod?prod.name:v.productName||'—'}</strong></div>
           <div style="font-size:12px;color:var(--text3)">${v.description||''}</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
