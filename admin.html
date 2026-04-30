@@ -1507,6 +1507,52 @@ window._FB = {
   EmailAuthProvider, createUserWithEmailAndPassword,
 };
 
+// ══════════════════════════════════════════════════════════════════
+// ✅ FIX #1 — ADMIN AUTH SECURITY
+// PROBLEM: Old code auto-created a manager doc for ANY Firebase user
+//   who logged in — meaning ANY regular user email/password could
+//   accidentally (or intentionally) access the admin panel.
+// SOLUTION:
+//   1. Check /managers/{uid} doc FIRST — must already exist (pre-created by super admin)
+//   2. If doc doesn't exist → sign them out immediately, show error
+//   3. If doc exists but active===false → sign out + show disabled error
+//   4. NEVER auto-create a manager doc on login
+//   5. Only the FIRST TIME setup creates the initial super admin doc
+//      via a separate bootstrap flow (see below)
+// ══════════════════════════════════════════════════════════════════
+
+// ── BOOTSTRAP: Only runs once ever — creates the very first super-admin doc
+// if the /managers collection is completely empty AND this is a known seed email.
+// After first setup, this never fires again.
+const SUPER_ADMIN_SEED_EMAIL = 'apykart916@gmail.com'; // Change to your actual admin email
+
+async function bootstrapSuperAdmin(user) {
+  // Only bootstrap if this is the designated seed email
+  if (!user.email || user.email.toLowerCase() !== SUPER_ADMIN_SEED_EMAIL.toLowerCase()) return false;
+  const { getDocs, collection: col, setDoc, doc: docRef, serverTimestamp: sts } = { getDocs, collection, doc, setDoc, serverTimestamp };
+  try {
+    // Check if ANY manager docs exist at all
+    const allMgrs = await getDocs(col(db, 'managers')).catch(() => null);
+    if (allMgrs && allMgrs.size > 0) return false; // Already bootstrapped — don't re-create
+    // First ever setup — create the seed super-admin doc
+    await setDoc(docRef(db, 'managers', user.uid), {
+      uid: user.uid,
+      name: user.displayName || user.email.split('@')[0],
+      email: user.email,
+      role: 'super_admin',
+      permissions: ['orders','products','categories','banners','users','sellers','verification','flash-deals','featured','settings','notifications','withdrawals','earnings','coins','managers','store-config','video-approval'],
+      active: true,
+      createdAt: sts(),
+      createdBy: 'bootstrap_first_setup'
+    });
+    console.log('✅ First-time super admin bootstrapped for:', user.email);
+    return true;
+  } catch(e) {
+    console.warn('Bootstrap failed (Firestore rules may block):', e.message);
+    return false;
+  }
+}
+
 onAuthStateChanged(auth, async user => {
   // Reset login button loading state whenever auth state changes
   const loginBtn = document.getElementById('l-btn');
@@ -1517,63 +1563,45 @@ onAuthStateChanged(auth, async user => {
       const mgrRef = doc(db, 'managers', user.uid);
       let mgrSnap = await getDoc(mgrRef).catch(() => null);
 
-      // If doc doesn't exist, auto-create it (first login)
+      // ✅ FIX: If manager doc doesn't exist → try bootstrap (first-ever setup only)
+      // then re-check. If still doesn't exist → REJECT, sign out.
       if (!mgrSnap || !mgrSnap.exists()) {
-        const newAdminData = {
-          uid: user.uid,
-          name: user.displayName || (user.email ? user.email.split('@')[0] : 'Admin'),
-          email: user.email || '',
-          role: 'super_admin',
-          permissions: ['orders','products','categories','banners','users','sellers','verification','flash-deals','featured','settings','notifications','withdrawals','earnings','coins','managers','store-config','video-approval'],
-          active: true,
-          createdAt: serverTimestamp(),
-          createdBy: 'auto_on_first_login'
-        };
-        await setDoc(mgrRef, newAdminData).catch(e => {
-          console.warn('Could not save manager doc (rules?):', e.message);
-        });
-        await new Promise(r => setTimeout(r, 400));
-        mgrSnap = await getDoc(mgrRef).catch(() => null);
+        const bootstrapped = await bootstrapSuperAdmin(user);
+        if (bootstrapped) {
+          await new Promise(r => setTimeout(r, 500));
+          mgrSnap = await getDoc(mgrRef).catch(() => null);
+        }
       }
 
-      // If Firestore read worked and doc exists, use it
-      if (mgrSnap && mgrSnap.exists()) {
-        const data = mgrSnap.data();
-        if (data.active === false) {
-          await signOut(auth);
-          showAuth();
-          setTimeout(() => toast('Account disabled. Contact super admin.', 'err'), 200);
-          return;
-        }
-        window._ADMIN = { uid: user.uid, ...data };
-      } else {
-        // Firestore rules may block read — allow login anyway with basic profile
-        console.warn('Manager doc not accessible — using fallback profile.');
-        window._ADMIN = {
-          uid: user.uid,
-          name: user.displayName || (user.email ? user.email.split('@')[0] : 'Admin'),
-          email: user.email || '',
-          role: 'super_admin',
-          permissions: ['orders','products','categories','banners','users','sellers','verification','flash-deals','featured','settings','notifications','withdrawals','earnings','coins','managers','store-config','video-approval'],
-          active: true
-        };
+      // ✅ FIX: If STILL no manager doc → this user is NOT an admin → kick them out
+      if (!mgrSnap || !mgrSnap.exists()) {
+        await signOut(auth);
+        showAuth();
+        setTimeout(() => {
+          showErr('Access denied. This email is not registered as an admin. Contact super admin to add your account.');
+        }, 200);
+        return;
       }
+
+      const data = mgrSnap.data();
+
+      // ✅ FIX: Check active status — disabled admins cannot login
+      if (data.active === false) {
+        await signOut(auth);
+        showAuth();
+        setTimeout(() => showErr('Your admin account has been disabled. Contact super admin.'), 200);
+        return;
+      }
+
+      window._ADMIN = { uid: user.uid, ...data };
       showApp();
+
     } catch (err) {
       console.error('Auth state error:', err);
-      // Still try to show app with minimal profile rather than locking user out
-      if (!window._ADMIN) {
-        window._ADMIN = {
-          uid: user.uid,
-          name: user.email ? user.email.split('@')[0] : 'Admin',
-          email: user.email || '',
-          role: 'super_admin',
-          permissions: [],
-          active: true
-        };
-      }
-      showApp();
-      setTimeout(() => toast('Warning: Profile load issue — ' + err.message, 'wrn'), 500);
+      // On ANY error — sign out for security. Do NOT fallback to "allow all".
+      try { await signOut(auth); } catch(_) {}
+      showAuth();
+      setTimeout(() => showErr('Login error: ' + err.message + ' — Please try again.'), 200);
     }
   } else {
     showAuth();
@@ -1622,6 +1650,8 @@ function startGlobalListeners(){
   );
 
   // ── Orders (live) ──
+  // ✅ FIX BUG#9: User ab 'orders' collection mein save karta hai (pehle 'all_orders' mein karta tha)
+  // Admin listener 'orders' collection padhta hai — ab dono match karte hain
   if(_ORD_UNSUB)_ORD_UNSUB();
   _ORD_UNSUB=onSnapshot(
     query(collection(db,'orders'),orderBy('createdAt','desc')),
@@ -1630,6 +1660,8 @@ function startGlobalListeners(){
       const pend=_ORDERS.filter(o=>['placed','confirmed','return_requested'].includes(o.status)).length;
       const b=document.getElementById('sb-badge-orders');
       if(b){b.textContent=pend;b.style.display=pend>0?'flex':'none';}
+      const mob=document.getElementById('mbn-badge-orders');
+      if(mob){mob.textContent=pend;mob.style.display=pend>0?'flex':'none';}
       const dot=document.getElementById('tb-dot');if(dot)dot.style.display=pend>0?'block':'none';
       if(_PAGE==='orders')filterOrders();
       if(_PAGE==='dashboard')loadDashboard();
