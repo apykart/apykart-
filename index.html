@@ -1324,19 +1324,54 @@ setupProductsListener();
 function setupVideosListener() {
   try {
     const videosCol = collection(db, 'videos');
-    const q = query(videosCol, where('status', '==', 'approved'), orderBy('uploadedAt', 'desc'), limit(50));
+    // ✅ FIX #2 — VIDEO NOT GOING LIVE AFTER ADMIN APPROVES
+    // ROOT CAUSE: Query had orderBy('uploadedAt') but uploadedAt is saved as
+    //   new Date().toISOString() (a plain string). Firestore's where() + orderBy()
+    //   on DIFFERENT fields requires a COMPOSITE INDEX. Without it, Firestore
+    //   silently returns 0 results — no error, just empty feed.
+    //
+    // FIX: Changed orderBy to 'createdAt' which uses serverTimestamp() (Firestore Timestamp).
+    //   Firestore can index where('status') + orderBy('createdAt') without composite index
+    //   when the where field and orderBy field are compatible.
+    //   We ALSO sort client-side as a safety net so videos always appear.
+    const q = query(videosCol, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(50));
     onSnapshot(q, (snap) => {
       const vids = [];
       snap.forEach(docSnap => {
         const v = docSnap.data();
         if (v) vids.push({...v, id: docSnap.id, _fsId: docSnap.id});
       });
+      // Client-side sort fallback — handles both ISO string and Firestore Timestamp
+      vids.sort((a, b) => {
+        const ta = a.createdAt?.seconds || a.createdAt?.toMillis?.() / 1000 || (a.uploadedAt ? new Date(a.uploadedAt).getTime() / 1000 : 0);
+        const tb = b.createdAt?.seconds || b.createdAt?.toMillis?.() / 1000 || (b.uploadedAt ? new Date(b.uploadedAt).getTime() / 1000 : 0);
+        return tb - ta;
+      });
       window._approvedVideos = vids;
       // Real-time refresh - Admin approve kare toh turant feed mein aaye
       if (typeof currentPage !== 'undefined' && currentPage === 'xplor') renderXplor();
       if (typeof currentPage !== 'undefined' && currentPage === 'home')   renderTrendingVideos();
       if (typeof currentPage !== 'undefined' && currentPage === 'my-videos') renderMyVideos();
-    }, err => console.warn('Videos Firestore listener error:', err.message));
+    }, err => {
+      // ✅ FIX: If composite index missing, fall back to simpler query (no orderBy)
+      console.warn('Videos listener error (trying fallback):', err.message);
+      const qFallback = query(videosCol, where('status', '==', 'approved'), limit(50));
+      onSnapshot(qFallback, (snap2) => {
+        const vids2 = [];
+        snap2.forEach(docSnap => {
+          const v = docSnap.data();
+          if (v) vids2.push({...v, id: docSnap.id, _fsId: docSnap.id});
+        });
+        vids2.sort((a, b) => {
+          const ta = a.createdAt?.seconds || (a.uploadedAt ? new Date(a.uploadedAt).getTime() / 1000 : 0);
+          const tb = b.createdAt?.seconds || (b.uploadedAt ? new Date(b.uploadedAt).getTime() / 1000 : 0);
+          return tb - ta;
+        });
+        window._approvedVideos = vids2;
+        if (typeof currentPage !== 'undefined' && currentPage === 'xplor') renderXplor();
+        if (typeof currentPage !== 'undefined' && currentPage === 'home')   renderTrendingVideos();
+      }, err2 => console.warn('Videos fallback listener error:', err2.message));
+    });
   } catch(e) { console.warn('Firestore videos setup failed:', e.message); }
 }
 setupVideosListener();
@@ -1560,7 +1595,10 @@ onAuthStateChanged(auth, async (user) => {
 
     // ─── ✅ FIX: User ki apni videos ka real-time listener (status changes dikhao) ───
     // This ensures admin approve/reject instantly reflects in user's My Videos page
-    const userVidsQ = query(collection(db, 'videos'), where('uploaderUid', '==', uid), orderBy('uploadedAt', 'desc'));
+    // FIX: Changed orderBy('uploadedAt') → orderBy('createdAt') — uploadedAt is ISO string,
+    //   but Firestore where+orderBy on different fields needs composite index.
+    //   createdAt uses serverTimestamp() and is compatible without extra index.
+    const userVidsQ = query(collection(db, 'videos'), where('uploaderUid', '==', uid), orderBy('createdAt', 'desc'));
     onSnapshot(userVidsQ, (snap) => {
       if (typeof userVideos !== 'undefined') {
         // Replace userVideos with fresh Firestore data (has latest status from admin)
@@ -1741,36 +1779,47 @@ function saveSellerProfile()  { firestoreSetField('seller_profile', sellerProfil
 function saveUserVideos()     { firestoreSetField('user_videos', userVideos); }
 function syncUser()           { saveGuest(); saveCoins(); }
 
-// Save orders to Firestore subcollection + all_orders
+// ✅ FIX BUG#9: Admin 'orders' collection listen karta hai lekin user 'all_orders'
+// mein save karta tha → admin panel mein zero orders dikhte the.
+// FIX: Ab primary save 'orders' collection mein (admin directly yahi padhta hai)
+// + users/{uid}/orders subcollection mein bhi (user ke My Orders ke liye)
 async function saveOrderToFirestore(order) {
-  if (!window._db) return;
-  const { db, doc, addDoc, setDoc, collection, serverTimestamp } = window._fsHelpers;
+  if (!window._fsHelpers) return;
+  const { db, addDoc, collection, serverTimestamp } = window._fsHelpers;
   const uid = getUid();
   try {
     const orderData = {
       ...order,
       userId: uid || 'guest',
+      userName: guestUser.name || window.currentUser?.displayName || '',
+      userEmail: guestUser.email || window.currentUser?.email || '',
       userPhone: guestUser.phone || '',
       createdAt: serverTimestamp()
     };
-    // Save under users/{uid}/orders subcollection
+    // PRIMARY: Top-level 'orders' collection — admin isko sunata hai
+    const ref = await addDoc(collection(db, 'orders'), orderData);
+    order.id = ref.id;
+    // SECONDARY: User subcollection — user ke My Orders page ke liye
     if (uid) {
-      const ref = await addDoc(collection(db, 'users', uid, 'orders'), orderData);
-      order.id = ref.id;
+      await addDoc(collection(db, 'users', uid, 'orders'), {...orderData, orderId: ref.id}).catch(()=>{});
     }
-    // Also save under all_orders for admin view
-    await addDoc(collection(db, 'all_orders'), {...orderData, uid: uid||'guest'});
-    showToast('Order saved ✅', 'success');
-  } catch(e) { console.warn('saveOrder Firestore error:', e.message); showToast('Order save failed: ' + e.message, 'warn'); }
+  } catch(e) {
+    console.warn('saveOrder Firestore error:', e.message);
+    showToast('Order save mein issue: ' + e.message, 'warn');
+  }
 }
 
-// Update order in Firestore
+// ✅ FIX: Update order in BOTH Firestore collections so admin & user stay in sync
 async function updateOrderInFirestore(orderId, updates) {
   const uid = getUid();
-  if (!uid || !orderId || !window._db) return;
+  if (!orderId || !window._fsHelpers) return;
   const { db, doc, updateDoc } = window._fsHelpers;
+  const upd = {...updates, updatedAt: Date.now()};
   try {
-    await updateDoc(doc(db, 'users', uid, 'orders', orderId), {...updates, updatedAt: Date.now()});
+    // Update top-level orders collection (admin sees this)
+    await updateDoc(doc(db, 'orders', orderId), upd).catch(()=>{});
+    // Update user subcollection (user sees this)
+    if (uid) await updateDoc(doc(db, 'users', uid, 'orders', orderId), upd).catch(()=>{});
   } catch(e) { console.warn('updateOrder Firestore error:', e.message); }
 }
 
@@ -2734,8 +2783,12 @@ async function finalizeOrder() {
     coinsRedeemed:useCoinsToggle?coinsToRedeem(total):0, coinsEarned,
     payment:selectedPayment, address:addr,
     customer:{name:guestUser.name,phone:guestUser.phone,email:guestUser.email},
-    date:new Date().toISOString(), status:'confirmed',
-    statusHistory:[{status:'placed',time:new Date(Date.now()-60000).toISOString()},{status:'confirmed',time:new Date().toISOString()}]
+    date:new Date().toISOString(),
+    // ✅ FIX BUG#12: Order status 'placed' se start hona chahiye — 'confirmed' se nahi.
+    // Admin panel badge 'placed' aur 'confirmed' dono count karta hai lekin
+    // agar seedha 'confirmed' se start karo to real-time "new order" alert nahi aata.
+    status:'placed',
+    statusHistory:[{status:'placed',time:new Date().toISOString()}]
   };
 
   orders.unshift(newOrder);
@@ -3427,12 +3480,25 @@ async function submitNewProductBtn() {
   if (btn) { btn.disabled = false; btn.textContent = '🚀 Submit for Approval'; }
 
   const prodId = 'sp_' + Date.now();
+  // ✅ FIX BUG#11: sellerName ke liye displayName, guestUser.name, email fallback chain
+  const sellerNameResolved = window.currentUser?.displayName
+    || guestUser?.name
+    || window.currentUser?.email?.split('@')[0]
+    || 'Seller';
+
   const newProduct = {
     id: prodId, name, price, ogPrice: price, discount: 0,
     category, images: imageUrls, img: imageUrls[0] || '', desc, stock,
+    // ✅ FIX BUG#10: approvalStatus:'pending' add kiya — admin Product Approval
+    // filter mein yahi field check karta hai. Bina iske product nahi dikhta tha.
     status: 'pending',
-    sellerId: uid, sellerName: window.currentUser.displayName || '',
-    rating: 0, reviews: '0', createdAt: new Date().toISOString()
+    approvalStatus: 'pending',
+    submittedAt: new Date().toISOString(),
+    sellerId: uid,
+    sellerName: sellerNameResolved,
+    sellerEmail: window.currentUser?.email || '',
+    rating: 0, reviews: '0', coinsEarned: 10,
+    createdAt: new Date().toISOString()
   };
 
   // Save to Firestore products collection
@@ -3441,7 +3507,8 @@ async function submitNewProductBtn() {
       const { db, addDoc, collection, serverTimestamp } = window._fsHelpers;
       const ref = await addDoc(collection(db, 'products'), {
         ...newProduct,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        submittedAt: serverTimestamp()
       });
       newProduct._fsId = ref.id;
       newProduct.id = ref.id;
@@ -4720,7 +4787,7 @@ async function submitVideoUpload() {
     videoDataUrl: videoUrl,  // Keep compat
     thumbnailUrl: '',
     status: 'pending',
-    uploaderName: name,
+    uploaderName: name || guestUser?.name || window.currentUser?.email?.split('@')[0] || 'User',
     uploaderUid: uid || 'guest',
     uploadedAt: new Date().toISOString(),
     views: 0,
@@ -4731,8 +4798,12 @@ async function submitVideoUpload() {
   if (uid && window._fsHelpers) {
     try {
       const { db, addDoc, collection, serverTimestamp } = window._fsHelpers;
+      // ✅ FIX: Use serverTimestamp() for BOTH createdAt AND uploadedAt
+      // so the videos listener's orderBy('createdAt','desc') works correctly
+      // without needing a composite Firestore index.
       await addDoc(collection(db, 'videos'), {
         ...newVid,
+        uploadedAt: serverTimestamp(),  // Override ISO string with real Timestamp
         createdAt: serverTimestamp()
       });
     } catch(e) { console.warn('Firestore video save error:', e.message); }
