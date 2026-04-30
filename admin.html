@@ -2044,7 +2044,10 @@ async function saveProduct(){
   const name=gv('pm-name'),price=parseFloat(gv('pm-price')),cat=gv('pm-cat');
   if(!name){toast('Name required','wrn');return;}if(!price){toast('Price required','wrn');return;}if(!cat){toast('Select a category','wrn');return;}
   const ogP=parseFloat(gv('pm-ogp'))||price;
-  const data={name,brand:gv('pm-brand'),category:cat,price,ogPrice:ogP,stock:parseInt(gv('pm-stk'))||0,badge:gv('pm-badge'),rating:parseFloat(gv('pm-rat'))||4.5,reviews:gv('pm-rev'),coinsEarned:parseInt(gv('pm-coins'))||10,desc:gv('pm-desc'),status:gv('pm-st')||'active',approvalStatus:'approved',features:[..._FEAT_TAGS],images:[..._PROD_IMGS],discount:Math.round((ogP-price)/ogP*100),featuredIn:gv('pm-featured')||null,addedBy:'admin'};
+  /* ✅ FIX: Always write both status AND approvalStatus so user.html query
+     (which filters status IN ['active','approved']) always finds admin-added products.
+     Also write 'label' alias for category name so user categories listener works. */
+  const data={name,brand:gv('pm-brand'),category:cat,price,ogPrice:ogP,stock:parseInt(gv('pm-stk'))||0,badge:gv('pm-badge'),rating:parseFloat(gv('pm-rat'))||4.5,reviews:gv('pm-rev'),coinsEarned:parseInt(gv('pm-coins'))||10,desc:gv('pm-desc'),status:'active',approvalStatus:'approved',features:[..._FEAT_TAGS],images:[..._PROD_IMGS],discount:ogP>price?Math.round((ogP-price)/ogP*100):0,featuredIn:gv('pm-featured')||null,addedBy:'admin',sellerId:'admin'};
   const{db,collection,doc,addDoc,updateDoc,serverTimestamp}=window._FB;
   const btn=document.getElementById('pm-save');if(btn)btn.classList.add('btn-ld');
   try{
@@ -2053,7 +2056,8 @@ async function saveProduct(){
     closeOv('ov-product');
   }catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
 }
-async function togProdSt(docId,active){const{db,doc,updateDoc,serverTimestamp}=window._FB;try{await updateDoc(doc(db,'products',docId),{status:active?'active':'inactive',updatedAt:serverTimestamp()});toast('Status updated — user app reflects immediately','inf');}catch(e){toast('Update failed: '+e.message,'err');}}
+/* ✅ FIX: Always sync approvalStatus with status so user.html listener never misses the product */
+async function togProdSt(docId,active){const{db,doc,updateDoc,serverTimestamp}=window._FB;try{await updateDoc(doc(db,'products',docId),{status:active?'active':'inactive',approvalStatus:active?'approved':'inactive',updatedAt:serverTimestamp()});toast('Status updated — user app reflects immediately','inf');}catch(e){toast('Update failed: '+e.message,'err');}}
 function delProd(docId,name){confirm2('Delete Product',`Remove "${name}"?`,async()=>{const{db,doc,deleteDoc}=window._FB;try{await deleteDoc(doc(db,'products',docId));toast('Product deleted','inf');}catch(e){toast('Delete failed: '+e.message,'err');}});}
 
 /* ════════ PRODUCT APPROVAL ════════ */
@@ -2084,8 +2088,11 @@ async function approveProduct(docId){
   const{db,doc,collection,updateDoc,addDoc,serverTimestamp}=window._FB;
   const prod=_PRODUCTS.find(p=>p._did===docId);
   try{
+    /* ✅ FIX: Set BOTH status:'active' AND approvalStatus:'approved'
+       User.html's Firestore query uses where('status','in',['active','approved'])
+       so setting only approvalStatus would make it invisible to user panel */
     await updateDoc(doc(db,'products',docId),{approvalStatus:'approved',status:'active',approvedAt:serverTimestamp(),approvedBy:window._ADMIN?.name||'Admin'});
-    if(prod?.sellerId){addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_approved',title:'Product Approved ✅',body:`Your product "${prod.name}" has been approved and is now live!`,read:false,createdAt:serverTimestamp()}).catch(()=>{});}
+    if(prod?.sellerId&&prod.sellerId!=='admin'){addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_approved',title:'Product Approved ✅',body:`Your product "${prod.name}" has been approved and is now live!`,read:false,createdAt:serverTimestamp()}).catch(()=>{});}
     toast('Product approved ✅ — Now visible in user app!','suc');
   }catch(e){toast('Approve failed: '+e.message,'err');}
 }
@@ -2093,8 +2100,9 @@ async function rejectProduct(docId){
   const{db,doc,collection,updateDoc,addDoc,serverTimestamp}=window._FB;
   const prod=_PRODUCTS.find(p=>p._did===docId);
   try{
+    /* ✅ FIX: Set status:'inactive' so user.html's Firestore query stops returning it */
     await updateDoc(doc(db,'products',docId),{approvalStatus:'rejected',status:'inactive',rejectedAt:serverTimestamp(),rejectedBy:window._ADMIN?.name||'Admin'});
-    if(prod?.sellerId){addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_rejected',title:'Product Rejected ❌',body:`Your product "${prod.name}" was not approved. Please review and resubmit.`,read:false,createdAt:serverTimestamp()}).catch(()=>{});}
+    if(prod?.sellerId&&prod.sellerId!=='admin'){addDoc(collection(db,'notifications'),{userId:prod.sellerId,type:'product_rejected',title:'Product Rejected ❌',body:`Your product "${prod.name}" was not approved. Please review and resubmit.`,read:false,createdAt:serverTimestamp()}).catch(()=>{});}
     toast('Product rejected. Seller notified.','wrn');
   }catch(e){toast('Reject failed: '+e.message,'err');}
 }
@@ -2206,12 +2214,14 @@ async function saveCat(){
   const gv=id=>document.getElementById(id)?.value?.trim()||'';
   const name=gv('cm-name'),id=gv('cm-id').toLowerCase().replace(/\s+/g,'-'),icon=gv('cm-icon');
   if(!name||!id||!icon){toast('Name, ID and icon required','wrn');return;}
-  const data={name,id,icon,bg:gv('cm-bg')||'var(--s3)',order:parseInt(gv('cm-ord'))||99,active:document.getElementById('cm-act')?.checked,imageUrl:_CAT_IMG_URL||null};
+  /* ✅ FIX: Write 'label' and 'img' fields so user.html CATEGORIES listener
+     can render category chips correctly. User panel reads {id,label,img,bg,icon} */
+  const data={name,label:name,id,icon,bg:gv('cm-bg')||'var(--s3)',order:parseInt(gv('cm-ord'))||99,active:document.getElementById('cm-act')?.checked,imageUrl:_CAT_IMG_URL||null,img:_CAT_IMG_URL||''};
   const{db,collection,doc,setDoc,updateDoc,serverTimestamp}=window._FB;
   const btn=document.getElementById('cm-save');if(btn)btn.classList.add('btn-ld');
   try{
-    if(_EDIT_CAT_ID){await updateDoc(doc(db,'categories',_EDIT_CAT_ID),{...data,updatedAt:serverTimestamp()});toast('Category updated ✅','suc');}
-    else{await setDoc(doc(db,'categories',id),{...data,createdAt:serverTimestamp()});toast('Category added ✅','suc');}
+    if(_EDIT_CAT_ID){await updateDoc(doc(db,'categories',_EDIT_CAT_ID),{...data,updatedAt:serverTimestamp()});toast('Category updated ✅ — Syncing to user app','suc');}
+    else{await setDoc(doc(db,'categories',id),{...data,createdAt:serverTimestamp()});toast('Category added ✅ — Now visible in user app','suc');}
     closeOv('ov-cat');
   }catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
 }
@@ -2229,9 +2239,10 @@ async function handleBannerImg(file){if(!file)return;const fill=document.getElem
 async function saveBanner(){
   const gv=id=>document.getElementById(id)?.value?.trim()||'';
   if(!gv('bm-title')){toast('Title required','wrn');return;}
-  const data={title:gv('bm-title'),sub:gv('bm-sub'),btnLabel:gv('bm-btn'),emoji:gv('bm-emoji'),bg:gv('bm-bg'),tag:gv('bm-tag'),action:gv('bm-act'),order:parseInt(gv('bm-ord'))||1,active:document.getElementById('bm-act2')?.checked,imageUrl:_BAN_IMG_URL||null};
+  /* ✅ FIX: Write 'btn' alias for btnLabel — user.html hero carousel reads b.btn OR b.btnLabel */
+  const data={title:gv('bm-title'),sub:gv('bm-sub'),btnLabel:gv('bm-btn'),btn:gv('bm-btn'),emoji:gv('bm-bg')?gv('bm-emoji'):'🎉',bg:gv('bm-bg'),tag:gv('bm-tag'),action:gv('bm-act'),order:parseInt(gv('bm-ord'))||1,active:document.getElementById('bm-act2')?.checked,imageUrl:_BAN_IMG_URL||null};
   const{db,collection,doc,addDoc,updateDoc,serverTimestamp}=window._FB;const btn=document.getElementById('bm-save');if(btn)btn.classList.add('btn-ld');
-  try{if(_EDIT_BAN_ID){await updateDoc(doc(db,'banners',_EDIT_BAN_ID),{...data,updatedAt:serverTimestamp()});toast('Banner updated ✅','suc');}else{await addDoc(collection(db,'banners'),{...data,createdAt:serverTimestamp()});toast('Banner added ✅','suc');}closeOv('ov-banner');}catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
+  try{if(_EDIT_BAN_ID){await updateDoc(doc(db,'banners',_EDIT_BAN_ID),{...data,updatedAt:serverTimestamp()});toast('Banner updated ✅ — Syncing to user hero carousel','suc');}else{await addDoc(collection(db,'banners'),{...data,createdAt:serverTimestamp()});toast('Banner added ✅ — Now visible in user app','suc');}closeOv('ov-banner');}catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
 }
 async function togBan(docId,active){const{db,doc,updateDoc}=window._FB;await updateDoc(doc(db,'banners',docId),{active});toast('Banner status updated','inf');}
 function delBan(docId,title){confirm2('Delete Banner',`Remove "${title}"?`,async()=>{const{db,doc,deleteDoc}=window._FB;await deleteDoc(doc(db,'banners',docId));toast('Banner deleted','inf');});}
