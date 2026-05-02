@@ -1554,7 +1554,6 @@ async function bootstrapSuperAdmin(user) {
 }
 
 onAuthStateChanged(auth, async user => {
-  // Reset login button loading state whenever auth state changes
   const loginBtn = document.getElementById('l-btn');
   if (loginBtn) loginBtn.classList.remove('loading');
 
@@ -1563,33 +1562,48 @@ onAuthStateChanged(auth, async user => {
       const mgrRef = doc(db, 'managers', user.uid);
       let mgrSnap = await getDoc(mgrRef).catch(() => null);
 
-      // ✅ FIX: If manager doc doesn't exist → try bootstrap (first-ever setup only)
-      // then re-check. If still doesn't exist → REJECT, sign out.
+      // --- FIX: Auto-create first admin if collection is empty ---
       if (!mgrSnap || !mgrSnap.exists()) {
-        const bootstrapped = await bootstrapSuperAdmin(user);
-        if (bootstrapped) {
-          await new Promise(r => setTimeout(r, 500));
-          mgrSnap = await getDoc(mgrRef).catch(() => null);
+        // Check if ANY manager doc exists in the system
+        const allMgrsQuery = await getDocs(collection(db, 'managers')).catch(() => null);
+        const isFirstUser = !allMgrsQuery || allMgrsQuery.empty;
+        
+        if (isFirstUser) {
+          // First user ever - make them super admin automatically
+          await setDoc(doc(db, 'managers', user.uid), {
+            uid: user.uid,
+            name: user.displayName || user.email?.split('@')[0] || 'Admin',
+            email: user.email,
+            role: 'super_admin',
+            permissions: [
+              'orders', 'products', 'categories', 'banners', 'users', 
+              'sellers', 'verification', 'flash-deals', 'featured', 
+              'settings', 'notifications', 'withdrawals', 'earnings', 
+              'coins', 'managers', 'store-config', 'video-approval'
+            ],
+            active: true,
+            createdAt: serverTimestamp(),
+            createdBy: 'first_user_auto'
+          });
+          toast('🎉 You are the first admin! Account created.', 'suc', 'Welcome Admin');
+          mgrSnap = await getDoc(mgrRef);
+        } else {
+          // System has other admins, but this user isn't one of them
+          await signOut(auth);
+          showAuth();
+          setTimeout(() => {
+            showErr('Access denied. This email is not registered as an admin. Contact super admin to add your account.');
+          }, 200);
+          return;
         }
       }
 
-      // ✅ FIX: If STILL no manager doc → this user is NOT an admin → kick them out
-      if (!mgrSnap || !mgrSnap.exists()) {
-        await signOut(auth);
-        showAuth();
-        setTimeout(() => {
-          showErr('Access denied. This email is not registered as an admin. Contact super admin to add your account.');
-        }, 200);
-        return;
-      }
-
       const data = mgrSnap.data();
-
-      // ✅ FIX: Check active status — disabled admins cannot login
+      
       if (data.active === false) {
         await signOut(auth);
         showAuth();
-        setTimeout(() => showErr('Your admin account has been disabled. Contact super admin.'), 200);
+        setTimeout(() => showErr('Your admin account has been disabled.'), 200);
         return;
       }
 
@@ -1598,18 +1612,14 @@ onAuthStateChanged(auth, async user => {
 
     } catch (err) {
       console.error('Auth state error:', err);
-      // On ANY error — sign out for security. Do NOT fallback to "allow all".
       try { await signOut(auth); } catch(_) {}
       showAuth();
-      setTimeout(() => showErr('Login error: ' + err.message + ' — Please try again.'), 200);
+      setTimeout(() => showErr('Login error: ' + err.message), 200);
     }
   } else {
     showAuth();
   }
 });
-</script>
-
-<script>
 /* ════════ STATE ════════ */
 let _SLIM=false,_PAGE='dashboard',_CONFIRM_CB=null;
 let _ORDERS=[],_ORDERS_F=[],_ORDERS_P=1;
