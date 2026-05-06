@@ -1552,134 +1552,50 @@ async function bootstrapSuperAdmin(user) {
     return false;
   }
 }
-
-
 onAuthStateChanged(auth, async user => {
   const loginBtn = document.getElementById('l-btn');
   if (loginBtn) loginBtn.classList.remove('loading');
 
-  // ── Not logged in ──
+  // Not logged in
   if (!user) {
     showAuth();
     return;
   }
 
   try {
+    // SIMPLE CHECK: Does manager doc exist for this UID?
     const mgrRef = doc(db, 'managers', user.uid);
-    let mgrSnap = null;
+    const mgrSnap = await getDoc(mgrRef);
 
-    // ── Try reading this user's manager doc ──
-    try {
-      mgrSnap = await getDoc(mgrRef);
-    } catch (readErr) {
-      console.warn('[AUTH] getDoc failed:', readErr.code, readErr.message);
-      if (readErr.code !== 'permission-denied') {
-        // Real error (network, etc) — bail out
-        await signOut(auth).catch(() => {});
-        showAuth();
-        setTimeout(() => showErr('Database error: ' + readErr.message), 200);
-        return;
-      }
-      // permission-denied = Firestore rules block reading
-      // We'll fall through and try bootstrap logic below
-    }
-
-    // ── Manager doc found ──
-    if (mgrSnap && mgrSnap.exists()) {
+    if (mgrSnap.exists()) {
       const data = mgrSnap.data();
       if (data.active === false) {
-        await signOut(auth).catch(() => {});
+        await signOut(auth);
         showAuth();
-        setTimeout(() => showErr('Your admin account is disabled. Contact super admin.'), 200);
+        setTimeout(() => showErr('Your admin account is disabled.'), 200);
         return;
       }
+      // SUCCESS: Show admin panel
       window._ADMIN = { uid: user.uid, ...data };
       showApp();
       return;
     }
 
-    // ── No manager doc — check if this is the very first user ──
-    let isFirstUser = false;
-    try {
-      const allMgrs = await getDocs(collection(db, 'managers'));
-      isFirstUser = allMgrs.empty;
-    } catch (listErr) {
-      console.warn('[AUTH] getDocs managers failed:', listErr.code);
-      // Cannot list — Firestore rules too strict.
-      // Allow bootstrap ONLY for the designated seed email.
-      const SEED_EMAIL = 'apykart@gmail.com';
-      isFirstUser = (user.email || '').toLowerCase() === SEED_EMAIL.toLowerCase();
-      if (!isFirstUser) {
-        console.error('[AUTH] Cannot determine if first user. Update Firestore rules to: allow list: if request.auth != null;');
-      }
-    }
-
-    // ── Not first user and not a manager — deny ──
-    if (!isFirstUser) {
-      await signOut(auth).catch(() => {});
-      showAuth();
-      setTimeout(() => showErr(
-        'Access denied. "' + (user.email || 'This account') + '" is not registered as an admin. ' +
-        'Ask the super admin to add you via the Managers page.'
-      ), 200);
-      return;
-    }
-
-    // ── First ever user — create super admin ──
-    const adminData = {
-      uid: user.uid,
-      name: user.displayName || (user.email || '').split('@')[0] || 'Admin',
-      email: user.email || '',
-      role: 'super_admin',
-      permissions: [
-        'orders', 'products', 'categories', 'banners', 'users',
-        'sellers', 'verification', 'flash-deals', 'featured',
-        'settings', 'notifications', 'withdrawals', 'earnings',
-        'coins', 'managers', 'store-config', 'video-approval'
-      ],
-      active: true,
-      createdAt: serverTimestamp(),
-      createdBy: 'bootstrap_first_user'
-    };
-
-    try {
-      await setDoc(doc(db, 'managers', user.uid), adminData);
-      toast('🎉 Super Admin account created! You\'re all set.', 'suc', 'Welcome to Apykart Admin');
-    } catch (writeErr) {
-      console.warn('[AUTH] setDoc failed:', writeErr.code, writeErr.message);
-      // Write blocked by rules — still let them into the panel
-      // They'll see the warning and can fix rules
-      toast(
-        '⚠️ Firestore write blocked. Open Firebase Console → Firestore → Rules and allow managers collection writes. See console for details.',
-        'wrn', 'Rules Update Needed', 12000
-      );
-      console.error(
-        '[ACTION REQUIRED] Update Firestore Security Rules:\n\n' +
-        'rules_version = \'2\';\n' +
-        'service cloud.firestore {\n' +
-        '  match /databases/{database}/documents {\n' +
-        '    match /managers/{id} {\n' +
-        '      allow read, write: if request.auth != null;\n' +
-        '    }\n' +
-        '    match /{doc=**} {\n' +
-        '      allow read, write: if request.auth != null;\n' +
-        '    }\n' +
-        '  }\n' +
-        '}'
-      );
-    }
-
-    window._ADMIN = { uid: user.uid, ...adminData, createdAt: new Date() };
-    showApp();
+    // NO manager doc found → access denied
+    await signOut(auth);
+    showAuth();
+    setTimeout(() => showErr(
+      'Access denied. You are not registered as an admin.\n\n' +
+      'Contact the super admin to add you to the managers collection.'
+    ), 200);
 
   } catch (err) {
-    console.error('[AUTH] Unexpected error:', err);
-    try { await signOut(auth); } catch (_) {}
+    console.error('[AUTH ERROR]', err);
+    await signOut(auth).catch(() => {});
     showAuth();
-    setTimeout(() => showErr('Unexpected error: ' + (err.message || 'Please try again.')), 200);
+    setTimeout(() => showErr('Auth error: ' + err.message), 200);
   }
 });
-
 /* ════════ STATE ════════ */
 let _SLIM=false,_PAGE='dashboard',_CONFIRM_CB=null;
 let _ORDERS=[],_ORDERS_F=[],_ORDERS_P=1;
