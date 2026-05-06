@@ -1508,50 +1508,10 @@ window._FB = {
 };
 
 // ══════════════════════════════════════════════════════════════════
-// ✅ FIX #1 — ADMIN AUTH SECURITY
-// PROBLEM: Old code auto-created a manager doc for ANY Firebase user
-//   who logged in — meaning ANY regular user email/password could
-//   accidentally (or intentionally) access the admin panel.
-// SOLUTION:
-//   1. Check /managers/{uid} doc FIRST — must already exist (pre-created by super admin)
-//   2. If doc doesn't exist → sign them out immediately, show error
-//   3. If doc exists but active===false → sign out + show disabled error
-//   4. NEVER auto-create a manager doc on login
-//   5. Only the FIRST TIME setup creates the initial super admin doc
-//      via a separate bootstrap flow (see below)
+// ✅ SIMPLE ADMIN AUTH — NO AUTO-CREATE, NO BOOTSTRAP
+// Just checks if /managers/{uid} document exists
 // ══════════════════════════════════════════════════════════════════
 
-// ── BOOTSTRAP: Only runs once ever — creates the very first super-admin doc
-// if the /managers collection is completely empty AND this is a known seed email.
-// After first setup, this never fires again.
-const SUPER_ADMIN_SEED_EMAIL = 'apykart@gmail.com'; // Change to your actual admin email
-
-async function bootstrapSuperAdmin(user) {
-  // Only bootstrap if this is the designated seed email
-  if (!user.email || user.email.toLowerCase() !== SUPER_ADMIN_SEED_EMAIL.toLowerCase()) return false;
-  const { getDocs, collection: col, setDoc, doc: docRef, serverTimestamp: sts } = { getDocs, collection, doc, setDoc, serverTimestamp };
-  try {
-    // Check if ANY manager docs exist at all
-    const allMgrs = await getDocs(col(db, 'managers')).catch(() => null);
-    if (allMgrs && allMgrs.size > 0) return false; // Already bootstrapped — don't re-create
-    // First ever setup — create the seed super-admin doc
-    await setDoc(docRef(db, 'managers', user.uid), {
-      uid: user.uid,
-      name: user.displayName || user.email.split('@')[0],
-      email: user.email,
-      role: 'super_admin',
-      permissions: ['orders','products','categories','banners','users','sellers','verification','flash-deals','featured','settings','notifications','withdrawals','earnings','coins','managers','store-config','video-approval'],
-      active: true,
-      createdAt: sts(),
-      createdBy: 'bootstrap_first_setup'
-    });
-    console.log('✅ First-time super admin bootstrapped for:', user.email);
-    return true;
-  } catch(e) {
-    console.warn('Bootstrap failed (Firestore rules may block):', e.message);
-    return false;
-  }
-}
 onAuthStateChanged(auth, async user => {
   const loginBtn = document.getElementById('l-btn');
   if (loginBtn) loginBtn.classList.remove('loading');
@@ -1596,6 +1556,10 @@ onAuthStateChanged(auth, async user => {
     setTimeout(() => showErr('Auth error: ' + err.message), 200);
   }
 });
+
+// ════════ REST OF YOUR CODE CONTINUES BELOW ════════
+// ... (your existing functions: toast, setEl, esc, fmtC, nav, etc.)
+</script>
 /* ════════ STATE ════════ */
 let _SLIM=false,_PAGE='dashboard',_CONFIRM_CB=null;
 let _ORDERS=[],_ORDERS_F=[],_ORDERS_P=1;
