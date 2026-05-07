@@ -1563,12 +1563,16 @@ onAuthStateChanged(auth, async user => {
   }
 
   try {
+    console.log('[AUTH] User logged in:', user.email, 'UID:', user.uid);
+    
     // SIMPLE CHECK: Does manager doc exist for this UID?
     const mgrRef = doc(db, 'managers', user.uid);
     const mgrSnap = await getDoc(mgrRef);
 
     if (mgrSnap.exists()) {
       const data = mgrSnap.data();
+      console.log('[AUTH] Manager doc found:', data);
+      
       if (data.active === false) {
         await signOut(auth);
         showAuth();
@@ -1577,16 +1581,28 @@ onAuthStateChanged(auth, async user => {
       }
       // SUCCESS: Show admin panel
       window._ADMIN = { uid: user.uid, ...data };
+      console.log('[AUTH] Admin panel loaded successfully');
       showApp();
       return;
     }
 
+    console.log('[AUTH] Manager doc NOT found for UID:', user.uid);
+    
+    // Try to bootstrap if this is the seed email
+    const bootstrapped = await bootstrapSuperAdmin(user);
+    if (bootstrapped) {
+      console.log('[AUTH] Bootstrap successful, reloading...');
+      setTimeout(() => location.reload(), 500);
+      return;
+    }
+
     // NO manager doc found → access denied
+    console.log('[AUTH] Bootstrap failed or not seed email, access denied');
     await signOut(auth);
     showAuth();
     setTimeout(() => showErr(
       'Access denied. You are not registered as an admin.\n\n' +
-      'Contact the super admin to add you to the managers collection.'
+      'If this is your first time, use email: ' + SUPER_ADMIN_SEED_EMAIL
     ), 200);
 
   } catch (err) {
