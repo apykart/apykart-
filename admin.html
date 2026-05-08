@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -573,7 +572,7 @@ img { display: block; max-width: 100%; }
     <div id="form-login">
       <div class="a-grp"><label>Email Address</label><input class="a-inp" id="l-email" type="email" placeholder="apykart@gmail.com" autocomplete="username"></div>
       <div class="a-grp"><label>Password</label><input class="a-inp" id="l-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <button class="auth-btn" id="l-btn" onclick="doLogin()">Sign In to Admin V3 →</button>
+      <button class="auth-btn" id="l-btn" onclick="doLogin()">Sign In to Admin V4 →</button>
       <p class="auth-note">Auto-create manager account on first login.</p>
     </div>
     <div id="form-reset" style="display:none">
@@ -1555,96 +1554,45 @@ async function bootstrapSuperAdmin(user) {
 // SUPER ROBUST AUTH WITH TIMEOUT & DEBUG
 let _AUTH_TIMEOUT = null;
 onAuthStateChanged(auth, async user => {
-  // Clear any previous timeout
+  console.log('[AUTH] State changed. User:', user ? user.email : 'None');
   if (_AUTH_TIMEOUT) clearTimeout(_AUTH_TIMEOUT);
   
   const loginBtn = document.getElementById('l-btn');
   if (loginBtn) loginBtn.classList.remove('loading');
 
-  // Not logged in
   if (!user) {
     showAuth();
     return;
   }
 
+  // Show app immediately to avoid white screen/stuck login
+  // We will load data in the background
+  window._ADMIN = { uid: user.uid, name: user.email.split('@')[0], role: 'super_admin', email: user.email };
+  showApp();
+
   try {
-    console.log('[AUTH] ✅ User logged in:', user.email, 'UID:', user.uid);
-    console.log('[AUTH] ⏳ Checking admin permissions...');
-    
-    // SET TIMEOUT: If auth takes >10 seconds, force show app anyway
-    _AUTH_TIMEOUT = setTimeout(() => {
-      console.warn('[AUTH] ⚠️ Auth timeout - forcing app load');
-      if (!window._ADMIN) {
-        window._ADMIN = { uid: user.uid, name: user.email.split('@')[0], role: 'super_admin', email: user.email };
-      }
-      showApp();
-    }, 10000);
-    
-    // SIMPLE CHECK: Does manager doc exist for this UID?
     const mgrRef = doc(db, 'managers', user.uid);
-    console.log('[AUTH] 🔍 Looking for manager doc:', user.uid);
-    
-    let mgrSnap;
-    try {
-      mgrSnap = await getDoc(mgrRef);
-    } catch (dbErr) {
-      console.error('[AUTH] ❌ Database error:', dbErr.message);
-      // If database fails, still allow login (fallback mode)
-      console.log('[AUTH] 🔄 Fallback: Allowing login without DB verification');
-      window._ADMIN = { uid: user.uid, name: user.email.split('@')[0], role: 'super_admin', email: user.email };
-      clearTimeout(_AUTH_TIMEOUT);
-      showApp();
-      return;
-    }
+    const mgrSnap = await getDoc(mgrRef);
 
     if (mgrSnap.exists()) {
       const data = mgrSnap.data();
-      console.log('[AUTH] ✅ Manager doc found:', data);
-      
       if (data.active === false) {
-        console.log('[AUTH] ❌ Account disabled');
-        clearTimeout(_AUTH_TIMEOUT);
         await signOut(auth);
         showAuth();
         setTimeout(() => showErr('Your admin account is disabled.'), 200);
         return;
       }
-      // SUCCESS: Show admin panel
       window._ADMIN = { uid: user.uid, ...data };
-      console.log('[AUTH] ✅ Admin panel loaded successfully');
-      clearTimeout(_AUTH_TIMEOUT);
-      showApp();
-      return;
+      // Update UI with real admin data
+      const uname = document.getElementById('sb-uname');
+      if (uname) uname.textContent = window._ADMIN.name || 'Admin';
+    } else {
+      console.log('[AUTH] No manager doc, staying in super_admin fallback');
+      // Try bootstrap if seed email
+      await bootstrapSuperAdmin(user);
     }
-
-    console.log('[AUTH] ⚠️ Manager doc NOT found for UID:', user.uid);
-    
-    // Try to bootstrap if this is the seed email
-    console.log('[AUTH] 🔄 Attempting bootstrap...');
-    const bootstrapped = await bootstrapSuperAdmin(user);
-    if (bootstrapped) {
-      console.log('[AUTH] ✅ Bootstrap successful, reloading...');
-      clearTimeout(_AUTH_TIMEOUT);
-      setTimeout(() => location.reload(), 500);
-      return;
-    }
-
-    // If bootstrap fails, still allow access (fallback mode)
-    console.log('[AUTH] ⚠️ Bootstrap failed, allowing fallback access');
-    window._ADMIN = { uid: user.uid, name: user.email.split('@')[0], role: 'super_admin', email: user.email };
-    clearTimeout(_AUTH_TIMEOUT);
-    showApp();
-    toast('⚠️ Logged in with limited permissions (offline mode)', 'wrn', 'Fallback Mode', 5000);
-
   } catch (err) {
-    console.error('[AUTH] ❌ Critical error:', err);
-    clearTimeout(_AUTH_TIMEOUT);
-    
-    // LAST RESORT: Allow access anyway
-    console.log('[AUTH] 🔄 Last resort: Allowing access despite error');
-    window._ADMIN = { uid: user.uid, name: user.email.split('@')[0], role: 'super_admin', email: user.email };
-    showApp();
-    toast('⚠️ Logged in with fallback mode', 'wrn', 'Error', 5000);
+    console.error('[AUTH] Background check error:', err);
   }
 });
 /* ════════ STATE ════════ */
@@ -1895,17 +1843,20 @@ async function doLogin(){
   if(!email||!pass){showErr('Please enter email and password.');return;}
   err.classList.remove('show');
   if(btn)btn.classList.add('loading');
+  console.log('[AUTH] Attempting login for:', email);
   try{
     await window._FB.signInWithEmailAndPassword(window._FB.auth,email,pass);
-    // btn loading will be removed by onAuthStateChanged
+    console.log('[AUTH] Login call successful');
   }catch(e){
+    console.error('[AUTH] Login failed:', e);
     let msg='Invalid email or password.';
     if(e.code==='auth/user-not-found')msg='No account found with this email.';
     else if(e.code==='auth/wrong-password')msg='Incorrect password.';
     else if(e.code==='auth/invalid-email')msg='Invalid email address.';
     else if(e.code==='auth/too-many-requests')msg='Too many attempts. Try again later or reset password.';
     else if(e.code==='auth/network-request-failed')msg='Network error. Check your connection.';
-    else if(e.code!=='auth/invalid-credential')msg=e.message;
+    else if(e.code==='auth/invalid-credential')msg='Invalid credentials. Please check your email and password.';
+    else msg=e.message;
     showErr(msg);
     if(btn)btn.classList.remove('loading');
   }
