@@ -1774,15 +1774,56 @@ function showApp(){
   buildNav();startGlobalListeners();startSellerVerificationsListener();nav('dashboard');
 }
 async function doLogin(){
-  const email=document.getElementById('l-email').value.trim();
-  const pass=document.getElementById('l-pass').value;
-  const btn=document.getElementById('l-btn');
-  const err=document.getElementById('auth-err');
-  if(!email||!pass){showErr('Please enter email and password.');return;}
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const btn = document.getElementById('l-btn');
+  const err = document.getElementById('auth-err');
+
+  if(!email || !pass){ showErr('Please enter email and password.'); return; }
   err.classList.remove('show');
-  if(btn)btn.classList.add('loading');
+  if(btn) btn.classList.add('loading');
+
   try{
-    await window._FB.signInWithEmailAndPassword(window._FB.auth,email,pass);
+    // First, sign in
+    const userCred = await signInWithEmailAndPassword(auth, email, pass);
+    const user = userCred.user;
+    
+    // 🔥 CRITICAL: Check if this user exists in managers collection
+    const mgrRef = doc(db, 'managers', user.uid);
+    const mgrSnap = await getDoc(mgrRef);
+    
+    if(!mgrSnap.exists()){
+      // User not authorized — sign out immediately
+      await signOut(auth);
+      showErr('Access denied. You are not registered as an admin.');
+      if(btn) btn.classList.remove('loading');
+      return;
+    }
+    
+    const mgrData = mgrSnap.data();
+    if(mgrData.active === false){
+      await signOut(auth);
+      showErr('Your admin account is disabled. Contact super admin.');
+      if(btn) btn.classList.remove('loading');
+      return;
+    }
+    
+    // Success — admin is authorized
+    window._ADMIN = { uid: user.uid, ...mgrData };
+    showApp();
+    
+  } catch(e){
+    let msg = 'Invalid email or password.';
+    if(e.code === 'auth/user-not-found') msg = 'No account found with this email.';
+    else if(e.code === 'auth/wrong-password') msg = 'Incorrect password.';
+    else if(e.code === 'auth/invalid-email') msg = 'Invalid email address.';
+    else if(e.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
+    else if(e.code === 'auth/network-request-failed') msg = 'Network error. Check your connection.';
+    else if(e.code !== 'auth/invalid-credential') msg = e.message;
+    showErr(msg);
+    if(btn) btn.classList.remove('loading');
+  }
+}
     // btn loading will be removed by onAuthStateChanged
   }catch(e){
     let msg='Invalid email or password.';
