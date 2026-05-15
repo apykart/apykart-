@@ -1508,80 +1508,43 @@ window._FB = {
 };
 
 onAuthStateChanged(auth, async user => {
-  // Reset login button loading state whenever auth state changes
+onAuthStateChanged(auth, async user => {
   const loginBtn = document.getElementById('l-btn');
   if (loginBtn) loginBtn.classList.remove('loading');
 
   if (user) {
+    // User is logged in — check if they are in managers collection
     try {
       const mgrRef = doc(db, 'managers', user.uid);
-      let mgrSnap = await getDoc(mgrRef).catch(() => null);
-
-      // If doc doesn't exist, auto-create it (first login)
-      if (!mgrSnap || !mgrSnap.exists()) {
-        const newAdminData = {
-          uid: user.uid,
-          name: user.displayName || (user.email ? user.email.split('@')[0] : 'Admin'),
-          email: user.email || '',
-          role: 'super_admin',
-          permissions: ['orders','products','categories','banners','users','sellers','verification','flash-deals','featured','settings','notifications','withdrawals','earnings','coins','managers','store-config','video-approval'],
-          active: true,
-          createdAt: serverTimestamp(),
-          createdBy: 'auto_on_first_login'
-        };
-        await setDoc(mgrRef, newAdminData).catch(e => {
-          console.warn('Could not save manager doc (rules?):', e.message);
-        });
-        await new Promise(r => setTimeout(r, 400));
-        mgrSnap = await getDoc(mgrRef).catch(() => null);
+      const mgrSnap = await getDoc(mgrRef);
+      
+      if(!mgrSnap.exists()){
+        // Not an admin — sign out immediately
+        await signOut(auth);
+        showAuth();
+        return;
       }
-
-      // If Firestore read worked and doc exists, use it
-      if (mgrSnap && mgrSnap.exists()) {
-        const data = mgrSnap.data();
-        if (data.active === false) {
-          await signOut(auth);
-          showAuth();
-          setTimeout(() => toast('Account disabled. Contact super admin.', 'err'), 200);
-          return;
-        }
-        window._ADMIN = { uid: user.uid, ...data };
-      } else {
-        // Firestore rules may block read — allow login anyway with basic profile
-        console.warn('Manager doc not accessible — using fallback profile.');
-        window._ADMIN = {
-          uid: user.uid,
-          name: user.displayName || (user.email ? user.email.split('@')[0] : 'Admin'),
-          email: user.email || '',
-          role: 'super_admin',
-          permissions: ['orders','products','categories','banners','users','sellers','verification','flash-deals','featured','settings','notifications','withdrawals','earnings','coins','managers','store-config','video-approval'],
-          active: true
-        };
+      
+      const mgrData = mgrSnap.data();
+      if(mgrData.active === false){
+        await signOut(auth);
+        showAuth();
+        toast('Your admin account is disabled.', 'err');
+        return;
       }
+      
+      window._ADMIN = { uid: user.uid, ...mgrData };
       showApp();
-    } catch (err) {
-      console.error('Auth state error:', err);
-      // Still try to show app with minimal profile rather than locking user out
-      if (!window._ADMIN) {
-        window._ADMIN = {
-          uid: user.uid,
-          name: user.email ? user.email.split('@')[0] : 'Admin',
-          email: user.email || '',
-          role: 'super_admin',
-          permissions: [],
-          active: true
-        };
-      }
-      showApp();
-      setTimeout(() => toast('Warning: Profile load issue — ' + err.message, 'wrn'), 500);
+      
+    } catch(err) {
+      console.error('Auth check error:', err);
+      await signOut(auth);
+      showAuth();
     }
   } else {
     showAuth();
   }
 });
-</script>
-
-<script>
 /* ════════ STATE ════════ */
 let _SLIM=false,_PAGE='dashboard',_CONFIRM_CB=null;
 let _ORDERS=[],_ORDERS_F=[],_ORDERS_P=1;
