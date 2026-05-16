@@ -1,23 +1,52 @@
-<!-- Simple working admin panel — copy-paste -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Apykart Admin</title>
+    <title>Apykart Admin — Live Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: system-ui; padding: 20px; background: #0f172a; color: #e2e8f0; }
+        .card { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .stats { display: flex; gap: 16px; flex-wrap: wrap; }
+        .stat { background: #334155; padding: 16px; border-radius: 10px; flex: 1; min-width: 120px; text-align: center; }
+        .stat h3 { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+        .stat .value { font-size: 28px; font-weight: bold; color: #3b82f6; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #334155; }
+        button { background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+        .logout { background: #ef4444; margin-top: 20px; }
+    </style>
 </head>
 <body>
     <div id="login">
-        <h2>Apykart Admin Login</h2>
-        <input type="email" id="email" placeholder="Email"><br>
-        <input type="password" id="password" placeholder="Password"><br>
-        <button onclick="login()">Login</button>
-        <p id="error" style="color:red"></p>
+        <div class="card">
+            <h2>🔐 Apykart Admin Login</h2>
+            <input type="email" id="email" placeholder="Email" style="width:100%; padding:10px; margin:10px 0; border-radius:6px; border:none;"><br>
+            <input type="password" id="password" placeholder="Password" style="width:100%; padding:10px; margin:10px 0; border-radius:6px; border:none;"><br>
+            <button onclick="login()">Login</button>
+            <p id="error" style="color:#ef4444; margin-top:10px;"></p>
+        </div>
     </div>
+
     <div id="dashboard" style="display:none">
-        <h2>✅ Login Successful!</h2>
-        <p>Welcome, <span id="userEmail"></span></p>
-        <button onclick="logout()">Logout</button>
+        <div class="card">
+            <h2>📊 Apykart Dashboard</h2>
+            <div class="stats" id="stats">
+                <div class="stat"><h3>Total Orders</h3><div class="value" id="totalOrders">0</div></div>
+                <div class="stat"><h3>Total Revenue</h3><div class="value" id="totalRevenue">₹0</div></div>
+                <div class="stat"><h3>Total Users</h3><div class="value" id="totalUsers">0</div></div>
+                <div class="stat"><h3>Total Products</h3><div class="value" id="totalProducts">0</div></div>
+            </div>
+            <h3>📦 Recent Orders</h3>
+            <div style="overflow-x: auto;">
+                <table id="ordersTable">
+                    <thead><tr><th>Order ID</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+                    <tbody id="ordersList"><tr><td colspan="4">Loading...</td></tr></tbody>
+                </table>
+            </div>
+            <button class="logout" onclick="logout()">Logout</button>
+        </div>
     </div>
 
     <script>
@@ -32,12 +61,53 @@
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Real-time stats
+        function loadStats() {
+            db.collection('orders').onSnapshot((snap) => {
+                document.getElementById('totalOrders').textContent = snap.size;
+                let revenue = 0;
+                snap.forEach(doc => revenue += doc.data().total || 0);
+                document.getElementById('totalRevenue').textContent = `₹${revenue.toLocaleString()}`;
+            });
+            db.collection('users').onSnapshot((snap) => {
+                document.getElementById('totalUsers').textContent = snap.size;
+            });
+            db.collection('products').onSnapshot((snap) => {
+                document.getElementById('totalProducts').textContent = snap.size;
+            });
+        }
+
+        // Recent orders
+        function loadOrders() {
+            db.collection('orders').orderBy('createdAt', 'desc').limit(10).onSnapshot((snap) => {
+                const tbody = document.getElementById('ordersList');
+                if (snap.empty) {
+                    tbody.innerHTML = '<tr><td colspan="4">No orders</td></tr>';
+                    return;
+                }
+                let html = '';
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    html += `<tr>
+                        <td>${doc.id.slice(0,8)}</td>
+                        <td>${data.customerName || 'Guest'}</td>
+                        <td>₹${data.total || 0}</td>
+                        <td><span style="background:#334155; padding:4px 8px; border-radius:4px;">${data.status || 'pending'}</span></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            });
+        }
 
         auth.onAuthStateChanged((user) => {
             if (user) {
                 document.getElementById('login').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'block';
                 document.getElementById('userEmail').innerText = user.email;
+                loadStats();
+                loadOrders();
             } else {
                 document.getElementById('login').style.display = 'block';
                 document.getElementById('dashboard').style.display = 'none';
