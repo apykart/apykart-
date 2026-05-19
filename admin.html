@@ -1802,7 +1802,6 @@ function showApp(){
   const uidSpan=document.getElementById('st-uid');if(uidSpan)uidSpan.textContent=a.uid||'—';
   buildNav();startGlobalListeners();startSellerVerificationsListener();nav('dashboard');
 }
-
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
   const pass=document.getElementById('l-pass').value;
