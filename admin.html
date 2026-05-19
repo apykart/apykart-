@@ -1807,7 +1807,6 @@ async function doLogin(){
   const pass=document.getElementById('l-pass').value;
   const btn=document.getElementById('l-btn');
   const err=document.getElementById('auth-err');
-  // 🔒 NEW CHECK: Only dailyway@gmail.com allowed
   if(email !== 'dailyway@gmail.com') {
     showErr('Access denied. Only dailyway@gmail.com can login.');
     return;
@@ -1817,8 +1816,7 @@ async function doLogin(){
   if(btn)btn.classList.add('loading');
   try{
     await window._FB.signInWithEmailAndPassword(window._FB.auth,email,pass);
-  }catch(e){ ... }
-}
+  }catch(e){
     let msg='Invalid email or password.';
     if(e.code==='auth/user-not-found')msg='No account found with this email.';
     else if(e.code==='auth/wrong-password')msg='Incorrect password.';
@@ -1831,17 +1829,28 @@ async function doLogin(){
   }
 }
 async function doReset(){
-  const email=document.getElementById('r-email').value.trim();
-  const btn=document.getElementById('r-btn');
-  if(!email){showErr('Enter your email.');return;}
+  const email = document.getElementById('r-email').value.trim();
+  const btn = document.getElementById('r-btn');
+  
+  // 🔒 Sirf dailyway@gmail.com ko reset allowed
+  if(email !== 'dailyway@gmail.com') {
+    showErr('Password reset only allowed for dailyway@gmail.com');
+    return;
+  }
+  
+  if(!email){ showErr('Enter your email.'); return; }
+  
   btn.classList.add('loading');
-  try{await window._FB.sendPasswordResetEmail(window._FB.auth,email);toast('Reset email sent!','suc');authTab('login');}
-  catch(e){showErr(e.message);}
-  finally{btn.classList.remove('loading');}
+  try {
+    await window._FB.sendPasswordResetEmail(window._FB.auth, email);
+    toast('Reset email sent!', 'suc');
+    authTab('login');
+  } catch(e) {
+    showErr(e.message);
+  } finally {
+    btn.classList.remove('loading');
+  }
 }
-async function doLogout(){[_ORD_UNSUB,_PRD_UNSUB,_CAT_UNSUB,_BAN_UNSUB,_USR_UNSUB,_SEL_UNSUB,_WD_UNSUB,_VID_UNSUB].forEach(u=>{try{if(u)u();}catch(e){}});await window._FB.signOut(window._FB.auth);toast('Logged out','inf','Bye!');}
-function showErr(msg){const e=document.getElementById('auth-err');e.textContent='❌ '+msg;e.classList.add('show');}
-
 /* ════════ PAGE NAVIGATION ════════ */
 const PAGE_TITLES={dashboard:'Dashboard',orders:'Orders',products:'Products','product-approval':'Product Approval','video-approval':'Video Approval',categories:'Categories',banners:'Banners',users:'Users',managers:'Managers',notifications:'Notifications',settings:'Settings','store-config':'Store Configuration',sellers:'Sellers',verification:'Seller Verification','flash-deals':'Flash Deals',featured:'Featured Sections','home-theme':'Home Theme Builder',withdrawals:'Withdrawal Requests',earnings:'Seller Earnings',coins:'Coin Management'};
 function nav(page){
