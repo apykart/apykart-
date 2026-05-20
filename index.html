@@ -4644,23 +4644,24 @@ function _xplorActivate(idx) {
   _xplorIdx = idx;
   const wrapper = document.getElementById('xplorWrapper');
   if (!wrapper) return;
-  
-  // Slide wrapper up/down
+
   const pct = -(idx * (100 / _xplorVideos.length));
   wrapper.style.transform = `translateY(${pct}%)`;
-  
-  // Pause all, play current
+
   _xplorVideos.forEach((v, i) => {
     const vid = document.getElementById('xvid_' + i);
     if (!vid) return;
     if (i === idx) {
+      // Active video: set mute state as per global
+      vid.muted = _xplorMuted;
       vid.play().catch(()=>{});
-      // Real-time view count increment in Firestore
       const fsId = v._fsId || v.id;
       if (fsId) incrementVideoView(fsId);
     } else {
+      // Inactive video: force pause AND mute
       vid.pause();
       vid.currentTime = 0;
+      vid.muted = true;
     }
   });
 }
@@ -4714,37 +4715,33 @@ function xplorTogglePlay(idx) {
 // ✅ FIX A: Sound toggle function
 // Browser autoplay policy: video starts muted.
 // User jab mute button tap kare tab sound ON ho jata hai.
-function xplorToggleMute(idx, event) {
-  if (event) event.stopPropagation(); // play/pause trigger mat ho
+ function xplorToggleMute(idx, event) {
+  if (event) event.stopPropagation();
   _xplorMuted = !_xplorMuted;
 
-  // Sab visible videos ka mute toggle karo
-  document.querySelectorAll('[id^="xvid_"]').forEach(v => {
-    v.muted = _xplorMuted;
-    // Agar muted tha aur ab unmute kar raha hai toh play bhi karo
-    if (!_xplorMuted && v.paused) v.play().catch(()=>{});
-  });
+  // Sirf active video par effect karo
+  const activeVid = document.getElementById('xvid_' + _xplorIdx);
+  if (activeVid) {
+    activeVid.muted = _xplorMuted;
+    if (!_xplorMuted && activeVid.paused) activeVid.play().catch(()=>{});
+  }
 
-  // Sab mute icons update karo
-  document.querySelectorAll('[id^="xmute_icon_"]').forEach((iconEl, i) => {
+  // Active video ke mute icon ko update karo (baaki icons ka koi matlab nahi)
+  const activeIcon = document.getElementById('xmute_icon_' + _xplorIdx);
+  if (activeIcon) {
     if (_xplorMuted) {
-      // Muted icon (X lines visible)
-      iconEl.innerHTML = `
-        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      activeIcon.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
         <line x1="23" y1="9" x2="17" y2="15" stroke="white" stroke-width="2"/>
         <line x1="17" y1="9" x2="23" y2="15" stroke="white" stroke-width="2"/>`;
     } else {
-      // Unmuted icon (sound waves)
-      iconEl.innerHTML = `
-        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      activeIcon.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
         <path d="M19.07 4.93a10 10 0 0 1 0 14.14" fill="none"/>
         <path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none"/>`;
     }
-  });
+  }
 
   showToast(_xplorMuted ? '🔇 Muted' : '🔊 Sound ON', 'info');
-}
-
+  }
 function xplorLike(idx) {
   _xplorLiked[idx] = !_xplorLiked[idx];
   const btn = document.getElementById('xlike_' + idx);
