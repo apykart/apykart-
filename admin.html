@@ -1544,21 +1544,22 @@ onAuthStateChanged(auth, async user => {
 
       if (mgrSnap && mgrSnap.exists()) {
   const data = mgrSnap.data();
-  if (data.active === false) { ... }
+  // ✅ Check if manager account is disabled
+  if (data.active === false) {
+    await signOut(auth);
+    showAuth();
+    toast('Your manager account is disabled. Contact super admin.', 'err');
+    return;
+  }
   window._ADMIN = { uid: user.uid, ...data };
-  // 🔥 Load theme from Firestore
+  // Load theme from Firestore
   const savedTheme = data.themePreference;
   if (savedTheme) {
     applyTheme(savedTheme);
   } else {
-    // Fallback default dark theme
     applyTheme('dark');
   }
-} else {
-  window._ADMIN = { uid: user.uid, email: user.email, name: 'Admin', role: 'super_admin' };
-  // No manager doc – apply default dark theme
-  applyTheme('dark');
-}
+   }
 showApp();
     } catch (err) {
       console.error('Auth state error:', err);
@@ -1778,25 +1779,24 @@ function closeMobSB(){
 
 /* ════════ THEME ════════ */
 async function applyTheme(t){
-  document.documentElement.setAttribute('data-theme',t==='dark'?'':t);
-  // 🔥 REMOVED localStorage.setItem
-  document.querySelectorAll('.theme-card').forEach(c=>c.classList.remove('selected'));
-  const tc=document.getElementById('tc-'+t);
-  if(tc)tc.classList.add('selected');
-  toast('Theme changed to '+t,'inf','Theme Applied',2000);
+  document.documentElement.setAttribute('data-theme', t === 'dark' ? '' : t);
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+  const tc = document.getElementById('tc-' + t);
+  if (tc) tc.classList.add('selected');
+  toast('Theme changed to ' + t, 'inf', 'Theme Applied', 2000);
   
-  // ✅ Save preference to Firestore if admin is logged in
-  if (window.currentUser && window._ADMIN && window._FB) {
+  // ✅ Save preference to Firestore using _ADMIN.uid (which is always available after login)
+  if (window._ADMIN && window._ADMIN.uid && window._FB) {
     const { db, doc, updateDoc } = window._FB;
     try {
-      await updateDoc(doc(db, 'managers', window.currentUser.uid), {
+      await updateDoc(doc(db, 'managers', window._ADMIN.uid), {
         themePreference: t
       });
     } catch(e) {
       console.warn('Could not save theme preference', e);
     }
-  }
-   }
+  } 
+}
 // 🔥 No localStorage – apply dark theme temporarily.
 // After login, Firestore preference will override.
 document.documentElement.setAttribute('data-theme', ''); // dark
@@ -1823,30 +1823,30 @@ function showApp(){
   const uidSpan=document.getElementById('st-uid');if(uidSpan)uidSpan.textContent=a.uid||'—';
   buildNav();startGlobalListeners();startSellerVerificationsListener();nav('dashboard');
 }
-async function doLogin(){
-  const email=document.getElementById('l-email').value.trim();
-  const pass=document.getElementById('l-pass').value;
-  const btn=document.getElementById('l-btn');
-  const err=document.getElementById('auth-err');
-  if(email !== 'dailyway@gmail.com') {
-    showErr('Access denied. Only dailyway@gmail.com can login.');
+   async function doLogin(){
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const btn = document.getElementById('l-btn');
+  const err = document.getElementById('auth-err');
+  
+  if (!email || !pass) {
+    showErr('Please enter email and password.');
     return;
   }
-  if(!email||!pass){showErr('Please enter email and password.');return;}
   err.classList.remove('show');
-  if(btn)btn.classList.add('loading');
-  try{
-    await window._FB.signInWithEmailAndPassword(window._FB.auth,email,pass);
-  }catch(e){
-    let msg='Invalid email or password.';
-    if(e.code==='auth/user-not-found')msg='No account found with this email.';
-    else if(e.code==='auth/wrong-password')msg='Incorrect password.';
-    else if(e.code==='auth/invalid-email')msg='Invalid email address.';
-    else if(e.code==='auth/too-many-requests')msg='Too many attempts. Try again later or reset password.';
-    else if(e.code==='auth/network-request-failed')msg='Network error. Check your connection.';
-    else if(e.code!=='auth/invalid-credential')msg=e.message;
+  if (btn) btn.classList.add('loading');
+  try {
+    await window._FB.signInWithEmailAndPassword(window._FB.auth, email, pass);
+  } catch(e) {
+    let msg = 'Invalid email or password.';
+    if (e.code === 'auth/user-not-found') msg = 'No account found with this email.';
+    else if (e.code === 'auth/wrong-password') msg = 'Incorrect password.';
+    else if (e.code === 'auth/invalid-email') msg = 'Invalid email address.';
+    else if (e.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
+    else if (e.code === 'auth/network-request-failed') msg = 'Network error. Check your connection.';
+    else msg = e.message;
     showErr(msg);
-    if(btn)btn.classList.remove('loading');
+    if (btn) btn.classList.remove('loading');
   }
 }
 async function doReset(){
