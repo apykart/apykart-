@@ -1853,12 +1853,44 @@ async function doReset(){
   const email = document.getElementById('r-email').value.trim();
   const btn = document.getElementById('r-btn');
   
-  // 🔒 Sirf dailyway@gmail.com ko reset allowed
-  if(email !== 'dailyway@gmail.com') {
-    showErr('Password reset only allowed for dailyway@gmail.com');
-    return;
+  // ✅ Allow super admin email bypass, and any email with an active manager document
+try {
+  const mgrRef = doc(db, 'managers', user.uid);
+  let mgrSnap = await getDoc(mgrRef).catch(() => null);
+
+  // Super admin email gets auto-created manager if missing
+  if (user.email === 'dailyway@gmail.com') {
+    if (!mgrSnap?.exists()) {
+      const newAdminData = {
+        uid: user.uid,
+        name: user.displayName || 'Super Admin',
+        email: user.email,
+        role: 'super_admin',
+        permissions: ['all'],
+        active: true,
+        createdAt: serverTimestamp(),
+        createdBy: 'system'
+      };
+      await setDoc(mgrRef, newAdminData);
+      mgrSnap = await getDoc(mgrRef);
+    }
+  } else {
+    // For other emails, require an existing active manager document
+    if (!mgrSnap?.exists()) {
+      await signOut(auth);
+      showAuth();
+      toast('Access denied. No manager account found.', 'err');
+      return;
+    }
+    if (mgrSnap.data().active === false) {
+      await signOut(auth);
+      showAuth();
+      toast('Your manager account is disabled. Contact super admin.', 'err');
+      return;
+    }
   }
-  
+
+  // ... continue with the rest of the existing logic (manager data, theme, showApp)
   if(!email){ showErr('Enter your email.'); return; }
   
   btn.classList.add('loading');
