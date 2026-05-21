@@ -1720,7 +1720,16 @@ function startGlobalListeners(){
 }
 
 /* ════════ HELPERS ════════ */
-function toast(msg,type='inf',title='',dur=4000){const icons={suc:'✅',err:'❌',wrn:'⚠️',inf:'ℹ️'};const titles={suc:'Success',err:'Error',wrn:'Warning',inf:'Info'};const wrap=document.getElementById('TOASTS');if(!wrap)return;const el=document.createElement('div');el.className=`toast ${type}`;el.innerHTML=`<div class="ti">${icons[type]}</div><div class="tc"><div class="tt">${title||titles[type]}</div>${msg?`<div class="tm">${msg}</div>`:''}</div><div class="tx" onclick="this.parentElement.remove()">✕</div>`;wrap.appendChild(el);setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),300);},dur);}
+   function showErr(msg) {
+  const errDiv = document.getElementById('auth-err');
+  if (errDiv) {
+    errDiv.textContent = msg;
+    errDiv.classList.add('show');
+    setTimeout(() => errDiv.classList.remove('show'), 5000);
+  } else {
+    toast(msg, 'err');
+  }
+   }
 function setEl(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fmtC(n,s='₹'){return s+(n||0).toLocaleString('en-IN',{maximumFractionDigits:0});}
