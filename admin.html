@@ -1543,19 +1543,23 @@ onAuthStateChanged(auth, async user => {
       }
 
       if (mgrSnap && mgrSnap.exists()) {
-        const data = mgrSnap.data();
-        if (data.active === false) {
-          await signOut(auth);
-          showAuth();
-          setTimeout(() => toast('Account disabled. Contact super admin.', 'err'), 200);
-          return;
-        }
-        window._ADMIN = { uid: user.uid, ...data };
-      } else {
-        // Fallback (should not happen, but allow)
-        window._ADMIN = { uid: user.uid, email: user.email, name: 'Admin', role: 'super_admin' };
-      }
-      showApp();
+  const data = mgrSnap.data();
+  if (data.active === false) { ... }
+  window._ADMIN = { uid: user.uid, ...data };
+  // 🔥 Load theme from Firestore
+  const savedTheme = data.themePreference;
+  if (savedTheme) {
+    applyTheme(savedTheme);
+  } else {
+    // Fallback default dark theme
+    applyTheme('dark');
+  }
+} else {
+  window._ADMIN = { uid: user.uid, email: user.email, name: 'Admin', role: 'super_admin' };
+  // No manager doc – apply default dark theme
+  applyTheme('dark');
+}
+showApp();
     } catch (err) {
       console.error('Auth state error:', err);
       // Allow minimal access only for allowed email
@@ -1773,19 +1777,36 @@ function closeMobSB(){
 }
 
 /* ════════ THEME ════════ */
-function applyTheme(t){
+async function applyTheme(t){
   document.documentElement.setAttribute('data-theme',t==='dark'?'':t);
-  localStorage.setItem('apykart-admin-theme',t);
+  // 🔥 REMOVED localStorage.setItem
   document.querySelectorAll('.theme-card').forEach(c=>c.classList.remove('selected'));
   const tc=document.getElementById('tc-'+t);
   if(tc)tc.classList.add('selected');
   toast('Theme changed to '+t,'inf','Theme Applied',2000);
-}
-(function(){
-  const t=localStorage.getItem('apykart-admin-theme')||'dark';
-  document.documentElement.setAttribute('data-theme',t==='dark'?'':t);
-  setTimeout(()=>{const tc=document.getElementById('tc-'+t);if(tc){document.querySelectorAll('.theme-card').forEach(c=>c.classList.remove('selected'));tc.classList.add('selected');}},800);
-})();
+  
+  // ✅ Save preference to Firestore if admin is logged in
+  if (window.currentUser && window._ADMIN && window._FB) {
+    const { db, doc, updateDoc } = window._FB;
+    try {
+      await updateDoc(doc(db, 'managers', window.currentUser.uid), {
+        themePreference: t
+      });
+    } catch(e) {
+      console.warn('Could not save theme preference', e);
+    }
+  }
+   }
+// 🔥 No localStorage – apply dark theme temporarily.
+// After login, Firestore preference will override.
+document.documentElement.setAttribute('data-theme', ''); // dark
+setTimeout(() => {
+  const tc = document.getElementById('tc-dark');
+  if (tc) {
+    document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+    tc.classList.add('selected');
+  }
+}, 800);
 
 /* ════════ AUTH ════════ */
 let _AUTH_TAB='login';
