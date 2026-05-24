@@ -3476,21 +3476,19 @@ function renderMyProducts() {
     </div>`;
 }
 
-function deleteProduct(id) {
-  sellerProducts = sellerProducts.filter(p => p.id !== id);
-  PRODUCTS = PRODUCTS.filter(p => p.id !== id);
-  saveSellerData();
-  renderMyProducts();
-  showToast('Product deleted', 'info');
-}
-
-
     img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--border)';
     img.onload = () => URL.revokeObjectURL(url); // Free memory after load
     previewDiv.appendChild(img);
   }
 }
-function renderAddProductFormWithLimit(slotsLeft) {
+  function deleteProduct(id) {
+  sellerProducts = sellerProducts.filter(p => p.id !== id);
+  PRODUCTS = PRODUCTS.filter(p => p.id !== id);
+  saveSellerData();
+  renderMyProducts();
+  showToast('Product deleted', 'info');
+  }
+ function renderAddProductFormWithLimit(slotsLeft) {
   document.getElementById('sellerTabContent').innerHTML = `
     <div class="seller-section">
       <div style="background:#fef9e7;border:1.5px solid #f7c948;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:700;color:#92400e">
