@@ -2446,7 +2446,7 @@ function renderDetail(id) {
           <span style="font-size:16px">🚚</span>
           <div><div style="font-size:10px;font-weight:800;color:var(--text)">Free Delivery</div><div style="font-size:9px;color:var(--text3)">All orders</div></div>
         </div>
-        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px">
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding9:8px 10px">
           <span style="font-size:16px">↩️</span>
           <div><div style="font-size:10px;font-weight:800;color:var(--text)">7 Day Return</div><div style="font-size:9px;color:var(--text3)">Easy returns</div></div>
         </div>
@@ -3314,30 +3314,78 @@ function renderSellerDashboard() {
     return;
   }
   const sellerStatus = sellerVerification?.status || 'pending';
-  if (sellerStatus !== 'approved') {
-    // Show a waiting screen inside seller dashboard
+  // Allow product listing for pending sellers (max 5 products)
+  const isPending = sellerStatus === 'pending';
+  const isApproved = sellerStatus === 'approved';
+  
+  if (sellerStatus === 'rejected') {
     document.getElementById('sellerDisplayName').textContent = window.currentUser.displayName || 'Seller';
     const statusEl = document.getElementById('sellerVerificationStatus');
-    if (sellerStatus === 'pending') {
-      statusEl.style.cssText = 'background:#fef3c7;color:#92400e;';
-      statusEl.textContent = '⏳ Pending Verification';
-      document.getElementById('sellerTabContent').innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;min-height:300px">
-          <div style="font-size:64px;margin-bottom:16px">⏳</div>
-          <div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px">Verification Pending</div>
-          <div style="font-size:14px;color:var(--text2);line-height:1.6;max-width:280px">Aapke documents admin ke paas review ke liye bhej diye gaye hain. Approval milne ke baad dashboard unlock ho jaayega.</div>
-          <div style="margin-top:20px;background:#fef3c7;border:1.5px solid #f7c948;border-radius:12px;padding:12px 18px;font-size:12px;font-weight:700;color:#92400e">📧 Confirmation email milega</div>
-        </div>`;
+    statusEl.style.cssText = 'background:#fee2e2;color:#b91c1c;';
+    statusEl.textContent = '❌ Verification Rejected';
+    document.getElementById('sellerTabContent').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;min-height:300px">
+        <div style="font-size:64px;margin-bottom:16px">❌</div>
+        <div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px">Verification Rejected</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Documents accept nahi hue. Sahi documents ke saath dobara apply karo.</div>
+        <button onclick="showPage('profile');openSellerVerificationModal()" style="background:var(--primary);color:#fff;font-size:14px;font-weight:800;padding:13px 28px;border-radius:12px;border:none;cursor:pointer">🔄 Reapply Now</button>
+      </div>`;
+    return;
+  }
+
+  // PENDING sellers: limited dashboard — can list up to 5 products
+  if (sellerStatus === 'pending') {
+    document.getElementById('sellerDisplayName').textContent = window.currentUser.displayName || 'Seller';
+    const statusEl = document.getElementById('sellerVerificationStatus');
+    statusEl.style.cssText = 'background:#fef3c7;color:#92400e;';
+    statusEl.textContent = '⏳ Pending Verification';
+
+    const myProds = sellerProducts.filter(p => p.sellerId === window.currentUser?.uid);
+    const slotsLeft = Math.max(0, 5 - myProds.length);
+
+    // Show only Overview + Products + Add tabs for pending
+    document.querySelectorAll('.seller-tab-item').forEach(item => {
+      const allowed = ['overview','products','add-product'].includes(item.dataset.tab);
+      item.style.opacity = allowed ? '1' : '0.35';
+      item.style.pointerEvents = allowed ? 'auto' : 'none';
+      item.classList.toggle('active', item.dataset.tab === (window._sellerActiveTab || 'overview'));
+      item.onclick = allowed ? () => {
+        document.querySelectorAll('.seller-tab-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        window._sellerActiveTab = item.dataset.tab;
+        renderSellerTab(item.dataset.tab);
+      } : null;
+    });
+
+    const tab = window._sellerActiveTab || 'overview';
+    if (tab === 'add-product') {
+      if (slotsLeft <= 0) {
+        document.getElementById('sellerTabContent').innerHTML = `
+          <div style="padding:40px 20px;text-align:center">
+            <div style="font-size:48px;margin-bottom:12px">🔒</div>
+            <div style="font-family:var(--font-head);font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px">Product Limit Reached</div>
+            <div style="font-size:14px;color:var(--text2)">Pending verification mein max 5 products allowed hain. Approval ke baad unlimited list kar sakte ho!</div>
+          </div>`;
+      } else {
+        renderAddProductFormWithLimit(slotsLeft);
+      }
+    } else if (tab === 'products') {
+      renderMyProducts();
+      // Inject pending notice
+      const el = document.getElementById('sellerTabContent');
+      if (el) el.insertAdjacentHTML('afterbegin', `
+        <div style="margin:12px 10px 0;background:#fef9e7;border:1.5px solid #f7c948;border-radius:10px;padding:10px 14px;font-size:12px;font-weight:700;color:#92400e">
+          ⏳ Verification pending — aap abhi ${5 - myProds.length} aur product add kar sakte ho (max 5). Approval ke baad unlimited!
+        </div>`);
     } else {
-      statusEl.style.cssText = 'background:#fee2e2;color:#b91c1c;';
-      statusEl.textContent = '❌ Verification Rejected';
-      document.getElementById('sellerTabContent').innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;min-height:300px">
-          <div style="font-size:64px;margin-bottom:16px">❌</div>
-          <div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px">Verification Rejected</div>
-          <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Documents accept nahi hue. Sahi documents ke saath dobara apply karo.</div>
-          <button onclick="showPage('profile');openSellerVerificationModal()" style="background:var(--primary);color:#fff;font-size:14px;font-weight:800;padding:13px 28px;border-radius:12px;border:none;cursor:pointer">🔄 Reapply Now</button>
-        </div>`;
+      renderOverview();
+      // Inject pending notice on overview
+      const el = document.getElementById('sellerTabContent');
+      if (el) el.insertAdjacentHTML('afterbegin', `
+        <div style="margin:0 0 14px;background:linear-gradient(135deg,#fef9e7,#fef3c7);border:1.5px solid #f7c948;border-radius:12px;padding:14px 16px">
+          <div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:4px">⏳ Verification Under Review</div>
+          <div style="font-size:12px;color:#b45309;line-height:1.6">Documents submit ho gaye hain. Approval milne ke baad earnings, withdrawals aur baaki features unlock honge.<br><strong>Abhi aap 5 products list kar sakte ho!</strong></div>
+        </div>`);
     }
     return;
   }
@@ -3349,7 +3397,7 @@ function renderSellerDashboard() {
   statusEl.textContent = '✅ Verified Seller';
 
   const activeTab = window._sellerActiveTab || 'overview';
-  document.querySelectorAll('.seller-tab-item').forEach(item => {
+document.querySelectorAll('.seller-tab-item').forEach(item => {
     item.classList.toggle('active', item.dataset.tab === activeTab);
     item.onclick = () => {
       document.querySelectorAll('.seller-tab-item').forEach(i => i.classList.remove('active'));
@@ -3436,9 +3484,18 @@ function deleteProduct(id) {
   showToast('Product deleted', 'info');
 }
 
-function renderAddProductForm() {
+
+    img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--border)';
+    img.onload = () => URL.revokeObjectURL(url); // Free memory after load
+    previewDiv.appendChild(img);
+  }
+}
+function renderAddProductFormWithLimit(slotsLeft) {
   document.getElementById('sellerTabContent').innerHTML = `
     <div class="seller-section">
+      <div style="background:#fef9e7;border:1.5px solid #f7c948;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:700;color:#92400e">
+        ⚡ ${slotsLeft} product slot${slotsLeft!==1?'s':''} remaining (pending verification mein max 5)
+      </div>
       <div class="seller-page-title">➕ Add Product</div>
       <div class="seller-card" style="padding:14px">
         <div class="seller-input-group" style="margin-bottom:10px">
@@ -3482,22 +3539,6 @@ function renderAddProductForm() {
     </div>`;
   document.getElementById('prodImages').addEventListener('change', previewImages);
 }
-
-function previewImages(e) {
-  const files = e.target.files;
-  const previewDiv = document.getElementById('imagePreview');
-  previewDiv.innerHTML = '';
-  for (let file of files) {
-    // Use Object URL for local preview (no base64 needed)
-    const url = URL.createObjectURL(file);
-    const img = document.createElement('img');
-    img.src = url;
-    img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--border)';
-    img.onload = () => URL.revokeObjectURL(url); // Free memory after load
-    previewDiv.appendChild(img);
-  }
-}
-
 async function submitNewProductBtn() {
   if (!window.currentUser) { showToast('Pehle login karo bhai', 'warn'); return; }
   const name = (document.getElementById('prodName')?.value || '').trim();
@@ -4484,10 +4525,10 @@ function renderXplor() {
 function _xplorBuildFeed() {
   const cont = document.getElementById('xplorContent');
   if (!cont) return;
-  
+
   cont.style.cssText = 'position:relative;width:100%;height:100%;background:#000;overflow:hidden;';
-  
-  // Create a wrapper that holds all slides in vertical stack
+
+  // Each slide is 100vh, wrapper is N * 100vh tall
   const wrapper = document.createElement('div');
   wrapper.id = 'xplorWrapper';
   wrapper.style.cssText = `
@@ -4497,31 +4538,27 @@ function _xplorBuildFeed() {
     transition:transform 0.38s cubic-bezier(0.4,0,0.2,1);
     will-change:transform;
   `;
-  
+
   _xplorVideos.forEach((v, i) => {
     const slide = document.createElement('div');
     slide.id = 'xslide_' + i;
+    // Height = 1/N of wrapper = exactly 1 screen height
     slide.style.cssText = `
       position:relative;width:100%;
       height:${100 / _xplorVideos.length}%;
       background:#000;overflow:hidden;
+      flex-shrink:0;
     `;
     slide.innerHTML = _xplorSlideHTML(v, i);
     wrapper.appendChild(slide);
   });
-  
+
   cont.innerHTML = '';
   cont.appendChild(wrapper);
-  
-  // First video autoplay - with current mute state
-  setTimeout(() => {
-    const vid = document.getElementById('xvid_0');
-    if (vid) {
-      // ✅ FIX: Apply current mute state to new videos
-      vid.muted = _xplorMuted;
-      vid.play().catch(()=>{});
-    }
-  }, 100);
+
+  // Activate first slide properly
+  _xplorIdx = 0;
+  _xplorDoScroll(0, false); // no animation on first load
 }
 
 function _xplorSlideHTML(v, i) {
@@ -4641,24 +4678,40 @@ function _xplorSlideHTML(v, i) {
 }
 
 function _xplorActivate(idx) {
+  if (idx < 0 || idx >= _xplorVideos.length) return;
+  _xplorDoScroll(idx, true);
+}
+
+function _xplorDoScroll(idx, animate) {
   _xplorIdx = idx;
   const wrapper = document.getElementById('xplorWrapper');
   if (!wrapper) return;
 
-  const pct = -(idx * (100 / _xplorVideos.length));
-  wrapper.style.transform = `translateY(${pct}%)`;
+  // Each slide = (1/N * 100)% of wrapper height
+  // To show slide[i], shift wrapper up by i * (100/N)% of wrapper height
+  // Which equals i * (100/N / N * 100)% ... simpler: use px via offsetHeight
+  const cont = document.getElementById('xplorContent');
+  const slideH = cont ? cont.offsetHeight : window.innerHeight;
+  
+  wrapper.style.transition = animate 
+    ? 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' 
+    : 'none';
+  wrapper.style.transform = `translateY(-${idx * slideH}px)`;
 
+  // Play/pause videos
   _xplorVideos.forEach((v, i) => {
     const vid = document.getElementById('xvid_' + i);
     if (!vid) return;
     if (i === idx) {
-      // Active video: set mute state as per global
       vid.muted = _xplorMuted;
-      vid.play().catch(()=>{});
+      vid.currentTime = 0;
+      vid.play().catch(() => {});
       const fsId = v._fsId || v.id;
       if (fsId) incrementVideoView(fsId);
+      // Update mute icon for this slide
+      const muteIcon = document.getElementById('xmute_icon_' + i);
+      if (muteIcon) _xplorUpdateMuteIcon(muteIcon, _xplorMuted);
     } else {
-      // Inactive video: force pause AND mute
       vid.pause();
       vid.currentTime = 0;
       vid.muted = true;
@@ -4666,20 +4719,39 @@ function _xplorActivate(idx) {
   });
 }
 
+function _xplorUpdateMuteIcon(el, muted) {
+  if (!el) return;
+  if (muted) {
+    el.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <line x1="23" y1="9" x2="17" y2="15" stroke="white" stroke-width="2"/>
+      <line x1="17" y1="9" x2="23" y2="15" stroke="white" stroke-width="2"/>`;
+  } else {
+    el.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" fill="none"/>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none"/>`;
+  }
+}
+
 function _xplorSetupTouch(cont) {
-  let startY = 0, startTime = 0;
-  
+  let startY = 0, startX = 0, startTime = 0;
+
   cont.addEventListener('touchstart', e => {
     startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
     startTime = Date.now();
-  }, {passive:true});
-  
+  }, {passive: true});
+
   cont.addEventListener('touchend', e => {
     const dy = e.changedTouches[0].clientY - startY;
+    const dx = e.changedTouches[0].clientX - startX;
     const dt = Date.now() - startTime;
-    // Quick flick OR slow drag past threshold
-    const isFlick = dt < 300 && Math.abs(dy) > 30;
-    const isDrag  = Math.abs(dy) > 60;
+
+    // Ignore horizontal swipes (browser back gesture)
+    if (Math.abs(dx) > Math.abs(dy)) return;
+
+    const isFlick = dt < 350 && Math.abs(dy) > 30;
+    const isDrag  = Math.abs(dy) > 80;
+
     if (isFlick || isDrag) {
       if (dy < 0 && _xplorIdx < _xplorVideos.length - 1) {
         _xplorActivate(_xplorIdx + 1);
@@ -4687,7 +4759,14 @@ function _xplorSetupTouch(cont) {
         _xplorActivate(_xplorIdx - 1);
       }
     }
-  }, {passive:true});
+  }, {passive: true});
+
+  // Keyboard support (desktop)
+  document.addEventListener('keydown', e => {
+    if (currentPage !== 'xplor') return;
+    if (e.key === 'ArrowDown' && _xplorIdx < _xplorVideos.length - 1) _xplorActivate(_xplorIdx + 1);
+    if (e.key === 'ArrowUp'   && _xplorIdx > 0) _xplorActivate(_xplorIdx - 1);
+  });
 }
 
 function renderXplorSlide() {
@@ -4715,33 +4794,24 @@ function xplorTogglePlay(idx) {
 // ✅ FIX A: Sound toggle function
 // Browser autoplay policy: video starts muted.
 // User jab mute button tap kare tab sound ON ho jata hai.
- function xplorToggleMute(idx, event) {
+function xplorToggleMute(idx, event) {
   if (event) event.stopPropagation();
   _xplorMuted = !_xplorMuted;
 
-  // Sirf active video par effect karo
   const activeVid = document.getElementById('xvid_' + _xplorIdx);
   if (activeVid) {
     activeVid.muted = _xplorMuted;
-    if (!_xplorMuted && activeVid.paused) activeVid.play().catch(()=>{});
+    if (!_xplorMuted && activeVid.paused) activeVid.play().catch(() => {});
   }
 
-  // Active video ke mute icon ko update karo (baaki icons ka koi matlab nahi)
-  const activeIcon = document.getElementById('xmute_icon_' + _xplorIdx);
-  if (activeIcon) {
-    if (_xplorMuted) {
-      activeIcon.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-        <line x1="23" y1="9" x2="17" y2="15" stroke="white" stroke-width="2"/>
-        <line x1="17" y1="9" x2="23" y2="15" stroke="white" stroke-width="2"/>`;
-    } else {
-      activeIcon.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" fill="none"/>
-        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none"/>`;
-    }
-  }
+  // Update icon on ACTIVE slide only
+  _xplorUpdateMuteIcon(
+    document.getElementById('xmute_icon_' + _xplorIdx),
+    _xplorMuted
+  );
 
   showToast(_xplorMuted ? '🔇 Muted' : '🔊 Sound ON', 'info');
-  }
+}
 function xplorLike(idx) {
   _xplorLiked[idx] = !_xplorLiked[idx];
   const btn = document.getElementById('xlike_' + idx);
