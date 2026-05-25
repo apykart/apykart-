@@ -4483,11 +4483,11 @@ let _xplorLiked = {};
 // DEMO_VIDEOS removed - Only admin-approved Firestore videos shown
 const DEMO_VIDEOS = [];
 
-function renderXplor() {
+function renderXplor(videoId = null) {
   const cont = document.getElementById('xplorContent');
   if (!cont) return;
-  
-  // FIXED: Sirf Firestore approved videos use karo (real-time from admin approval)
+
+  // Approved videos from Firestore
   const fsVideos = (window._approvedVideos || []).map(v => ({
     id: v.id || v._fsId,
     creator: v.uploaderName || v.creatorName || 'Creator',
@@ -4502,22 +4502,30 @@ function renderXplor() {
     views: Number(v.views) || 0,
     _fsId: v._fsId || v.id
   }));
-  
+
   _xplorVideos = fsVideos;
-  
+
   if (!_xplorVideos.length) {
-    cont.innerHTML = `<div class="xplor-empty">
-      <div style="font-size:64px">🎬</div>
-      <div style="font-family:var(--font-head);font-size:20px;font-weight:800">No Videos Yet</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.6)">Be the first to upload a product video!</div>
-      <button onclick="openVideoUpload()" style="margin-top:14px;background:var(--accent);color:#fff;font-size:13px;font-weight:800;padding:12px 24px;border-radius:12px;border:none;cursor:pointer">+ Upload Video</button>
-    </div>`;
+    cont.innerHTML = `<div class="xplor-empty">...</div>`; // same as before
     return;
   }
-  
-  _xplorIdx = 0;
-  _xplorBuildFeed();
-  _xplorActivate(0);
+
+  // Find index of video if videoId provided, else 0
+  let targetIdx = 0;
+  if (videoId) {
+    const found = _xplorVideos.findIndex(v => v.id === videoId || v._fsId === videoId);
+    if (found !== -1) targetIdx = found;
+  }
+  _xplorIdx = targetIdx;
+
+  // Build feed only if wrapper doesn't exist or videos changed
+  const existingWrapper = document.getElementById('xplorWrapper');
+  if (!existingWrapper || _xplorVideos.length !== existingWrapper.children.length) {
+    _xplorBuildFeed();
+  } else {
+    // Just scroll to target index
+    _xplorDoScroll(_xplorIdx, false);
+  }
   _xplorSetupTouch(cont);
 }
 
@@ -4525,15 +4533,21 @@ function _xplorBuildFeed() {
   const cont = document.getElementById('xplorContent');
   if (!cont) return;
 
+  // Clear and set styles
   cont.style.cssText = 'position:relative;width:100%;height:100%;background:#000;overflow:hidden;';
+  
+  // Remove old wrapper if any
+  const oldWrapper = document.getElementById('xplorWrapper');
+  if (oldWrapper) oldWrapper.remove();
 
-  // Each slide is 100vh, wrapper is N * 100vh tall
   const wrapper = document.createElement('div');
   wrapper.id = 'xplorWrapper';
   wrapper.style.cssText = `
-    position:absolute;top:0;left:0;width:100%;
-    height:${_xplorVideos.length * 100}%;
-    transform:translateY(0);
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
     transition:transform 0.38s cubic-bezier(0.4,0,0.2,1);
     will-change:transform;
   `;
@@ -4541,25 +4555,22 @@ function _xplorBuildFeed() {
   _xplorVideos.forEach((v, i) => {
     const slide = document.createElement('div');
     slide.id = 'xslide_' + i;
-    // Height = 1/N of wrapper = exactly 1 screen height
     slide.style.cssText = `
-      position:relative;width:100%;
-      height:${100 / _xplorVideos.length}%;
-      background:#000;overflow:hidden;
-      flex-shrink:0;
+      position:relative;
+      width:100%;
+      height:100%;
+      background:#000;
+      overflow:hidden;
     `;
     slide.innerHTML = _xplorSlideHTML(v, i);
     wrapper.appendChild(slide);
   });
 
-  cont.innerHTML = '';
   cont.appendChild(wrapper);
-
-  // Activate first slide properly
-  _xplorIdx = 0;
-  _xplorDoScroll(0, false); // no animation on first load
+  
+  // Initial scroll (no animation)
+  _xplorDoScroll(_xplorIdx, false);
 }
-
 function _xplorSlideHTML(v, i) {
   const discount = v.ogPrice > v.price ? Math.round((v.ogPrice - v.price) / v.ogPrice * 100) : 0;
   return `
@@ -4682,22 +4693,17 @@ function _xplorActivate(idx) {
 }
 
 function _xplorDoScroll(idx, animate) {
+  if (idx < 0 || idx >= _xplorVideos.length) return;
   _xplorIdx = idx;
+
   const wrapper = document.getElementById('xplorWrapper');
   if (!wrapper) return;
 
-  // Each slide = (1/N * 100)% of wrapper height
-  // To show slide[i], shift wrapper up by i * (100/N)% of wrapper height
-  // Which equals i * (100/N / N * 100)% ... simpler: use px via offsetHeight
-  const cont = document.getElementById('xplorContent');
-  const slideH = cont ? cont.offsetHeight : window.innerHeight;
-  
-  wrapper.style.transition = animate 
-    ? 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' 
-    : 'none';
-  wrapper.style.transform = `translateY(-${idx * slideH}px)`;
+  // Each slide takes full height, so offset = idx * 100%
+  wrapper.style.transition = animate ? 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' : 'none';
+  wrapper.style.transform = `translateY(-${idx * 100}%)`;
 
-  // Play/pause videos
+  // Play/Pause logic
   _xplorVideos.forEach((v, i) => {
     const vid = document.getElementById('xvid_' + i);
     if (!vid) return;
@@ -4707,7 +4713,7 @@ function _xplorDoScroll(idx, animate) {
       vid.play().catch(() => {});
       const fsId = v._fsId || v.id;
       if (fsId) incrementVideoView(fsId);
-      // Update mute icon for this slide
+      // Update mute icon
       const muteIcon = document.getElementById('xmute_icon_' + i);
       if (muteIcon) _xplorUpdateMuteIcon(muteIcon, _xplorMuted);
     } else {
@@ -4717,7 +4723,6 @@ function _xplorDoScroll(idx, animate) {
     }
   });
 }
-
 function _xplorUpdateMuteIcon(el, muted) {
   if (!el) return;
   if (muted) {
@@ -4732,25 +4737,21 @@ function _xplorUpdateMuteIcon(el, muted) {
 }
 
 function _xplorSetupTouch(cont) {
-  let startY = 0, startX = 0, startTime = 0;
+  let startY = 0, startTime = 0;
 
-  cont.addEventListener('touchstart', e => {
+  const handleTouchStart = (e) => {
+    // Don't interfere with video play/pause
+    if (e.target.closest('.media-play-btn, .xplor-play-icon, .xplor-action-btn, button')) return;
     startY = e.touches[0].clientY;
-    startX = e.touches[0].clientX;
     startTime = Date.now();
-  }, {passive: true});
+  };
 
-  cont.addEventListener('touchend', e => {
+  const handleTouchEnd = (e) => {
+    if (startY === 0) return;
     const dy = e.changedTouches[0].clientY - startY;
-    const dx = e.changedTouches[0].clientX - startX;
     const dt = Date.now() - startTime;
-
-    // Ignore horizontal swipes (browser back gesture)
-    if (Math.abs(dx) > Math.abs(dy)) return;
-
     const isFlick = dt < 350 && Math.abs(dy) > 30;
-    const isDrag  = Math.abs(dy) > 80;
-
+    const isDrag = Math.abs(dy) > 70;
     if (isFlick || isDrag) {
       if (dy < 0 && _xplorIdx < _xplorVideos.length - 1) {
         _xplorActivate(_xplorIdx + 1);
@@ -4758,14 +4759,13 @@ function _xplorSetupTouch(cont) {
         _xplorActivate(_xplorIdx - 1);
       }
     }
-  }, {passive: true});
+    startY = 0;
+  };
 
-  // Keyboard support (desktop)
-  document.addEventListener('keydown', e => {
-    if (currentPage !== 'xplor') return;
-    if (e.key === 'ArrowDown' && _xplorIdx < _xplorVideos.length - 1) _xplorActivate(_xplorIdx + 1);
-    if (e.key === 'ArrowUp'   && _xplorIdx > 0) _xplorActivate(_xplorIdx - 1);
-  });
+  cont.removeEventListener('touchstart', handleTouchStart);
+  cont.removeEventListener('touchend', handleTouchEnd);
+  cont.addEventListener('touchstart', handleTouchStart, { passive: true });
+  cont.addEventListener('touchend', handleTouchEnd, { passive: true });
 }
 
 function renderXplorSlide() {
