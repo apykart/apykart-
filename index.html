@@ -2048,11 +2048,11 @@ function showPage(page, productId) {
   else if (page==='terms')      renderTerms();
   else if (page==='about')      renderAbout();
   else if (page==='seller-dashboard') renderSellerDashboard();
-  else if (page==='xplor') {
-    renderXplor();
+  else if (page === 'xplor') {
+    renderXplor(productId);
     // ✅ FIX 2: Reset mute state visually when xplor reopens
     _xplorMuted = true;
-  }
+}
   else if (page==='my-videos')  renderMyVideos();
   else if (page==='upload-video') renderVideoUpload();
 }
@@ -2211,7 +2211,7 @@ function renderTrendingVideos() {
     const p = (typeof findProd !== 'undefined') ? findProd(v.productId) : null;
     const priceDisplay = v.price ? `₹${Number(v.price).toLocaleString()}` : (p ? `₹${Number(p.price).toLocaleString()}` : '');
     const productName = v.productName || (p?p.name:'');
-    return `<div class="trending-vid-card" onclick="showPage('xplor')">
+    return `<div class="trending-vid-card" onclick="showPage('xplor', '${v.id}')">
       ${v.videoSrc
         ? `<video src="${v.videoSrc}" muted playsinline loop autoplay style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:block"></video>`
         : v.thumb
