@@ -3314,9 +3314,6 @@ function renderSellerDashboard() {
     return;
   }
   const sellerStatus = sellerVerification?.status || 'pending';
-  // Allow product listing for pending sellers (max 5 products)
-  const isPending = sellerStatus === 'pending';
-  const isApproved = sellerStatus === 'approved';
   
   if (sellerStatus === 'rejected') {
     document.getElementById('sellerDisplayName').textContent = window.currentUser.displayName || 'Seller';
@@ -3333,7 +3330,6 @@ function renderSellerDashboard() {
     return;
   }
 
-  // PENDING sellers: limited dashboard — can list up to 5 products
   if (sellerStatus === 'pending') {
     document.getElementById('sellerDisplayName').textContent = window.currentUser.displayName || 'Seller';
     const statusEl = document.getElementById('sellerVerificationStatus');
@@ -3343,7 +3339,6 @@ function renderSellerDashboard() {
     const myProds = sellerProducts.filter(p => p.sellerId === window.currentUser?.uid);
     const slotsLeft = Math.max(0, 5 - myProds.length);
 
-    // Show only Overview + Products + Add tabs for pending
     document.querySelectorAll('.seller-tab-item').forEach(item => {
       const allowed = ['overview','products','add-product'].includes(item.dataset.tab);
       item.style.opacity = allowed ? '1' : '0.35';
@@ -3371,7 +3366,6 @@ function renderSellerDashboard() {
       }
     } else if (tab === 'products') {
       renderMyProducts();
-      // Inject pending notice
       const el = document.getElementById('sellerTabContent');
       if (el) el.insertAdjacentHTML('afterbegin', `
         <div style="margin:12px 10px 0;background:#fef9e7;border:1.5px solid #f7c948;border-radius:10px;padding:10px 14px;font-size:12px;font-weight:700;color:#92400e">
@@ -3379,7 +3373,6 @@ function renderSellerDashboard() {
         </div>`);
     } else {
       renderOverview();
-      // Inject pending notice on overview
       const el = document.getElementById('sellerTabContent');
       if (el) el.insertAdjacentHTML('afterbegin', `
         <div style="margin:0 0 14px;background:linear-gradient(135deg,#fef9e7,#fef3c7);border:1.5px solid #f7c948;border-radius:12px;padding:14px 16px">
@@ -3397,7 +3390,7 @@ function renderSellerDashboard() {
   statusEl.textContent = '✅ Verified Seller';
 
   const activeTab = window._sellerActiveTab || 'overview';
-document.querySelectorAll('.seller-tab-item').forEach(item => {
+  document.querySelectorAll('.seller-tab-item').forEach(item => {
     item.classList.toggle('active', item.dataset.tab === activeTab);
     item.onclick = () => {
       document.querySelectorAll('.seller-tab-item').forEach(i => i.classList.remove('active'));
@@ -3413,13 +3406,13 @@ function renderSellerTab(tab) {
   switch(tab) {
     case 'overview': renderOverview(); break;
     case 'products': renderMyProducts(); break;
-    case 'add-product': renderAddProductForm(); break;
+    case 'add-product': renderAddProductFormWithLimit(5); break;   // ✅ FIXED: call correct function
     case 'earnings': renderEarnings(); break;
     case 'withdraw': renderWithdrawPage(); break;
     case 'profile': renderSellerSettings(); break;
   }
 }
-  
+
 function renderOverview() {
   const myEarnings = sellerEarnings.filter(e => e.sellerId === window.currentUser?.uid);
   const totalEarnings = myEarnings.reduce((sum, t) => sum + t.net_earning, 0);
@@ -3476,19 +3469,32 @@ function renderMyProducts() {
     </div>`;
 }
 
+// ✅ FIX: Added missing previewImages function
+function previewImages(e) {
+  const files = e.target.files;
+  const previewDiv = document.getElementById('imagePreview');
+  if (!previewDiv) return;
+  previewDiv.innerHTML = '';
+  for (let file of files) {
+    const url = URL.createObjectURL(file);
+    const img = document.createElement('img');
+    img.src = url;
     img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--border)';
-    img.onload = () => URL.revokeObjectURL(url); // Free memory after load
+    img.onload = () => URL.revokeObjectURL(url);
     previewDiv.appendChild(img);
   }
 }
-  function deleteProduct(id) {
+
+// ✅ FIX: Single deleteProduct function (removed duplicate)
+function deleteProduct(id) {
   sellerProducts = sellerProducts.filter(p => p.id !== id);
   PRODUCTS = PRODUCTS.filter(p => p.id !== id);
   saveSellerData();
   renderMyProducts();
   showToast('Product deleted', 'info');
-  }
- function renderAddProductFormWithLimit(slotsLeft) {
+}
+
+function renderAddProductFormWithLimit(slotsLeft) {
   document.getElementById('sellerTabContent').innerHTML = `
     <div class="seller-section">
       <div style="background:#fef9e7;border:1.5px solid #f7c948;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:700;color:#92400e">
@@ -3537,6 +3543,7 @@ function renderMyProducts() {
     </div>`;
   document.getElementById('prodImages').addEventListener('change', previewImages);
 }
+
 async function submitNewProductBtn() {
   if (!window.currentUser) { showToast('Pehle login karo bhai', 'warn'); return; }
   const name = (document.getElementById('prodName')?.value || '').trim();
@@ -3550,14 +3557,12 @@ async function submitNewProductBtn() {
   const imageFiles = Array.from(document.getElementById('prodImages')?.files || []).slice(0, 5);
   const uid = getUid();
 
-  // Show uploading state
   const btn = document.querySelector('[onclick="submitNewProductBtn()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading images...'; }
   showToast('Images upload ho rahi hain...', 'info');
 
   let imageUrls = [];
   try {
-    // Upload each image to Firebase Storage
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
       if (file.size > 5 * 1024 * 1024) { showToast(`Image ${i+1} 5MB se badi hai, skip kar raha hoon`, 'warn'); continue; }
@@ -3579,7 +3584,6 @@ async function submitNewProductBtn() {
   if (btn) { btn.disabled = false; btn.textContent = '🚀 Submit for Approval'; }
 
   const prodId = 'sp_' + Date.now();
-  // ✅ FIX BUG#11: sellerName ke liye displayName, guestUser.name, email fallback chain
   const sellerNameResolved = window.currentUser?.displayName
     || guestUser?.name
     || window.currentUser?.email?.split('@')[0]
@@ -3588,8 +3592,6 @@ async function submitNewProductBtn() {
   const newProduct = {
     id: prodId, name, price, ogPrice: price, discount: 0,
     category, images: imageUrls, img: imageUrls[0] || '', desc, stock,
-    // ✅ FIX BUG#10: approvalStatus:'pending' add kiya — admin Product Approval
-    // filter mein yahi field check karta hai. Bina iske product nahi dikhta tha.
     status: 'pending',
     approvalStatus: 'pending',
     submittedAt: new Date().toISOString(),
@@ -3600,7 +3602,6 @@ async function submitNewProductBtn() {
     createdAt: new Date().toISOString()
   };
 
-  // Save to Firestore products collection
   if (uid && window._fsHelpers) {
     try {
       const { db, addDoc, collection, serverTimestamp } = window._fsHelpers;
