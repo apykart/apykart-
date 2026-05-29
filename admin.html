@@ -1948,6 +1948,29 @@ async function doLogout() {
     toast('Logout error: ' + e.message, 'err');
   }
 }
+
+// TEMPORARY DEBUG — browser console me: testUpload()
+window.testUpload = async function() {
+  console.log('🧪 Testing Cloudinary upload...');
+  console.log('Cloud:', CLOUD_NAME, '| Preset:', UPLOAD_PRESET);
+  
+  // Create a tiny test image
+  const canvas = document.createElement('canvas');
+  canvas.width = 10; canvas.height = 10;
+  canvas.getContext('2d').fillRect(0,0,10,10);
+  
+  canvas.toBlob(async blob => {
+    const testFile = new File([blob], 'test.jpg', {type:'image/jpeg'});
+    try {
+      const url = await uploadImg(testFile, 'test', pct => console.log('Progress:', pct+'%'));
+      console.log('✅ TEST PASSED! URL:', url);
+      toast('Upload test PASSED ✅', 'suc', 'Debug');
+    } catch(e) {
+      console.error('❌ TEST FAILED:', e.message);
+      toast('Upload test FAILED: ' + e.message, 'err', 'Debug', 10000);
+    }
+  }, 'image/jpeg');
+};
 /* ════════ PAGE NAVIGATION ════════ */
 const PAGE_TITLES={dashboard:'Dashboard',orders:'Orders',products:'Products','product-approval':'Product Approval','video-approval':'Video Approval',categories:'Categories',banners:'Banners',users:'Users',managers:'Managers',notifications:'Notifications',settings:'Settings','store-config':'Store Configuration',sellers:'Sellers',verification:'Seller Verification','flash-deals':'Flash Deals',featured:'Featured Sections','home-theme':'Home Theme Builder',withdrawals:'Withdrawal Requests',earnings:'Seller Earnings',coins:'Coin Management'};
 function nav(page){
@@ -2128,11 +2151,36 @@ function renderFeats(){const wrap=document.getElementById('pm-feat-wrap'),inp=do
 function addFeat(v){_FEAT_TAGS.push(v);renderFeats();}function removeFeat(i){_FEAT_TAGS.splice(i,1);renderFeats();}
 function renderProdImgs(){const el=document.getElementById('pm-imgs');if(!el)return;el.innerHTML=_PROD_IMGS.map((url,i)=>`<div class="uthumb"><img src="${url}" alt="img"><div class="uthumb-x" onclick="removeProdImg(${i})">✕</div></div>`).join('');}
 function removeProdImg(i){_PROD_IMGS.splice(i,1);renderProdImgs();}
-async function handleProdImgs(files){
-  const prog=document.getElementById('pm-uprog'),fill=document.getElementById('pm-uprog-fill');
-  if(prog)prog.style.display='block';
-  for(const file of Array.from(files)){try{const url=await uploadImg(file,'products',pct=>{if(fill)fill.style.width=pct+'%';});_PROD_IMGS.push(url);renderProdImgs();toast('Image uploaded ✅','suc');}catch(e){toast('Upload failed: '+e.message,'err');}}
-  if(prog)prog.style.display='none';
+async function handleProdImgs(files) {
+  const fileArr = Array.from(files || []);
+  if (!fileArr.length) return;
+
+  const prog = document.getElementById('pm-uprog');
+  const fill = document.getElementById('pm-uprog-fill');
+  if (prog) prog.style.display = 'block';
+
+  for (let i = 0; i < fileArr.length; i++) {
+    const file = fileArr[i];
+    // Reset progress bar for each file
+    if (fill) fill.style.width = '0%';
+    try {
+      const url = await uploadImg(file, 'products', pct => {
+        if (fill) fill.style.width = pct + '%';
+      });
+      _PROD_IMGS.push(url);
+      renderProdImgs();
+      toast(`Image ${i + 1}/${fileArr.length} uploaded ✅`, 'suc');
+    } catch(e) {
+      toast('Upload failed: ' + e.message, 'err');
+      console.error('Product image upload error:', e);
+    }
+  }
+
+  if (fill) fill.style.width = '100%';
+  setTimeout(() => {
+    if (prog) prog.style.display = 'none';
+    if (fill) fill.style.width = '0%';
+  }, 600);
 }
 async function saveProduct(){
   const gv=id=>document.getElementById(id)?.value?.trim()||'';
@@ -2291,11 +2339,32 @@ function openCatModal(docId){
   document.getElementById('cm-uprog').style.display='none';
   openOv('ov-cat');
 }
-async function handleCatImg(file){
-  if(!file)return;const fill=document.getElementById('cm-uprog-fill'),prog=document.getElementById('cm-uprog');
-  if(prog)prog.style.display='block';
-  try{_CAT_IMG_URL=await uploadImg(file,'categories',pct=>{if(fill)fill.style.width=pct+'%';});const prev=document.getElementById('cm-img-prev');if(prev)prev.innerHTML=`<div class="uthumb" style="width:80px;height:60px"><img src="${_CAT_IMG_URL}" alt="cat"><div class="uthumb-x" onclick="_CAT_IMG_URL=null;this.closest('.uthumb').remove()">✕</div></div>`;toast('Image uploaded ✅','suc');}
-  catch(e){toast('Upload failed: '+e.message,'err');}finally{if(prog)prog.style.display='none';}
+async function handleCatImg(file) {
+  if (!file) return;
+  const fill = document.getElementById('cm-uprog-fill');
+  const prog = document.getElementById('cm-uprog');
+  if (fill) fill.style.width = '0%';
+  if (prog) prog.style.display = 'block';
+  try {
+    _CAT_IMG_URL = await uploadImg(file, 'categories', pct => {
+      if (fill) fill.style.width = pct + '%';
+    });
+    const prev = document.getElementById('cm-img-prev');
+    if (prev) prev.innerHTML = `<div class="uthumb" style="width:80px;height:60px">
+      <img src="${_CAT_IMG_URL}" alt="cat">
+      <div class="uthumb-x" onclick="_CAT_IMG_URL=null;this.closest('.uthumb').remove()">✕</div>
+    </div>`;
+    toast('Category image uploaded ✅', 'suc');
+  } catch(e) {
+    console.error('Cat img upload:', e);
+    // toast already shown inside uploadImg
+  } finally {
+    if (fill) fill.style.width = '100%';
+    setTimeout(() => {
+      if (prog) prog.style.display = 'none';
+      if (fill) fill.style.width = '0%';
+    }, 600);
+  }
 }
 async function saveCat(){
   const gv=id=>document.getElementById(id)?.value?.trim()||'';
@@ -2320,7 +2389,32 @@ function renderBanners(){
   grid.innerHTML=_BANNERS.length?_BANNERS.map(b=>`<div class="card" style="overflow:hidden"><div style="background:${b.bg||'var(--s3)'};padding:18px 22px;position:relative;min-height:80px;display:flex;align-items:center;gap:18px"><div style="flex:1;position:relative;z-index:1">${b.tag?`<div style="font-size:10px;font-weight:700;background:rgba(255,255,255,.18);color:#fff;padding:2px 9px;border-radius:20px;display:inline-block;margin-bottom:7px">${esc(b.tag)}</div>`:''}<div style="font-size:19px;font-weight:800;color:#fff;line-height:1.2">${esc(b.title||'')}</div><div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px">${esc(b.sub||'')}</div></div><div style="font-size:48px;opacity:.75;z-index:1">${b.emoji||'🎉'}</div>${b.imageUrl?`<img src="${b.imageUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.22" alt="">`:''}</div><div class="cb" style="padding:11px 16px;display:flex;align-items:center;gap:12px"><label class="tog" style="transform:scale(.85)"><input type="checkbox" ${b.active?'checked':''} onchange="togBan('${b._did}',this.checked)"><span class="tog-sl"></span></label><span style="font-size:12px;color:var(--text2)">${b.active?'Active':'Inactive'}</span><span style="font-size:11px;color:var(--text3);flex:1">Order: ${b.order||1}</span><button class="btn btn-g btn-xs" onclick="openBannerModal('${b._did}')">✏️</button><button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="delBan('${b._did}','${esc(b.title||'')}')">🗑️</button></div></div>`).join(''):'<div class="empty"><div class="empty-ic">🖼️</div><div class="empty-tt">No banners yet</div><button class="btn btn-p" onclick="openBannerModal(null)" style="margin-top:10px">Add First Banner</button></div>';
 }
 function openBannerModal(docId){_EDIT_BAN_ID=docId||null;_BAN_IMG_URL=null;const b=docId?_BANNERS.find(x=>x._did===docId):null;document.getElementById('ban-mod-title').textContent=b?'✏️ Edit Banner':'🖼️ Add Banner';const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??'';};sv('bm-title',b?.title||'');sv('bm-sub',b?.sub||'');sv('bm-btn',b?.btnLabel||'Shop Now →');sv('bm-tag',b?.tag||'');sv('bm-emoji',b?.emoji||'🎉');sv('bm-bg',b?.bg||'linear-gradient(135deg,#ff6b35 0%,#f7c948 100%)');sv('bm-act',b?.action||'search');sv('bm-ord',b?.order||1);document.getElementById('bm-act2').checked=b?.active!==false;_BAN_IMG_URL=b?.imageUrl||null;const prev=document.getElementById('bm-img-prev');if(prev)prev.innerHTML=_BAN_IMG_URL?`<div class="uthumb" style="width:120px;height:56px"><img src="${_BAN_IMG_URL}" alt="banner"><div class="uthumb-x" onclick="_BAN_IMG_URL=null;this.closest('.uthumb').remove()">✕</div></div>`:'';document.getElementById('bm-uprog').style.display='none';openOv('ov-banner');}
-async function handleBannerImg(file){if(!file)return;const fill=document.getElementById('bm-uprog-fill'),prog=document.getElementById('bm-uprog');if(prog)prog.style.display='block';try{_BAN_IMG_URL=await uploadImg(file,'banners',pct=>{if(fill)fill.style.width=pct+'%';});const prev=document.getElementById('bm-img-prev');if(prev)prev.innerHTML=`<div class="uthumb" style="width:120px;height:56px"><img src="${_BAN_IMG_URL}" alt="banner"><div class="uthumb-x" onclick="_BAN_IMG_URL=null;this.closest('.uthumb').remove()">✕</div></div>`;toast('Banner image uploaded ✅','suc');}catch(e){toast('Upload failed: '+e.message,'err');}finally{if(prog)prog.style.display='none';}}
+async function handleBannerImg(file) {
+  if (!file) return;
+  const fill = document.getElementById('bm-uprog-fill');
+  const prog = document.getElementById('bm-uprog');
+  if (fill) fill.style.width = '0%';
+  if (prog) prog.style.display = 'block';
+  try {
+    _BAN_IMG_URL = await uploadImg(file, 'banners', pct => {
+      if (fill) fill.style.width = pct + '%';
+    });
+    const prev = document.getElementById('bm-img-prev');
+    if (prev) prev.innerHTML = `<div class="uthumb" style="width:120px;height:56px">
+      <img src="${_BAN_IMG_URL}" alt="banner">
+      <div class="uthumb-x" onclick="_BAN_IMG_URL=null;this.closest('.uthumb').remove()">✕</div>
+    </div>`;
+    toast('Banner image uploaded ✅', 'suc');
+  } catch(e) {
+    console.error('Banner img upload:', e);
+  } finally {
+    if (fill) fill.style.width = '100%';
+    setTimeout(() => {
+      if (prog) prog.style.display = 'none';
+      if (fill) fill.style.width = '0%';
+    }, 600);
+  }
+}
 async function saveBanner(){
   const gv=id=>document.getElementById(id)?.value?.trim()||'';
   if(!gv('bm-title')){toast('Title required','wrn');return;}
@@ -2367,7 +2461,20 @@ function openFlashDealModal(){
   const prev=document.getElementById('fl-img-prev');if(prev)prev.innerHTML='';
   openOv('ov-flash');
 }
-async function handleFlashImg(file){if(!file)return;try{_FLASH_IMG_URL=await uploadImg(file,'flash_deals',()=>{});const prev=document.getElementById('fl-img-prev');if(prev)prev.innerHTML=`<div class="uthumb" style="width:80px;height:60px"><img src="${_FLASH_IMG_URL}" alt=""><div class="uthumb-x" onclick="_FLASH_IMG_URL=null;this.closest('.uthumb').remove()">✕</div></div>`;toast('Image uploaded ✅','suc');}catch(e){toast('Upload failed: '+e.message,'err');}}
+async function handleFlashImg(file) {
+  if (!file) return;
+  try {
+    _FLASH_IMG_URL = await uploadImg(file, 'flash_deals', () => {});
+    const prev = document.getElementById('fl-img-prev');
+    if (prev) prev.innerHTML = `<div class="uthumb" style="width:80px;height:60px">
+      <img src="${_FLASH_IMG_URL}" alt="">
+      <div class="uthumb-x" onclick="_FLASH_IMG_URL=null;this.closest('.uthumb').remove()">✕</div>
+    </div>`;
+    toast('Flash deal image uploaded ✅', 'suc');
+  } catch(e) {
+    console.error('Flash img upload:', e);
+  }
+}
 async function saveFlashDeal(){
   const gv=id=>document.getElementById(id)?.value?.trim()||'';
   const name=gv('fl-name');if(!name){toast('Product name required','wrn');return;}
@@ -2443,7 +2550,20 @@ function updatePreview(){
   const heroDiv=document.getElementById('prev-hero');if(heroDiv){heroDiv.textContent=hero;heroDiv.closest('div')&&(heroDiv.closest('[style*="background"]').style.background=`linear-gradient(135deg,${p},${s})`);}
   const subDiv=document.getElementById('prev-herosub');if(subDiv)subDiv.textContent=herosub;
 }
-async function handleHomeImg(file){if(!file)return;try{_HOME_IMG_URL=await uploadImg(file,'home_themes',()=>{});const prev=document.getElementById('ht-img-prev');if(prev)prev.innerHTML=`<div class="uthumb" style="width:120px;height:60px"><img src="${_HOME_IMG_URL}" alt="hero"><div class="uthumb-x" onclick="_HOME_IMG_URL=null;this.closest('.uthumb').remove()">✕</div></div>`;toast('Hero image uploaded ✅','suc');}catch(e){toast('Upload failed: '+e.message,'err');}}
+async function handleHomeImg(file) {
+  if (!file) return;
+  try {
+    _HOME_IMG_URL = await uploadImg(file, 'home_themes', () => {});
+    const prev = document.getElementById('ht-img-prev');
+    if (prev) prev.innerHTML = `<div class="uthumb" style="width:120px;height:60px">
+      <img src="${_HOME_IMG_URL}" alt="hero">
+      <div class="uthumb-x" onclick="_HOME_IMG_URL=null;this.closest('.uthumb').remove()">✕</div>
+    </div>`;
+    toast('Hero image uploaded ✅', 'suc');
+  } catch(e) {
+    console.error('Home img upload:', e);
+  }
+}
 async function saveHomeDraft(){
   const gv=id=>document.getElementById(id)?.value||'';
   const data={name:gv('ht-name')||'Unnamed Theme',primaryColor:gv('ht-primary'),secondaryColor:gv('ht-secondary'),bgColor:gv('ht-bg'),heroText:gv('ht-hero'),heroSubText:gv('ht-herosub'),font:gv('ht-font'),darkSupport:document.getElementById('ht-dark')?.checked,heroImageUrl:_HOME_IMG_URL||null,published:false,updatedAt:new Date().toISOString(),updatedBy:window._ADMIN?.name||'Admin'};
@@ -2780,70 +2900,133 @@ async function changePwd(){
 function globalSearch(q){if(!q||q.length<2)return;const l=q.toLowerCase();if(/^(apk|ord|\d{8,})/i.test(q))nav('orders');else if(/usr|user|phone/i.test(q))nav('users');else nav('products');}
 /* ════════ CLOUDINARY UPLOAD ════════ */
 const CLOUD_NAME = 'djcfq7tlf';
-const UPLOAD_PRESET = 'Apykart';
+const UPLOAD_PRESET = 'Apykart'; // Must be UNSIGNED preset in Cloudinary dashboard
 
 async function uploadImg(file, path, onProgress) {
-  if (!file) throw new Error('No file');
+  if (!file) throw new Error('No file selected');
+
+  // Show debug info in console
+  console.log('📤 Upload start:', file.name, file.type, (file.size/1024).toFixed(1)+'KB');
+
+  const isVideo = file.type.startsWith('video/');
   let uploadFile = file;
-  try {
-    uploadFile = await compressImg(file);
-  } catch(e) {
-    uploadFile = file;
+
+  if (!isVideo) {
+    try {
+      uploadFile = await compressImg(file);
+      console.log('🗜️ Compressed:', (uploadFile.size/1024).toFixed(1)+'KB');
+    } catch(e) {
+      console.warn('Compress failed, using original:', e);
+      uploadFile = file;
+    }
   }
+
   const formData = new FormData();
   formData.append('file', uploadFile);
   formData.append('upload_preset', UPLOAD_PRESET);
-  // 🔥 FIX: Removed 'folder' line – unsigned presets don't allow it
-  
+  // ❌ DO NOT add 'folder' — unsigned presets reject it
+  // ❌ DO NOT add 'api_key' — that makes it signed
+
+  const resourceType = isVideo ? 'video' : 'image';
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
+
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+    xhr.open('POST', url);
+    xhr.timeout = 120000; // 2 minute timeout
+
     xhr.upload.onprogress = e => {
-      if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100));
-    };
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        const res = JSON.parse(xhr.responseText);
-        resolve(res.secure_url);
-      } else {
-        let msg = `Upload failed (${xhr.status})`;
-        try {
-          msg = JSON.parse(xhr.responseText)?.error?.message || msg;
-        } catch(e) {}
-        reject(new Error(msg));
+      if (e.lengthComputable && typeof onProgress === 'function') {
+        onProgress(Math.round(e.loaded / e.total * 100));
       }
     };
-    xhr.onerror = () => reject(new Error('Network error'));
+
+    xhr.onload = () => {
+      let resData = {};
+      try { resData = JSON.parse(xhr.responseText); } catch(e) {}
+
+      if (xhr.status === 200 && resData.secure_url) {
+        console.log('✅ Upload success:', resData.secure_url);
+        resolve(resData.secure_url);
+      } else {
+        // Extract exact error from Cloudinary
+        const errMsg = resData?.error?.message
+          || `HTTP ${xhr.status}: Upload failed`;
+        console.error('❌ Cloudinary error:', xhr.status, resData);
+        // Show toast with exact error
+        toast('Upload Error: ' + errMsg, 'err', 'Cloudinary', 10000);
+        reject(new Error(errMsg));
+      }
+    };
+
+    xhr.onerror = () => {
+      const msg = 'Network error — check internet connection';
+      toast(msg, 'err', 'Upload Failed');
+      reject(new Error(msg));
+    };
+
+    xhr.ontimeout = () => {
+      const msg = 'Upload timed out (file too large or slow connection)';
+      toast(msg, 'wrn', 'Timeout');
+      reject(new Error(msg));
+    };
+
     xhr.send(formData);
   });
 }
 
-async function compressImg(file, maxSide = 1200, quality = 0.85) {
+async function compressImg(file, maxSide = 1200, quality = 0.82) {
   return new Promise((resolve) => {
-    if (!file.type.startsWith('image/')) {
+    if (!file || !file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+    // Skip compression for very small files
+    if (file.size < 200 * 1024) {
+      resolve(file);
+      return;
+    }
+    let url = null;
+    try {
+      url = URL.createObjectURL(file);
+    } catch(e) {
       resolve(file);
       return;
     }
     const img = new Image();
-    const url = URL.createObjectURL(file);
     img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(file); // fallback to original
+      try { URL.revokeObjectURL(url); } catch(e) {}
+      resolve(file);
     };
     img.onload = () => {
-      URL.revokeObjectURL(url);
+      try { URL.revokeObjectURL(url); } catch(e) {}
       try {
-        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const scale = Math.min(1, maxSide / Math.max(img.width || 1, img.height || 1));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
         const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        // Fix: normalize filename to .jpg
+        const baseName = file.name.replace(/\.[^/.]+$/, '') || 'image';
+        const newName = baseName + '.jpg';
         canvas.toBlob(blob => {
-          if (!blob) {
+          if (!blob || blob.size === 0) {
             resolve(file);
             return;
           }
-          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          // Only use compressed if it's actually smaller
+          if (blob.size < file.size) {
+            resolve(new File([blob], newName, { type: 'image/jpeg' }));
+          } else {
+            resolve(file);
+          }
         }, 'image/jpeg', quality);
       } catch(e) {
         resolve(file);
