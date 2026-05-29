@@ -1852,28 +1852,29 @@ async function compressImg(file, maxSide = 900, quality = 0.82) {
   });
 }
 
-// Upload image to Cloudinary (with compression + progress)
-async function uploadImg(file, folder, onProgress) {
+// Expose for video & image upload
+window._uploadToStorage = uploadToStorage;
   if (!file) throw new Error('No file');
   let uploadFile = file;
   try { uploadFile = await compressImg(file); } catch(e) { uploadFile = file; }
 
   const formData = new FormData();
-  formData.append('file',           uploadFile);
-  formData.append('upload_preset',  UPLOAD_PRESET);
-  formData.append('folder',         'apykart/' + folder);
+  formData.append('file', uploadFile);
+  formData.append('upload_preset', UPLOAD_PRESET);
+  if (folder) formData.append('folder', 'apykart/' + folder);
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
     xhr.upload.onprogress = e => {
-      if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100));
+      if (e.lengthComputable && onProgress)
+        onProgress(Math.round(e.loaded / e.total * 100));
     };
     xhr.onload = () => {
       if (xhr.status === 200) {
         resolve(JSON.parse(xhr.responseText).secure_url);
       } else {
-        let m = `Upload failed (${xhr.status})`;
+        let m = `Image upload failed (${xhr.status})`;
         try { m = JSON.parse(xhr.responseText)?.error?.message || m; } catch(e) {}
         reject(new Error(m));
       }
@@ -1882,6 +1883,58 @@ async function uploadImg(file, folder, onProgress) {
     xhr.send(formData);
   });
 }
+
+// ✅ FIXED: Upload video to Cloudinary - /video/upload URL fix
+async function uploadVideo(file, folder, onProgress) {
+  if (!file) throw new Error('No file');
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', UPLOAD_PRESET);
+  if (folder) formData.append('folder', 'apykart/' + folder);
+  // ✅ resource_type FormData mein NAHI — URL mein /video/upload se handle hoga
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    // ✅ MAIN FIX: /video/upload — pehle /image/upload tha
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`);
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable && onProgress)
+        onProgress(Math.round(e.loaded / e.total * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        resolve(JSON.parse(xhr.responseText).secure_url);
+      } else {
+        let m = `Video upload failed (${xhr.status})`;
+        try { m = JSON.parse(xhr.responseText)?.error?.message || m; } catch(e) {}
+        reject(new Error(m));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.send(formData);
+  });
+}
+
+// ✅ FIXED: Universal upload - auto detect image vs video
+async function uploadToStorage(file, path, onProgress) {
+  if (!file) return null;
+  const isVideo = file.type.startsWith('video/') || path.startsWith('videos/');
+  const folder = path.split('/').slice(0, -1).join('/');
+  try {
+    if (isVideo) {
+      return await uploadVideo(file, folder, onProgress);
+    } else {
+      return await uploadImg(file, folder, onProgress);
+    }
+  } catch(e) {
+    console.error('Upload error:', e.message);
+    showToast('Upload failed: ' + e.message, 'warn');
+    return null;
+  }
+}
+
+window._uploadToStorage = uploadToStorage;
 
 // Upload video to Cloudinary (with progress)
 async function uploadVideo(file, folder, onProgress) {
@@ -4976,71 +5029,90 @@ function handleVideoSelect(input) {
 }
 
 async function submitVideoUpload() {
-  if (!_uploadVideoFile && !_uploadVideoDataUrl) { showToast('Video select karo','warn'); return; }
-  if (!_uploadSelectedProductId) { showToast('Product select karo','warn'); return; }
+  if (!_uploadVideoFile) {
+    showToast('Pehle video select karo', 'warn'); return;
+  }
+  if (!_uploadSelectedProductId) {
+    showToast('Product select karo', 'warn'); return;
+  }
+
   const prod = findProd(_uploadSelectedProductId);
   const uid = getUid();
   const name = window.currentUser?.displayName || guestUser.name || 'Anonymous';
 
-  showToast('Uploading video... ⏳', 'info');
+  const btn = document.querySelector('[onclick="submitVideoUpload()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading...'; }
 
-  let videoUrl = _uploadVideoDataUrl || '';
+  let videoUrl = '';
 
-  // Upload to Firebase Storage if file is available
-  if (_uploadVideoFile && uid && window._uploadToStorage) {
-    try {
-      const path = `videos/${uid}/${Date.now()}_${_uploadVideoFile.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
-      const progEl = document.querySelector('.upload-progress-bar');
-      videoUrl = await window._uploadToStorage(_uploadVideoFile, path, (pct) => {
-        if (progEl) progEl.style.width = pct + '%';
-        showToast(`Uploading: ${pct}%`, 'info');
-      });
-    } catch(e) {
-      showToast('Video upload failed: ' + e.message, 'warn');
-      return;
-    }
+  try {
+    showToast('Video upload shuru... ⏳', 'info');
+    const folder = `videos/${uid}`;
+    videoUrl = await uploadVideo(_uploadVideoFile, folder, (pct) => {
+      if (btn) btn.textContent = `⏳ ${pct}% uploaded...`;
+      if (pct % 20 === 0) showToast(`Uploading: ${pct}%`, 'info');
+    });
+    showToast('Video upload complete! ✅', 'success');
+  } catch(e) {
+    showToast('Upload failed: ' + e.message, 'warn');
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Submit for Review'; }
+    return;
+  }
+
+  if (!videoUrl) {
+    showToast('Video URL nahi mila, dobara try karo', 'warn');
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Submit for Review'; }
+    return;
   }
 
   const newVid = {
     id: 'vid_' + Date.now(),
-    title: window._vTitle || '',
+    title: window._vTitle || 'Untitled',
     description: window._vDesc || '',
-    tags: (window._vTags||'').split(',').map(t=>t.trim()).filter(Boolean),
+    tags: (window._vTags || '').split(',').map(t => t.trim()).filter(Boolean),
     productId: _uploadSelectedProductId,
     productName: prod ? prod.name : '',
     price: prod ? prod.price : 0,
     ogPrice: prod ? (prod.ogPrice || prod.price) : 0,
     videoUrl: videoUrl,
-    videoDataUrl: videoUrl,  // Keep compat
     thumbnailUrl: '',
     status: 'pending',
-    uploaderName: name || guestUser?.name || window.currentUser?.email?.split('@')[0] || 'User',
+    uploaderName: name,
     uploaderUid: uid || 'guest',
     uploadedAt: new Date().toISOString(),
     views: 0,
     likes: 0
   };
 
-  // Save to Firestore videos collection
+  // Firestore save
   if (uid && window._fsHelpers) {
     try {
       const { db, addDoc, collection, serverTimestamp } = window._fsHelpers;
-      // ✅ FIX: Use serverTimestamp() for BOTH createdAt AND uploadedAt
-      // so the videos listener's orderBy('createdAt','desc') works correctly
-      // without needing a composite Firestore index.
-      await addDoc(collection(db, 'videos'), {
+      const ref = await addDoc(collection(db, 'videos'), {
         ...newVid,
-        uploadedAt: serverTimestamp(),  // Override ISO string with real Timestamp
+        uploadedAt: serverTimestamp(),
         createdAt: serverTimestamp()
       });
-    } catch(e) { console.warn('Firestore video save error:', e.message); }
+      newVid.id = ref.id;
+      newVid._fsId = ref.id;
+    } catch(e) {
+      console.warn('Firestore save error:', e.message);
+    }
   }
 
   userVideos.unshift(newVid);
   saveUserVideos();
-  showToast('Video submitted! Admin approval pending ⏳','success');
-  window._vTitle=''; window._vDesc=''; window._vTags='';
-  _uploadVideoFile=null; _uploadVideoDataUrl=null; _uploadSelectedProductId=null;
+
+  // Reset
+  window._vTitle = '';
+  window._vDesc = '';
+  window._vTags = '';
+  _uploadVideoFile = null;
+  _uploadVideoDataUrl = null;
+  _uploadSelectedProductId = null;
+
+  if (btn) { btn.disabled = false; btn.textContent = '⚡ Submit for Review'; }
+  showToast('Video submit ho gaya! Admin approve karega ⏳', 'success');
   showPage('my-videos');
 }
 
