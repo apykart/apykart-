@@ -1,7 +1,7 @@
 const CLOUD_NAME = 'djcfq7tlf';
 const UPLOAD_PRESET = 'Apykart';
 
-export async function uploadToCloudinary(file, onProgress, resourceType = 'auto') {
+export async function uploadToCloudinary(file, onProgress) {
   if (!file) throw new Error('No file provided');
   const isVideo = file.type.startsWith('video/');
   const endpoint = isVideo ? 'video' : 'image';
@@ -14,17 +14,11 @@ export async function uploadToCloudinary(file, onProgress, resourceType = 'auto'
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${endpoint}/upload`);
     xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
-      }
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
     };
     xhr.onload = () => {
-      if (xhr.status === 200) {
-        const data = JSON.parse(xhr.responseText);
-        resolve(data.secure_url);
-      } else {
-        reject(new Error(`Upload failed with status ${xhr.status}`));
-      }
+      if (xhr.status === 200) resolve(JSON.parse(xhr.responseText).secure_url);
+      else reject(new Error(`Upload failed: ${xhr.status}`));
     };
     xhr.onerror = () => reject(new Error('Network error'));
     xhr.send(formData);
