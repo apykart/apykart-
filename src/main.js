@@ -1,22 +1,20 @@
 import './styles/global.css';
-import { initProductsListener } from './services/products.js';
-import { initVideosListener } from './services/videos.js';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './services/firebase.js';
-import { HomePage } from './pages/HomePage.js';
-import { XplorPage } from './pages/XplorPage.js';
+import { initAuth } from './services/auth.js';
+import { initProductsListener, products } from './services/products.js';
+import { initVideosListener, approvedVideos } from './services/videos.js';
 import { router } from './utils/router.js';
 
-// Initialize realtime listeners
+// Expose to window for some components (temporary, can be refactored later)
+window.products = products;
+window.approvedVideos = approvedVideos;
+
+// Initialize Firebase listeners
+initAuth();
 initProductsListener();
 initVideosListener();
 
-// Handle authentication
-onAuthStateChanged(auth, (user) => {
-  window.currentUser = user;
-  router.refresh();
+// Start router after DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  const app = document.getElementById('app');
+  router.init(app);
 });
-
-// Start app
-const appRoot = document.getElementById('app');
-router.init(appRoot);
