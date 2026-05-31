@@ -1,7 +1,7 @@
 import { getCart, updateCartItemQty, removeFromCart, getCartTotal } from '../services/cart.js';
 import { products } from '../services/products.js';
 import { router } from '../utils/router.js';
-import { formatPrice } from '../utils/helpers.js';
+import { formatPrice, showToast } from '../utils/helpers.js';
 
 export class CartPage {
   constructor(container) {
@@ -11,21 +11,14 @@ export class CartPage {
   render() {
     const cart = getCart();
     if (!cart.length) {
-      this.container.innerHTML = `
-        <div class="empty-cart">
-          <div>🛒 Your cart is empty</div>
-          <button class="shop-now-btn">Start Shopping</button>
-        </div>
-      `;
-      this.container.querySelector('.shop-now-btn').addEventListener('click', () => router.navigate('home'));
+      this.container.innerHTML = `<div class="empty-cart"><div>Your cart is empty</div><button class="shop-now-btn">Shop Now</button></div>`;
+      this.container.querySelector('.shop-now-btn')?.addEventListener('click', () => router.navigate('home'));
       return;
     }
-
     const items = cart.map(item => {
       const product = products.find(p => p.id === item.id);
       return { ...item, product };
     }).filter(i => i.product);
-
     const total = getCartTotal();
 
     this.container.innerHTML = `
@@ -40,15 +33,14 @@ export class CartPage {
         </div>
       </div>
     `;
-
     this.attachEvents();
-    this.container.querySelector('.checkout-btn').addEventListener('click', () => router.navigate('checkout'));
+    this.container.querySelector('.checkout-btn')?.addEventListener('click', () => router.navigate('checkout'));
   }
 
   renderCartItem({ id, qty, product }) {
     return `
       <div class="cart-item" data-id="${id}">
-        <img src="${product.images?.[0] || product.img}" alt="${product.name}" loading="lazy">
+        <img src="${product.images?.[0] || product.img}" alt="${product.name}">
         <div class="item-details">
           <div class="item-name">${product.name}</div>
           <div class="item-price">${formatPrice(product.price)}</div>
@@ -71,18 +63,9 @@ export class CartPage {
       const upBtn = itemEl.querySelector('.qty-up');
       const removeBtn = itemEl.querySelector('.remove-btn');
 
-      downBtn.addEventListener('click', async () => {
-        await updateCartItemQty(id, -1);
-        this.render();
-      });
-      upBtn.addEventListener('click', async () => {
-        await updateCartItemQty(id, 1);
-        this.render();
-      });
-      removeBtn.addEventListener('click', async () => {
-        await removeFromCart(id);
-        this.render();
-      });
+      downBtn.addEventListener('click', async () => { await updateCartItemQty(id, -1); this.render(); });
+      upBtn.addEventListener('click', async () => { await updateCartItemQty(id, 1); this.render(); });
+      removeBtn.addEventListener('click', async () => { await removeFromCart(id); this.render(); });
     });
   }
 }
