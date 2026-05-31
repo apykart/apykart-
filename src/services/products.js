@@ -2,17 +2,14 @@ import { db } from './firebase.js';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 export let products = [];
-let unsubscribeProducts = null;
+let unsubscribe = null;
 
 export function initProductsListener() {
+  if (unsubscribe) unsubscribe();
   const q = query(collection(db, 'products'), where('status', 'in', ['active', 'approved']));
-  unsubscribeProducts = onSnapshot(q, (snapshot) => {
+  unsubscribe = onSnapshot(q, (snapshot) => {
     products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    // Dispatch custom event for UI updates
     window.dispatchEvent(new CustomEvent('products-updated', { detail: products }));
   });
 }
-
-export function findProduct(id) {
-  return products.find(p => p.id === id);
-}
+export function findProduct(id) { return products.find(p => p.id === id); }
