@@ -1,5 +1,5 @@
 import { db, auth } from '../services/firebase.js';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { router } from '../utils/router.js';
 import { formatPrice, showToast } from '../utils/helpers.js';
 import { deductCoins } from '../services/wallet.js';
@@ -9,6 +9,7 @@ export class OrderDetailsPage {
     this.container = container;
     this.orderId = orderId;
     this.order = null;
+    this.orderDocRef = null; // Store reference for updates
   }
 
   async render() {
@@ -18,22 +19,29 @@ export class OrderDetailsPage {
     }
 
     try {
-      // Try to fetch from user subcollection first
-      const userOrderRef = doc(db, 'users', auth.currentUser.uid, 'orders', this.orderId);
-      let snap = await getDoc(userOrderRef);
+      // First try to fetch from top-level orders collection using the ID directly
+      const topOrderRef = doc(db, 'orders', this.orderId);
+      let snap = await getDoc(topOrderRef);
       
-      // If not found, try top-level orders collection
-      if (!snap.exists()) {
-        const topOrderRef = doc(db, 'orders', this.orderId);
-        snap = await getDoc(topOrderRef);
+      if (snap.exists()) {
+        this.order = { id: snap.id, ...snap.data() };
+        this.orderDocRef = topOrderRef;
+      } else {
+        // If not found, search in user's subcollection by orderId field
+        const userOrdersRef = collection(db, 'users', auth.currentUser.uid, 'orders');
+        const q = query(userOrdersRef, where('orderId', '==', this.orderId));
+        const querySnap = await getDocs(q);
+        
+        if (!querySnap.empty) {
+          const docSnap = querySnap.docs[0];
+          this.order = { id: docSnap.id, ...docSnap.data(), actualOrderId: this.orderId };
+          this.orderDocRef = doc(db, 'orders', this.orderId); // Still update main order
+        } else {
+          this.container.innerHTML = '<div class="error">Order not found.</div>';
+          return;
+        }
       }
 
-      if (!snap.exists()) {
-        this.container.innerHTML = '<div class="error">Order not found.</div>';
-        return;
-      }
-
-      this.order = { id: snap.id, ...snap.data() };
       this.renderOrderDetails();
     } catch (error) {
       console.error('Error loading order:', error);
@@ -107,9 +115,9 @@ export class OrderDetailsPage {
         </div>
         <div class="delivery-address">
           <h3>Delivery Address</h3>
-          <div><strong>${addressName}</strong></div>
-          <div>${addressLine}</div>
-          ${addressPhone ? `<div>📞 ${addressPhone}</div>` : ''}
+          <div><strong>${this.escapeHtml(addressName)}</strong></div>
+          <div>${this.escapeHtml(addressLine)}</div>
+          ${addressPhone ? `<div>📞 ${this.escapeHtml(addressPhone)}</div>` : ''}
         </div>
         ${(this.order.status === 'placed' || this.order.status === 'confirmed') ? 
           `<button class="cancel-order-btn">Cancel Order</button>` : ''}
@@ -133,19 +141,31 @@ export class OrderDetailsPage {
     if (!confirm('Are you sure you want to cancel this order? This action cannot be undone.')) return;
     
     try {
-      // Update both collections
-      const updates = { status: 'cancelled', cancelledAt: new Date().toISOString() };
-      await updateDoc(doc(db, 'orders', this.order.id), updates);
+      const orderIdToUpdate = this.order.actualOrderId || this.order.id;
+      // Update top-level orders collection
+      await updateDoc(doc(db, 'orders', orderIdToUpdate), { 
+        status: 'cancelled', 
+        cancelledAt: new Date().toISOString() 
+      });
+      
+      // Also update user subcollection if exists (find by orderId)
       if (auth.currentUser) {
-        await updateDoc(doc(db, 'users', auth.currentUser.uid, 'orders', this.order.id), updates);
+        const userOrdersRef = collection(db, 'users', auth.currentUser.uid, 'orders');
+        const q = query(userOrdersRef, where('orderId', '==', orderIdToUpdate));
+        const querySnap = await getDocs(q);
+        if (!querySnap.empty) {
+          const userOrderDoc = querySnap.docs[0];
+          await updateDoc(userOrderDoc.ref, { status: 'cancelled', cancelledAt: new Date().toISOString() });
+        }
       }
       
-      // Deduct 10 coins as penalty if user had enough (optional)
+      // Deduct 10 coins as penalty (only if coins are available)
       try {
-        await deductCoins(10, `Order cancellation penalty #${this.order.id.slice(-8)}`);
+        await deductCoins(10, `Order cancellation penalty #${orderIdToUpdate.slice(-8)}`);
         showToast('Order cancelled. 10 coins deducted.', 'info');
       } catch (coinErr) {
-        showToast('Order cancelled (insufficient coins for penalty)', 'warn');
+        // Penalty deduction failed, but order still cancelled
+        showToast('Order cancelled (penalty could not be deducted)', 'warn');
       }
       
       router.navigate('orders');
@@ -159,16 +179,38 @@ export class OrderDetailsPage {
     if (!confirm('Request return for this order? You will get 10 coins back after successful return.')) return;
     
     try {
-      const updates = { status: 'return_requested', returnRequestedAt: new Date().toISOString() };
-      await updateDoc(doc(db, 'orders', this.order.id), updates);
+      const orderIdToUpdate = this.order.actualOrderId || this.order.id;
+      await updateDoc(doc(db, 'orders', orderIdToUpdate), { 
+        status: 'return_requested', 
+        returnRequestedAt: new Date().toISOString() 
+      });
+      
       if (auth.currentUser) {
-        await updateDoc(doc(db, 'users', auth.currentUser.uid, 'orders', this.order.id), updates);
+        const userOrdersRef = collection(db, 'users', auth.currentUser.uid, 'orders');
+        const q = query(userOrdersRef, where('orderId', '==', orderIdToUpdate));
+        const querySnap = await getDocs(q);
+        if (!querySnap.empty) {
+          const userOrderDoc = querySnap.docs[0];
+          await updateDoc(userOrderDoc.ref, { status: 'return_requested', returnRequestedAt: new Date().toISOString() });
+        }
       }
+      
       showToast('Return request submitted. Our team will contact you.', 'success');
       router.navigate('orders');
     } catch (error) {
       console.error('Return error:', error);
       showToast('Failed to request return. Please try again.', 'error');
     }
+  }
+
+  // Simple XSS protection
+  escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
   }
 }
