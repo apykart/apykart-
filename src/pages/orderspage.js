@@ -10,19 +10,13 @@ export class OrdersPage {
     this.unsubscribe = null;
   }
 
-  async render() {
+  render() {
     if (!auth.currentUser) {
-      this.container.innerHTML = '<div>Please sign in to view your orders.</div>';
+      this.container.innerHTML = '<div>Please sign in to view orders</div>';
       return;
     }
-
-    this.container.innerHTML = '<div class="loading">Loading orders...</div>';
-
-    // Real-time listener for user's orders
-    const q = query(
-      collection(db, 'users', auth.currentUser.uid, 'orders'),
-      orderBy('createdAt', 'desc')
-    );
+    this.container.innerHTML = '<div>Loading orders...</div>';
+    const q = query(collection(db, 'users', auth.currentUser.uid, 'orders'), orderBy('createdAt', 'desc'));
     this.unsubscribe = onSnapshot(q, (snapshot) => {
       this.orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       this.renderOrdersList();
@@ -31,58 +25,22 @@ export class OrdersPage {
 
   renderOrdersList() {
     if (!this.orders.length) {
-      this.container.innerHTML = '<div class="empty-orders">No orders yet. Start shopping!</div>';
+      this.container.innerHTML = '<div class="empty-orders">No orders yet</div>';
       return;
     }
-
-    this.container.innerHTML = `
-      <div class="orders-page">
-        <h2>My Orders</h2>
-        <div class="orders-list">
-          ${this.orders.map(order => this.renderOrderCard(order)).join('')}
-        </div>
+    this.container.innerHTML = `<div class="orders-page"><h2>My Orders</h2><div class="orders-list">${this.orders.map(order => `
+      <div class="order-card" data-id="${order.id}">
+        <div class="order-header"><span>#${order.id.slice(-8)}</span><span class="status ${order.status}">${order.status}</span></div>
+        <div class="order-preview">${order.items?.length} item(s) - ${formatPrice(order.total)}</div>
+        <button class="view-details">View Details</button>
       </div>
-    `;
-
-    // Attach click handlers for order details
+    `).join('')}</div></div>`;
     document.querySelectorAll('.order-card').forEach(card => {
       card.addEventListener('click', (e) => {
-        if (e.target.classList.contains('track-btn')) return;
-        const orderId = card.dataset.id;
-        router.navigate('order-details', { id: orderId });
+        if (e.target.classList.contains('view-details')) router.navigate('order-details', { id: card.dataset.id });
       });
     });
   }
 
-  renderOrderCard(order) {
-    const firstItem = order.items?.[0];
-    const itemCount = order.items?.length || 0;
-    const statusLabels = {
-      placed: 'Placed',
-      confirmed: 'Confirmed',
-      shipped: 'Shipped',
-      delivered: 'Delivered',
-      cancelled: 'Cancelled'
-    };
-    return `
-      <div class="order-card" data-id="${order.id}">
-        <div class="order-header">
-          <span class="order-id">#${order.id.slice(-8)}</span>
-          <span class="order-status ${order.status}">${statusLabels[order.status] || order.status}</span>
-        </div>
-        <div class="order-items-preview">
-          ${firstItem ? `<img src="${firstItem.image}" alt="${firstItem.name}" class="preview-img">` : ''}
-          <span>${itemCount} item${itemCount !== 1 ? 's' : ''}</span>
-        </div>
-        <div class="order-footer">
-          <div class="order-total">${formatPrice(order.total)}</div>
-          <button class="track-btn" data-order="${order.id}">Track Order</button>
-        </div>
-      </div>
-    `;
-  }
-
-  destroy() {
-    if (this.unsubscribe) this.unsubscribe();
-  }
+  destroy() { if (this.unsubscribe) this.unsubscribe(); }
 }
