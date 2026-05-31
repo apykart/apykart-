@@ -7,8 +7,16 @@ import { router } from './utils/router.js';
 // Make products and videos available globally for pages that need them
 let productsGlobal = [];
 let videosGlobal = [];
-window.addEventListener('products-updated', (e) => { productsGlobal = e.detail; window.products = productsGlobal; });
-window.addEventListener('videos-updated', (e) => { videosGlobal = e.detail; window.approvedVideos = videosGlobal; });
+
+window.addEventListener('products-updated', (e) => {
+  productsGlobal = e.detail;
+  window.products = productsGlobal;
+});
+
+window.addEventListener('videos-updated', (e) => {
+  videosGlobal = e.detail;
+  window.approvedVideos = videosGlobal;
+});
 
 initAuth();
 initProductsListener();
