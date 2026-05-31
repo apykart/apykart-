@@ -1,4 +1,3 @@
-// src/utils/router.js - complete version
 import { HomePage } from '../pages/HomePage.js';
 import { XplorPage } from '../pages/XplorPage.js';
 import { ProductPage } from '../pages/ProductPage.js';
@@ -51,19 +50,21 @@ class Router {
     const parts = path.split('/');
     const route = parts[0];
     const param = parts[1];
+
     const PageClass = this.routes[route];
     if (!PageClass) {
       this.navigate('home');
       return;
     }
-    this.container.innerHTML = '';
-    if (route === 'product' && param) {
-      this.currentPage = new PageClass(this.container, param);
-    } else if (route === 'order-details' && param) {
+
+    this.container.innerHTML = ''; // Clear previous content
+
+    if ((route === 'product' || route === 'order-details') && param) {
       this.currentPage = new PageClass(this.container, param);
     } else {
       this.currentPage = new PageClass(this.container);
     }
+
     await this.currentPage.render();
   }
 
@@ -71,6 +72,7 @@ class Router {
     let url = `/${route}`;
     if (params.id) url += `/${params.id}`;
     if (params.buyNowId) url += `?buyNowId=${params.buyNowId}`;
+    if (params.category) url += `?category=${params.category}`;
     window.history.pushState({}, '', url);
     this.handleRoute();
   }
