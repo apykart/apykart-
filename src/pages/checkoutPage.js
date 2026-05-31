@@ -10,14 +10,15 @@ export class CheckoutPage {
     this.container = container;
     this.useCoins = false;
     this.selectedAddressId = null;
+    this.buyNowItem = null;
   }
 
   render() {
-    const cart = getCart();
-    const items = cart.map(item => {
-      const product = window.products?.find(p => p.id === item.id);
-      return { ...item, product };
-    }).filter(i => i.product);
+    const params = new URLSearchParams(window.location.search);
+    const buyNowId = params.get('buyNowId');
+    if (buyNowId) this.buyNowItem = { id: buyNowId, qty: 1 };
+
+    const items = this.getCheckoutItems();
     const subtotal = items.reduce((s, i) => s + (i.product.price * i.qty), 0);
     const coins = getCoins().balance;
     const usableCoins = Math.min(coins, Math.floor(subtotal / 0.1));
@@ -45,13 +46,32 @@ export class CheckoutPage {
     document.getElementById('useCoinsCheckbox')?.addEventListener('change', (e) => { this.useCoins = e.target.checked; this.render(); });
     document.querySelector('.add-address-btn')?.addEventListener('click', () => router.navigate('addresses'));
     document.getElementById('placeOrderBtn')?.addEventListener('click', () => this.placeOrder(items, subtotal, usableCoins, coinDiscount, total));
-    document.querySelectorAll('.address-card').forEach(card => card.addEventListener('click', () => {
-      this.selectedAddressId = card.dataset.id;
-      document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-    }));
-    const defaultAddr = addresses.find(a => a.isDefault);
-    if (defaultAddr && !this.selectedAddressId) this.selectedAddressId = defaultAddr.id;
+    this.highlightDefaultAddress();
+  }
+
+  getCheckoutItems() {
+    if (this.buyNowItem) {
+      const product = window.products?.find(p => p.id === this.buyNowItem.id);
+      return [{ ...this.buyNowItem, product }];
+    }
+    const cart = getCart();
+    return cart.map(item => {
+      const product = window.products?.find(p => p.id === item.id);
+      return { ...item, product };
+    }).filter(i => i.product);
+  }
+
+  highlightDefaultAddress() {
+    const defaultAddr = userData.addresses?.find(a => a.isDefault);
+    if (defaultAddr) this.selectedAddressId = defaultAddr.id;
+    document.querySelectorAll('.address-card').forEach(card => {
+      card.addEventListener('click', () => {
+        this.selectedAddressId = card.dataset.id;
+        document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+      if (card.dataset.id === this.selectedAddressId) card.classList.add('selected');
+    });
   }
 
   async placeOrder(items, subtotal, usableCoins, coinDiscount, total) {
@@ -61,7 +81,7 @@ export class CheckoutPage {
     await addCoins(10, 'Order placed');
     const orderData = { items, subtotal, total, coinDiscount, coinsUsed: this.useCoins ? usableCoins : 0, address, paymentMethod: 'COD', status: 'placed' };
     await createOrder(orderData);
-    await clearCart();
+    if (!this.buyNowItem) await clearCart();
     showToast('Order placed successfully!');
     router.navigate('orders');
   }
