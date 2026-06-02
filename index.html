@@ -732,8 +732,9 @@ a{text-decoration:none;color:inherit}
 .header-upload-btn{background:linear-gradient(135deg,#f97316,#ea580c)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 3px 10px rgba(249,115,22,.3)!important}
 
 /* ─── XPLOR PAGE ─── */
-#page-xplor{display:none;height:100%;overflow:hidden!important}
-#page-xplor.active{display:flex;flex-direction:column}
+#page-xplor{display:none;height:100%;overflow:hidden!important;position:relative}
+#page-xplor.active{display:flex;flex-direction:column;height:100%}
+#xplorContent{width:100%;flex:1;position:relative;overflow:hidden;min-height:0}
 #page-my-videos{padding-bottom:0}
 /* Override page-scroll overflow when xplor is active */
 .page-scroll.xplor-active{overflow:hidden!important}
@@ -1888,36 +1889,7 @@ async function uploadImg(file, folder, onProgress) {
     xhr.send(formData);
   });
 }
-// REPLACE the duplicate uploadVideo block (~line 1720-1760) with this single canonical version:
 
-async function uploadVideo(file, folder, onProgress) {
-  if (!file) throw new Error('No file');
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', UPLOAD_PRESET);
-  if (folder) formData.append('folder', 'apykart/' + folder);
-  // NOTE: resource_type goes in the URL, NOT FormData
-
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`);
-    xhr.upload.onprogress = e => {
-      if (e.lengthComputable && onProgress)
-        onProgress(Math.round(e.loaded / e.total * 100));
-    };
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        resolve(JSON.parse(xhr.responseText).secure_url);
-      } else {
-        let m = `Video upload failed (${xhr.status})`;
-        try { m = JSON.parse(xhr.responseText)?.error?.message || m; } catch(e) {}
-        reject(new Error(m));
-      }
-    };
-    xhr.onerror = () => reject(new Error('Network error during video upload'));
-    xhr.send(formData);
-  });
-}
 // ✅ FIXED: Universal upload - auto detect image vs video
 async function uploadToStorage(file, path, onProgress) {
   if (!file) return null;
@@ -1938,21 +1910,21 @@ async function uploadToStorage(file, path, onProgress) {
 
 window._uploadToStorage = uploadToStorage;
 
-// Upload video to Cloudinary (with progress)
 async function uploadVideo(file, folder, onProgress) {
   if (!file) throw new Error('No file');
-
   const formData = new FormData();
-  formData.append('file',           file);
-  formData.append('upload_preset',  UPLOAD_PRESET);
-  formData.append('folder',         'apykart/' + folder);
-  formData.append('resource_type',  'video');
+  formData.append('file', file);
+  formData.append('upload_preset', UPLOAD_PRESET);
+  if (folder) formData.append('folder', 'apykart/' + folder);
+  // ✅ resource_type URL mein hoga, FormData mein NAHI
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    // ✅ FIXED URL: /video/upload (resource_type URL mein)
     xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`);
     xhr.upload.onprogress = e => {
-      if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100));
+      if (e.lengthComputable && onProgress)
+        onProgress(Math.round(e.loaded / e.total * 100));
     };
     xhr.onload = () => {
       if (xhr.status === 200) {
@@ -1963,7 +1935,7 @@ async function uploadVideo(file, folder, onProgress) {
         reject(new Error(m));
       }
     };
-    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.onerror = () => reject(new Error('Network error during video upload'));
     xhr.send(formData);
   });
 }
@@ -2082,7 +2054,16 @@ function showPage(page, productId) {
   if (bnav) bnav.style.borderTopColor = page==='xplor' ? 'rgba(255,255,255,.1)' : '';
 
   // hide page-scroll container only when seller-dashboard is active (xplor stays in scroll)
-  if (ps) ps.style.display = page==='seller-dashboard' ? 'none' : '';
+  if (ps) {
+  if (page === 'seller-dashboard') {
+    ps.style.display = 'none';
+  } else if (page === 'xplor') {
+    ps.style.cssText = 'flex:1;min-height:0;overflow:hidden;position:relative;display:block';
+  } else {
+    ps.style.cssText = '';
+    ps.style.display = '';
+  }
+}
 
   const navMap={home:'home',search:'search',xplor:'xplor',cart:'cart',profile:'profile',orders:'profile',wishlist:'profile',wallet:'profile',addresses:'profile',refer:'profile',help:'profile',rate:'profile',terms:'profile',about:'profile','my-videos':'profile','upload-video':'profile'};
   const nav = document.getElementById('nav-'+(navMap[page]||page));
@@ -4542,23 +4523,39 @@ setupAuthListener();
 /* ─── VIDEO SYSTEM ─── */
 // saveUserVideos — defined above using Firestore
 
-/* ─── XPLOR FEED ─── */
+
+/* ─── XPLOR FEED (FULLY FIXED SCROLL) ─── */
 let _xplorVideos = [];
 let _xplorIdx = 0;
-let _xplorTouchY = 0;
-let _xplorTouchX = 0;
-let _xplorDragging = false;
-let _xplorDragOffset = 0;
 let _xplorLiked = {};
-
-// DEMO_VIDEOS removed - Only admin-approved Firestore videos shown
-const DEMO_VIDEOS = [];
+let _xplorMuted = true;
+let _xplorTouchStartY = 0;
+let _xplorTouchStartTime = 0;
+let _xplorIsDragging = false;
 
 function renderXplor(videoId = null) {
+  if (window._xplorResizeHandler) window.removeEventListener('resize', window._xplorResizeHandler);
+  window._xplorResizeHandler = () => {
+    if (currentPage === 'xplor' && _xplorVideos.length) {
+      _xplorBuildFeed();
+      _xplorDoScroll(_xplorIdx, false);
+    }
+  };
+  window.addEventListener('resize', window._xplorResizeHandler);
+
   const cont = document.getElementById('xplorContent');
   if (!cont) return;
 
-  // Approved videos from Firestore
+  // Set container height
+  const pageScroll = document.getElementById('pageScroll');
+  const navH = document.querySelector('.bottom-nav')?.offsetHeight || 62;
+  const availH = window.innerHeight - navH;
+  cont.style.height = availH + 'px';
+  if (pageScroll) pageScroll.style.height = availH + 'px';
+  cont.style.overflow = 'hidden';
+  cont.style.position = 'relative';
+
+  // Get videos
   const fsVideos = (window._approvedVideos || []).map(v => ({
     id: v.id || v._fsId,
     creator: v.uploaderName || v.creatorName || 'Creator',
@@ -4577,11 +4574,10 @@ function renderXplor(videoId = null) {
   _xplorVideos = fsVideos;
 
   if (!_xplorVideos.length) {
-    cont.innerHTML = `<div class="xplor-empty">...</div>`; // same as before
+    cont.innerHTML = `<div class="xplor-empty">No videos yet</div>`;
     return;
   }
 
-  // Find index of video if videoId provided, else 0
   let targetIdx = 0;
   if (videoId) {
     const found = _xplorVideos.findIndex(v => v.id === videoId || v._fsId === videoId);
@@ -4589,12 +4585,10 @@ function renderXplor(videoId = null) {
   }
   _xplorIdx = targetIdx;
 
-  // Build feed only if wrapper doesn't exist or videos changed
   const existingWrapper = document.getElementById('xplorWrapper');
   if (!existingWrapper || _xplorVideos.length !== existingWrapper.children.length) {
     _xplorBuildFeed();
   } else {
-    // Just scroll to target index
     _xplorDoScroll(_xplorIdx, false);
   }
   _xplorSetupTouch(cont);
@@ -4604,57 +4598,41 @@ function _xplorBuildFeed() {
   const cont = document.getElementById('xplorContent');
   if (!cont) return;
 
-  // Clear and set styles
-  cont.style.cssText = 'position:relative;width:100%;height:100%;background:#000;overflow:hidden;';
-  
-  // Remove old wrapper if any
   const oldWrapper = document.getElementById('xplorWrapper');
   if (oldWrapper) oldWrapper.remove();
 
+  const contH = cont.clientHeight;
+  if (contH <= 0) return;
+
   const wrapper = document.createElement('div');
   wrapper.id = 'xplorWrapper';
-  wrapper.style.cssText = `
-    position:absolute;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    transition:transform 0.38s cubic-bezier(0.4,0,0.2,1);
-    will-change:transform;
-  `;
+  wrapper.style.cssText = `position:absolute;top:0;left:0;width:100%;transition:transform 0.3s ease-out;will-change:transform;`;
+
+  wrapper.style.height = (_xplorVideos.length * contH) + 'px';
 
   _xplorVideos.forEach((v, i) => {
     const slide = document.createElement('div');
     slide.id = 'xslide_' + i;
-    slide.style.cssText = `
-      position:relative;
-      width:100%;
-      height:100%;
-      background:#000;
-      overflow:hidden;
-    `;
+    slide.style.cssText = `position:relative;width:100%;height:${contH}px;background:#000;overflow:hidden;`;
     slide.innerHTML = _xplorSlideHTML(v, i);
     wrapper.appendChild(slide);
   });
 
   cont.appendChild(wrapper);
-  
-  // Initial scroll (no animation)
   _xplorDoScroll(_xplorIdx, false);
 }
+
 function _xplorSlideHTML(v, i) {
   const discount = v.ogPrice > v.price ? Math.round((v.ogPrice - v.price) / v.ogPrice * 100) : 0;
   return `
     ${v.videoSrc
       ? `<video id="xvid_${i}" src="${v.videoSrc}" loop playsinline muted
            style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;cursor:pointer"
-           onclick="xplorTogglePlay(${i})"
-           onerror="this.style.display='none';document.getElementById('xslide_${i}').querySelector('.xfallback')&&(document.getElementById('xslide_${i}').querySelector('.xfallback').style.display='flex')"></video>
+           onclick="xplorTogglePlay(${i}, event)"
+           onerror="this.style.display='none';this.parentElement.querySelector('.xfallback').style.display='flex'"></video>
          <div class="xfallback" style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:none;align-items:center;justify-content:center;font-size:64px">🎬</div>
-         <!-- ✅ FIX: Sound toggle button - browser mein autoplay sirf muted kaam karta hai
-              lekin user tap kare tab sound ON ho jaye -->
          <div id="xmute_${i}" onclick="xplorToggleMute(${i},event)"
-              style="position:absolute;top:60px;right:14px;z-index:10;
+              style="position:absolute;top:60px;right:14px;z-index:20;
                      width:38px;height:38px;border-radius:50%;
                      background:rgba(0,0,0,.55);backdrop-filter:blur(8px);
                      border:1.5px solid rgba(255,255,255,.35);
@@ -4666,14 +4644,12 @@ function _xplorSlideHTML(v, i) {
            </svg>
          </div>`
       : v.thumb
-        ? `<img src="${v.thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`
+        ? `<img src="${v.thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">`
         : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:64px">🎬</div>`
     }
     
-    <!-- Gradient overlay -->
     <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.1) 35%,rgba(0,0,0,.05) 60%,rgba(0,0,0,.3) 100%);pointer-events:none"></div>
     
-    <!-- Top: creator + counter -->
     <div style="position:absolute;top:14px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;pointer-events:none">
       <div style="display:flex;align-items:center;gap:8px">
         <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ec4899);display:flex;align-items:center;justify-content:center;font-size:15px;border:2px solid rgba(255,255,255,.4);flex-shrink:0">${v.creatorEmoji||'🎬'}</div>
@@ -4682,99 +4658,62 @@ function _xplorSlideHTML(v, i) {
       <div style="background:rgba(0,0,0,.4);backdrop-filter:blur(6px);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(255,255,255,.15)">${i+1}/${_xplorVideos.length}</div>
     </div>
     
-    <!-- Play/Pause icon (center, hidden by default) -->
     <div id="xplayicon_${i}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s">
       <div style="width:64px;height:64px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.5)">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
       </div>
     </div>
     
-    <!-- Right action buttons -->
-    <div style="position:absolute;bottom:130px;right:12px;display:flex;flex-direction:column;gap:18px;align-items:center">
-      
-      <!-- Like -->
+    <div style="position:absolute;bottom:130px;right:12px;display:flex;flex-direction:column;gap:18px;align-items:center;z-index:15">
       <div onclick="xplorLike(${i})" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
-        <div id="xlike_${i}" style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25);transition:all .2s">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="${_xplorLiked[i]?'#ef4444':'none'}" stroke="${_xplorLiked[i]?'#ef4444':'white'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <div id="xlike_${i}" style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="${_xplorLiked[i]?'#ef4444':'none'}" stroke="${_xplorLiked[i]?'#ef4444':'white'}"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </div>
         <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Like</span>
       </div>
-      
-      <!-- Share -->
       <div onclick="shareXplorVideo('${v.id}','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
         <div style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </div>
         <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Share</span>
       </div>
-      
-      <!-- View Product -->
       <div onclick="showPage('detail','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
         <div style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         </div>
         <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">View</span>
       </div>
     </div>
     
-    <!-- Bottom: product info + buy buttons -->
-    <div style="position:absolute;bottom:0;left:0;right:0;padding:0 14px 14px">
-      <!-- Product name & price -->
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:0 14px 14px;z-index:15">
       <div style="margin-bottom:10px">
-        ${v.productName ? `<div style="font-family:var(--font-head);font-size:16px;font-weight:800;color:#fff;margin-bottom:4px;line-height:1.3;text-shadow:0 2px 8px rgba(0,0,0,.5);max-width:75%">${v.productName}</div>` : ''}
+        ${v.productName ? `<div style="font-family:var(--font-head);font-size:16px;font-weight:800;color:#fff;margin-bottom:4px;text-shadow:0 2px 8px rgba(0,0,0,.5);max-width:75%">${v.productName}</div>` : ''}
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           ${v.price ? `<span style="font-size:15px;font-weight:800;color:#fff">₹${Number(v.price).toLocaleString()}</span>` : ''}
           ${discount > 0 ? `<span style="background:#f97316;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px">${discount}% OFF</span>` : ''}
           ${v.ogPrice > v.price ? `<span style="font-size:12px;color:rgba(255,255,255,.55);text-decoration:line-through">₹${Number(v.ogPrice).toLocaleString()}</span>` : ''}
         </div>
-        ${v.desc ? `<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;line-height:1.4;max-width:80%">${v.desc}</div>` : ''}
+        ${v.desc ? `<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;max-width:80%">${v.desc}</div>` : ''}
       </div>
-      
-      <!-- Buy buttons -->
       <div style="display:flex;gap:8px">
-        <button onclick="addToCart('${v.productId}');showToast('Added to cart! 🛒','success')" 
-          style="flex:1;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;cursor:pointer;letter-spacing:.1px">
-          🛒 Add to Cart
-        </button>
-        <button onclick="buyNow('${v.productId}')"
-          style="flex:1;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,.45);letter-spacing:.1px">
-          ⚡ Buy Now
-        </button>
+        <button onclick="addToCart('${v.productId}');showToast('Added to cart! 🛒','success')" style="flex:1;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;cursor:pointer">🛒 Add to Cart</button>
+        <button onclick="buyNow('${v.productId}')" style="flex:1;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,.45)">⚡ Buy Now</button>
       </div>
     </div>
-    
-    <!-- First video swipe hint -->
-    ${i === 0 ? `
-    <div id="xswipehint" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;animation:xhintFade 3s 1.5s forwards">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:xhintBounce 1s infinite"><polyline points="18 15 12 9 6 15"/></svg>
-        <div style="font-size:12px;font-weight:700;color:#fff;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);padding:6px 14px;border-radius:99px">Swipe up for next</div>
-      </div>
-    </div>
-    <style>
-      @keyframes xhintFade{0%,80%{opacity:1}100%{opacity:0;visibility:hidden}}
-      @keyframes xhintBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-    </style>` : ''}
   `;
-}
-
-function _xplorActivate(idx) {
-  if (idx < 0 || idx >= _xplorVideos.length) return;
-  _xplorDoScroll(idx, true);
 }
 
 function _xplorDoScroll(idx, animate) {
   if (idx < 0 || idx >= _xplorVideos.length) return;
   _xplorIdx = idx;
-
   const wrapper = document.getElementById('xplorWrapper');
-  if (!wrapper) return;
+  const cont = document.getElementById('xplorContent');
+  if (!wrapper || !cont) return;
+  const contH = cont.clientHeight;
+  if (contH <= 0) return;
+  wrapper.style.transition = animate ? 'transform 0.3s ease-out' : 'none';
+  wrapper.style.transform = `translateY(-${idx * contH}px)`;
 
-  // Each slide takes full height, so offset = idx * 100%
-  wrapper.style.transition = animate ? 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' : 'none';
-  wrapper.style.transform = `translateY(-${idx * 100}%)`;
-
-  // Play/Pause logic
   _xplorVideos.forEach((v, i) => {
     const vid = document.getElementById('xvid_' + i);
     if (!vid) return;
@@ -4784,7 +4723,6 @@ function _xplorDoScroll(idx, animate) {
       vid.play().catch(() => {});
       const fsId = v._fsId || v.id;
       if (fsId) incrementVideoView(fsId);
-      // Update mute icon
       const muteIcon = document.getElementById('xmute_icon_' + i);
       if (muteIcon) _xplorUpdateMuteIcon(muteIcon, _xplorMuted);
     } else {
@@ -4794,6 +4732,7 @@ function _xplorDoScroll(idx, animate) {
     }
   });
 }
+
 function _xplorUpdateMuteIcon(el, muted) {
   if (!el) return;
   if (muted) {
@@ -4808,52 +4747,82 @@ function _xplorUpdateMuteIcon(el, muted) {
 }
 
 function _xplorSetupTouch(cont) {
-  let startY = 0, startTime = 0;
+  let startY = 0;
+  let startTime = 0;
+  let isDragging = false;
 
-  const handleTouchStart = (e) => {
-    // Don't interfere with video play/pause
-    if (e.target.closest('.media-play-btn, .xplor-play-icon, .xplor-action-btn, button')) return;
+  const onTouchStart = (e) => {
+    // Allow swipe from anywhere, including video and buttons
+    // But prevent if it's a button that has its own action? Actually we want swipe even on buttons?
+    // To avoid conflict, we'll still let swipe start, but if user taps a button, it will also trigger button action.
+    // That's fine. So we don't filter.
     startY = e.touches[0].clientY;
     startTime = Date.now();
+    isDragging = false;
   };
 
-  const handleTouchEnd = (e) => {
+  const onTouchMove = (e) => {
+    if (startY === 0) return;
+    const dy = e.touches[0].clientY - startY;
+    if (Math.abs(dy) > 10) {
+      isDragging = true;
+      // Optional: add visual feedback (drag offset)
+      const wrapper = document.getElementById('xplorWrapper');
+      if (wrapper && !wrapper.style.transition) {
+        const contH = cont.clientHeight;
+        const currentTranslate = -_xplorIdx * contH;
+        wrapper.style.transform = `translateY(${currentTranslate + dy}px)`;
+        wrapper.style.transition = 'none';
+      }
+    }
+  };
+
+  const onTouchEnd = (e) => {
     if (startY === 0) return;
     const dy = e.changedTouches[0].clientY - startY;
     const dt = Date.now() - startTime;
-    const isFlick = dt < 350 && Math.abs(dy) > 30;
-    const isDrag = Math.abs(dy) > 70;
-    if (isFlick || isDrag) {
+    const velocity = Math.abs(dy) / dt; // pixels per ms
+    const isSwipe = (Math.abs(dy) > 40) || (Math.abs(dy) > 20 && velocity > 0.3);
+    if (isSwipe && !isDragging) {
+      // It was a quick flick
       if (dy < 0 && _xplorIdx < _xplorVideos.length - 1) {
-        _xplorActivate(_xplorIdx + 1);
+        _xplorDoScroll(_xplorIdx + 1, true);
       } else if (dy > 0 && _xplorIdx > 0) {
-        _xplorActivate(_xplorIdx - 1);
+        _xplorDoScroll(_xplorIdx - 1, true);
+      } else {
+        _xplorDoScroll(_xplorIdx, true);
+      }
+    } else if (isDragging) {
+      // Drag end - decide snap
+      const contH = cont.clientHeight;
+      const threshold = contH * 0.2;
+      if (dy < -threshold && _xplorIdx < _xplorVideos.length - 1) {
+        _xplorDoScroll(_xplorIdx + 1, true);
+      } else if (dy > threshold && _xplorIdx > 0) {
+        _xplorDoScroll(_xplorIdx - 1, true);
+      } else {
+        _xplorDoScroll(_xplorIdx, true);
       }
     }
     startY = 0;
+    isDragging = false;
   };
 
-  cont.removeEventListener('touchstart', handleTouchStart);
-  cont.removeEventListener('touchend', handleTouchEnd);
-  cont.addEventListener('touchstart', handleTouchStart, { passive: true });
-  cont.addEventListener('touchend', handleTouchEnd, { passive: true });
+  cont.removeEventListener('touchstart', onTouchStart);
+  cont.removeEventListener('touchmove', onTouchMove);
+  cont.removeEventListener('touchend', onTouchEnd);
+  cont.addEventListener('touchstart', onTouchStart, { passive: false });
+  cont.addEventListener('touchmove', onTouchMove, { passive: false });
+  cont.addEventListener('touchend', onTouchEnd);
 }
 
-function renderXplorSlide() {
-  // Legacy wrapper - now handled by _xplorActivate
-  _xplorActivate(_xplorIdx);
-}
-
-// Global mute state — sab videos ek saath mute/unmute honge
-let _xplorMuted = true;
-
-function xplorTogglePlay(idx) {
-  const i = (idx !== undefined) ? idx : _xplorIdx;
-  const vid = document.getElementById('xvid_' + i);
-  const icon = document.getElementById('xplayicon_' + i);
+function xplorTogglePlay(idx, event) {
+  if (event) event.stopPropagation();
+  const vid = document.getElementById('xvid_' + idx);
+  const icon = document.getElementById('xplayicon_' + idx);
   if (!vid) return;
   if (vid.paused) {
-    vid.play().catch(()=>{});
+    vid.play().catch(() => {});
     if (icon) icon.style.opacity = '0';
   } else {
     vid.pause();
@@ -4861,33 +4830,24 @@ function xplorTogglePlay(idx) {
   }
 }
 
-// ✅ FIX A: Sound toggle function
-// Browser autoplay policy: video starts muted.
-// User jab mute button tap kare tab sound ON ho jata hai.
 function xplorToggleMute(idx, event) {
   if (event) event.stopPropagation();
   _xplorMuted = !_xplorMuted;
-
   const activeVid = document.getElementById('xvid_' + _xplorIdx);
   if (activeVid) {
     activeVid.muted = _xplorMuted;
     if (!_xplorMuted && activeVid.paused) activeVid.play().catch(() => {});
   }
-
-  // Update icon on ACTIVE slide only
-  _xplorUpdateMuteIcon(
-    document.getElementById('xmute_icon_' + _xplorIdx),
-    _xplorMuted
-  );
-
+  _xplorUpdateMuteIcon(document.getElementById('xmute_icon_' + _xplorIdx), _xplorMuted);
   showToast(_xplorMuted ? '🔇 Muted' : '🔊 Sound ON', 'info');
 }
+
 function xplorLike(idx) {
   _xplorLiked[idx] = !_xplorLiked[idx];
   const btn = document.getElementById('xlike_' + idx);
   if (btn) {
     const isLiked = _xplorLiked[idx];
-    btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="${isLiked?'#ef4444':'none'}" stroke="${isLiked?'#ef4444':'white'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+    btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="${isLiked?'#ef4444':'none'}" stroke="${isLiked?'#ef4444':'white'}"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
     btn.style.background = isLiked ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.15)';
     btn.style.borderColor = isLiked ? '#ef4444' : 'rgba(255,255,255,.25)';
     if (isLiked) showToast('❤️ Liked!', 'success');
@@ -4896,13 +4856,10 @@ function xplorLike(idx) {
 
 function shareXplorVideo(vid, productId) {
   const url = `https://apykart.vercel.app?video=${vid}&product=${productId}`;
-  const text = `🎬 Watch this amazing product video on Apykart!
-
-${url}`;
-  if (navigator.share) { navigator.share({title:'Apykart Video', url}).catch(()=>{}); }
-  else { navigator.clipboard?.writeText(text).then(()=>showToast('Video link copied! 🔗','success')); }
+  const text = `🎬 Watch this product video on Apykart!\n${url}`;
+  if (navigator.share) navigator.share({ title: 'Apykart Video', url }).catch(()=>{});
+  else navigator.clipboard?.writeText(text).then(()=>showToast('Link copied!','success'));
 }
-
 /* ─── VIDEO UPLOAD FLOW ─── */
 let _uploadStep = 1;
 let _uploadVideoFile = null;
