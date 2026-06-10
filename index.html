@@ -1778,6 +1778,10 @@ function saveSellerEarnings() { firestoreSetField('seller_earnings', sellerEarni
 function saveWithdrawals()    { firestoreSetField('withdrawals', withdrawalRequests); }
 function saveSellerProfile()  { firestoreSetField('seller_profile', sellerProfile); }
 function saveUserVideos()     { firestoreSetField('user_videos', userVideos); }
+function saveOrders() {
+  // Orders Firestore onSnapshot se sync hote hain automatically.
+  // Local array UI ke liye use hota hai; Firestore DB sync updateOrderInFirestore se hota hai.
+}
 function syncUser()           { saveGuest(); saveCoins(); }
 
 // ✅ FIX BUG#9: Admin 'orders' collection listen karta hai lekin user 'all_orders'
@@ -3007,18 +3011,69 @@ function renderOrders() {
 
 function cancelOrder(oid) {
   showReasonModal('Cancel Order',['Changed my mind','Found better price','Ordered by mistake','Delivery time too long','Other'],async r=>{
-    orders=orders.map(o=>o.id===oid?{...o,status:'cancelled',cancelReason:r}:o);
-    saveOrders(); await updateOrderInFirestore(oid,{status:'cancelled',cancelReason:r});
-    deductCoins(10,`❌ Cancel penalty Order #${oid}`);
-    showToast('Order cancelled. −10 coins deducted.','warn'); renderOrders();
+    const order = orders.find(o => o.id === oid);
+    orders = orders.map(o => o.id===oid ? {...o, status:'cancelled', cancelReason:r} : o);
+    saveOrders();
+    await updateOrderInFirestore(oid, {status:'cancelled', cancelReason:r});
+
+    const earnedCoins   = order?.coinsEarned  || 0;
+    const redeemedCoins = order?.coinsRedeemed || 0;
+    const CANCEL_PENALTY = 10; // ← Cancel penalty
+    const RETURN_PENALTY = 15; // ← Return/Refund penalty (zyada strict)
+
+    // 1. Reverse earned coins
+    if (earnedCoins > 0) {
+      deductCoins(earnedCoins, `❌ Order #${oid} cancelled — earned coins reversed`);
+    }
+
+    // 2. Refund redeemed coins
+    if (redeemedCoins > 0) {
+      addCoins(redeemedCoins, `🔄 Order #${oid} cancelled — redeemed coins refunded`);
+    }
+
+    // 3. Cancel penalty
+    deductCoins(CANCEL_PENALTY, `⚠️ Order #${oid} cancellation penalty`);
+
+    const msg = `Order cancelled.`
+      + (earnedCoins > 0 ? ` −${earnedCoins} coins reversed.` : '')
+      + (redeemedCoins > 0 ? ` +${redeemedCoins} coins refunded.` : '')
+      + ` −${CANCEL_PENALTY} penalty applied.`;
+
+    showToast(msg, 'warn');
+    renderOrders();
   });
 }
 function returnOrder(oid) {
   showReasonModal('Return Order',['Product damaged','Wrong item','Not as described','Quality issue','Other'],async r=>{
-    orders=orders.map(o=>o.id===oid?{...o,status:'return_requested',returnReason:r}:o);
-    saveOrders(); await updateOrderInFirestore(oid,{status:'return_requested',returnReason:r});
-    deductCoins(10,`↩️ Return penalty Order #${oid}`);
-    showToast('Return requested. −10 coins deducted.','warn'); renderOrders();
+    const order = orders.find(o => o.id === oid);
+    orders = orders.map(o => o.id===oid ? {...o, status:'return_requested', returnReason:r} : o);
+    saveOrders();
+    await updateOrderInFirestore(oid, {status:'return_requested', returnReason:r});
+
+    const earnedCoins   = order?.coinsEarned  || 0;
+    const redeemedCoins = order?.coinsRedeemed || 0;
+    const RETURN_PENALTY = 15; // ← Yahan se penalty amount change karo
+
+    // 1. Reverse earned coins
+    if (earnedCoins > 0) {
+      deductCoins(earnedCoins, `↩️ Order #${oid} return — earned coins reversed`);
+    }
+
+    // 2. Refund redeemed coins
+    if (redeemedCoins > 0) {
+      addCoins(redeemedCoins, `🔄 Order #${oid} return — redeemed coins refunded`);
+    }
+
+    // 3. Extra return penalty
+    deductCoins(RETURN_PENALTY, `⚠️ Order #${oid} return penalty`);
+
+    const msg = `Return requested.`
+      + (earnedCoins > 0 ? ` −${earnedCoins} earned coins reversed.` : '')
+      + (redeemedCoins > 0 ? ` +${redeemedCoins} coins refunded.` : '')
+      + ` −${RETURN_PENALTY} return penalty applied.`;
+
+    showToast(msg, 'warn');
+    renderOrders();
   });
 }
 function reorder(oid) {
@@ -3263,7 +3318,8 @@ function renderWallet() {
     </div>
     <div class="wallet-how-earn" style="margin-top:8px">
       <div style="padding:12px 14px;font-size:13px;font-weight:800;color:var(--text)">How to Earn Coins</div>
-      ${[{i:'🛒',t:'Every Order',s:'Earn +10 coins on every order',a:'+10'},{i:'❌',t:'Cancel/Return Penalty',s:'Lose −10 coins on cancel or return',a:'−10'},{i:'👥',t:'Refer a Friend',s:'Both earn 100 coins',a:'+100'},{i:'⭐',t:'Leave a Review',s:'Rate any product you bought',a:'+10'},{i:'🎂',t:'Birthday Bonus',s:'Special coins on your birthday',a:'+100'}].map(e=>`<div class="wallet-earn-item"><div class="wallet-earn-icon">${e.i}</div><div class="wallet-earn-text"><div class="wallet-earn-title">${e.t}</div><div class="wallet-earn-sub">${e.s}</div></div><div class="wallet-earn-amt" style="${e.a.startsWith('−')?'color:var(--danger);background:#fee2e2':'color:#166534;background:#dcfce7'}">${e.a}</div></div>`).join('')}
+      ${[{i:'🛒',t:'Every Order',s:'Earn +10 coins on every order',a:'+10'},{i:'❌',t:'Cancel Penalty',s:'Order cancel karne par −10 coins katenge',a:'−10'},
+{i:'↩️',t:'Return Penalty',s:'Return/Refund karne par −15 coins katenge',a:'−15'},{i:'👥',t:'Refer a Friend',s:'Both earn 100 coins',a:'+100'},{i:'⭐',t:'Leave a Review',s:'Rate any product you bought',a:'+10'},{i:'🎂',t:'Birthday Bonus',s:'Special coins on your birthday',a:'+100'}].map(e=>`<div class="wallet-earn-item"><div class="wallet-earn-icon">${e.i}</div><div class="wallet-earn-text"><div class="wallet-earn-title">${e.t}</div><div class="wallet-earn-sub">${e.s}</div></div><div class="wallet-earn-amt" style="${e.a.startsWith('−')?'color:var(--danger);background:#fee2e2':'color:#166534;background:#dcfce7'}">${e.a}</div></div>`).join('')}
     </div>
     <div style="padding:12px 12px 6px;font-size:13px;font-weight:800;color:var(--text)">Transaction History</div>
     ${coinData.transactions.length?`<div class="tx-list">${coinData.transactions.slice(0,30).map(tx=>`<div class="tx-item"><div class="tx-dot ${tx.type}">${tx.type==='earned'?'⬆️':tx.type==='redeemed'?'⬇️':'🎁'}</div><div class="tx-info"><div class="tx-desc">${tx.desc}</div><div class="tx-date">${new Date(tx.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div></div><div class="tx-amount ${tx.type}">${tx.type==='redeemed'?'−':'+'} ${tx.amount} 🪙</div></div>`).join('')}</div>`:
@@ -3998,7 +4054,7 @@ function saveProfile() {
 function renderHelp() {
   const faqs = [
     { q: 'How do I track my order?', a: 'Go to Profile → My Orders. You can see real-time status and tracking for all your orders. We also send WhatsApp confirmation after every order.' },
-    { q: 'Can I cancel my order?', a: 'Yes! You can cancel orders that are in "Placed" or "Confirmed" status. Go to My Orders and tap Cancel. Note: 10 ApyCoins are deducted as a cancellation fee.' },
+{ q: 'Can I cancel my order?', a: 'Yes! You can cancel orders in "Placed" or "Confirmed" status. Go to My Orders and tap Cancel. Note: −10 coins cancel penalty + earned coins reversed. For returns: −15 coins penalty applies.' },
     { q: 'What is Cash on Delivery (COD)?', a: 'COD means you pay in cash when your order is delivered to your doorstep. We do not charge any extra fee for COD orders.' },
     { q: 'How do I earn ApyCoins?', a: 'You earn 10 ApyCoins on every successful order. Referrals give 100 coins each. Coins can be redeemed for discounts once you have 1,000+ coins.' },
     { q: 'What is the return policy?', a: 'We offer 7-day returns on most products. Simply go to My Orders, tap Return on the delivered order, and select your reason. Our team will arrange a pickup.' },
@@ -4464,11 +4520,12 @@ function setupAuthListener() {
       // Jab bhi koi customer order kare jisme seller ka product ho,
       // seller ko real-time earnings update milega — no fake calculations
       try {
-        const ordersQ = query(
-          collection(db, 'orders'),
-          where('status', 'in', ['placed','confirmed','delivered','processing'])
-        );
-        onSnapshot(ordersQ, (snap) => {
+        const { db: _db, collection: _col, query: _q, where: _w, onSnapshot: _os } = window._fsHelpers;
+const ordersQ = _q(
+  _col(_db, 'orders'),
+  _w('status', 'in', ['placed','confirmed','delivered','processing'])
+);
+_os(ordersQ, (snap) => {
           const realEarns = [];
           snap.forEach(docSnap => {
             const o = docSnap.data();
