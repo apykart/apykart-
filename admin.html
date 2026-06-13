@@ -3721,7 +3721,7 @@ async function approveVerification(docId,userId){
     try{
       // Update verification record
       if(!docId.startsWith('local_')){
-        await updateDoc(doc(db,'seller_verifications',docId),{status:'approved',reviewedAt:serverTimestamp(),reviewedBy:window._ADMIN?.name||'Admin'});
+        await updateDoc(doc(db,'seller_verifications',docId),{status:'approved',reviewedAt:serverTimestamp(),reviewedBy:window._ADMIN?.name||'Admin'}).catch(()=>{});
       }
       // Update user record - set role to seller
       if(userId){
