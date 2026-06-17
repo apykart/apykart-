@@ -3151,7 +3151,7 @@ function renderProfile() {
   // ✅ FIX: Verification banner logic
 const verSt = sellerVerification?.status || '';
 let verBannerHTML = '';
-if (verStatus === 'pending') {
+if (verSt === 'pending') {
   verBannerHTML = `<div style="margin:10px 10px 0;background:#fef9e7;border:1.5px solid #f7c948;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
     <div style="font-size:22px">⏳</div>
     <div>
@@ -3159,7 +3159,7 @@ if (verStatus === 'pending') {
       <div style="font-size:11px;color:#b45309;margin-top:2px">Admin will verify soon</div>
     </div>
   </div>`;
-} else if (verStatus === 'approved') {
+} else if (verSt === 'approved') {
   verBannerHTML = `<div style="margin:10px 10px 0;background:#dcfce7;border:1.5px solid #86efac;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
     <div style="font-size:22px">✅</div>
     <div style="flex:1">
@@ -3168,7 +3168,7 @@ if (verStatus === 'pending') {
     </div>
     <button onclick="showPage('seller-dashboard')" style="background:#16a34a;color:#fff;font-size:11px;font-weight:800;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;flex-shrink:0">Dashboard →</button>
   </div>`;
-} else if (verStatus === 'rejected') {
+} else if (verSt === 'rejected') {
   verBannerHTML = `<div style="margin:10px 10px 0;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
     <div style="font-size:22px">❌</div>
     <div>
