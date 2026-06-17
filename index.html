@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
@@ -1614,6 +1613,35 @@ onAuthStateChanged(auth, async (user) => {
       }
       if (typeof currentPage !== 'undefined' && currentPage === 'my-videos') renderMyVideos();
     }, err => console.warn('User videos snapshot:', err.message));
+// ✅ FIX: seller_verifications real-time listener
+// Admin approve kare → user ko turant pata chale
+onSnapshot(doc(db, 'seller_verifications', uid), (snap) => {
+  if (!snap.exists()) return;
+  const svData = snap.data();
+  if (!svData || !svData.status) return;
+
+  if (typeof sellerVerification !== 'undefined') {
+    if (!sellerVerification) sellerVerification = {};
+    sellerVerification.status = svData.status;
+  }
+
+  if (svData.status === 'approved' && typeof userRole !== 'undefined') {
+    userRole = 'seller';
+  }
+
+  // users/{uid} doc mein bhi sync karo
+  updateDoc(doc(db, 'users', uid), {
+    'seller_verification.status': svData.status,
+    role: svData.status === 'approved' ? 'seller' : 'user',
+    updatedAt: Date.now()
+  }).catch(() => {});
+
+  // Page re-render
+  if (typeof currentPage !== 'undefined') {
+    if (currentPage === 'profile') renderProfile();
+    if (currentPage === 'seller-dashboard') renderSellerDashboard();
+  }
+}, err => console.warn('Seller verification listener:', err.message));
 
   } else {
     window.currentUser = null;
@@ -3121,9 +3149,7 @@ function renderProfile() {
   // Logged in + seller (pending/rejected) → show "Verification Pending/Rejected"
   // Logged in + seller (approved) → show "Seller Dashboard"
   // ✅ FIX: Verification banner logic
-const verStatus = sellerVerification?.status 
-               || sellerVerification?.seller_verification?.status 
-               || '';
+const verSt = sellerVerification?.status || '';
 let verBannerHTML = '';
 if (verStatus === 'pending') {
   verBannerHTML = `<div style="margin:10px 10px 0;background:#fef9e7;border:1.5px solid #f7c948;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
@@ -4047,6 +4073,24 @@ if (uid && window._fsHelpers) {
     status: 'pending',
     submittedAt: serverTimestamp()
   }, { merge: true }).catch(e => console.warn('seller_verifications write:', e.message));
+// ✅ FIX: sellers/{uid} real-time listener
+// Agar admin 'sellers' collection se approve kare tab bhi sync ho
+if (uid && window._fsHelpers) {
+  const { db: fdb, doc: fdoc, onSnapshot: fSnap, updateDoc } = window._fsHelpers;
+  fSnap(fdoc(fdb, 'sellers', uid), (snap) => {
+    if (!snap.exists()) return;
+    const d = snap.data();
+    if (!d || !d.status) return;
+    if (!sellerVerification) sellerVerification = {};
+    sellerVerification.status = d.status;
+    if (d.status === 'approved') userRole = 'seller';
+    // Re-render
+    if (typeof currentPage !== 'undefined') {
+      if (currentPage === 'profile') renderProfile();
+      if (currentPage === 'seller-dashboard') renderSellerDashboard();
+    }
+  }, err => console.warn('Sellers listener:', err.message));
+}
 }
   // Also save to Firestore for admin review
   if (uid && window._fsHelpers) {
