@@ -1736,7 +1736,45 @@ let withdrawalRequests = [];
 let sellerProfile      = {bankName:'',accountNumber:'',ifsc:'',upi:''};
 let userVideos         = [];
 let _swiperIdx         = 0;
+/* ════════ ✅ FIX: FIRESTORE → LOCAL STATE SYNC ════════ */
+window.applyFirestoreUserData = function(d, user) {
+  if (!d) return;
+  cart      = Array.isArray(d.cart) ? d.cart : [];
+  wishlist  = Array.isArray(d.wishlist) ? d.wishlist : [];
+  addresses = Array.isArray(d.addresses) ? d.addresses : [];
+  coinData  = d.coins || {balance:0, transactions:[]};
+  guestUser = d.profile || {name:user?.displayName||'', email:user?.email||'', phone:''};
+  userRole  = d.role || 'user';
+  sellerVerification = d.seller_verification || null;
+  sellerProducts      = Array.isArray(d.seller_products) ? d.seller_products : [];
+  sellerEarnings      = Array.isArray(d.seller_earnings) ? d.seller_earnings : [];
+  withdrawalRequests  = Array.isArray(d.withdrawals) ? d.withdrawals : [];
+  sellerProfile = d.seller_profile || {bankName:'',accountNumber:'',ifsc:'',upi:''};
+  userVideos    = Array.isArray(d.user_videos) ? d.user_videos : [];
 
+  updateCartBadge();
+  updateHeaderLocation();
+
+  if (typeof currentPage !== 'undefined') {
+    if (currentPage === 'profile')               renderProfile();
+    else if (currentPage === 'seller-dashboard')  renderSellerDashboard();
+    else if (currentPage === 'cart')              renderCart();
+    else if (currentPage === 'wishlist')          renderWishlist();
+    else if (currentPage === 'wallet')            renderWallet();
+    else if (currentPage === 'addresses')         renderAddresses();
+  }
+};
+
+window.applyFirestoreOrders = function(orderList) {
+  orders = orderList || [];
+  if (typeof currentPage !== 'undefined' && currentPage === 'orders') renderOrders();
+};
+
+window.applyFirestoreUserVideos = function(vids) {
+  userVideos = vids || [];
+  if (typeof currentPage !== 'undefined' && currentPage === 'my-videos') renderMyVideos();
+};
+ 
 // reloadUserData — Firestore onSnapshot handles real-time updates
 function reloadUserData() {
   setTimeout(updateHeaderLocation, 100);
