@@ -1560,38 +1560,22 @@ onAuthStateChanged(auth, async (user) => {
       }
     } catch(e) { console.warn('User doc init:', e.message); }
 
-    // Realtime listener on user doc
+// Realtime listener on user doc
     _userUnsub = onSnapshot(userDocRef, (snap) => {
       const d = snap.data() || {};
-      if (typeof cart !== 'undefined') {
-        cart      = Array.isArray(d.cart)      ? d.cart      : [];
-        wishlist  = Array.isArray(d.wishlist)  ? d.wishlist  : [];
-        addresses = Array.isArray(d.addresses) ? d.addresses : [];
-        coinData  = d.coins ? d.coins : {balance:0, transactions:[]};
-        guestUser = d.profile ? d.profile : {name: user.displayName||'', email: user.email||'', phone:''};
+      if (typeof window.applyFirestoreUserData === 'function') {
+        window.applyFirestoreUserData(d, user);
       }
-      if (typeof userRole !== 'undefined') {
-        userRole           = d.role              || 'user';
-        sellerVerification = d.seller_verification || null;
-        sellerProducts     = Array.isArray(d.seller_products)  ? d.seller_products  : [];
-        sellerEarnings     = Array.isArray(d.seller_earnings)  ? d.seller_earnings  : [];
-        withdrawalRequests = Array.isArray(d.withdrawals)      ? d.withdrawals      : [];
-        sellerProfile      = d.seller_profile   || {bankName:'',accountNumber:'',ifsc:'',upi:''};
-        userVideos         = Array.isArray(d.user_videos)      ? d.user_videos      : [];
-      }
-      updateCartBadge();
-      if (typeof currentPage !== 'undefined' && currentPage === 'profile') renderProfile();
     }, err => console.warn('User snapshot error:', err.message));
-
     // Load orders subcollection realtime
     const ordersCol = collection(db, 'users', uid, 'orders');
     const oq = query(ordersCol, orderBy('createdAt', 'desc'));
     onSnapshot(oq, (snap) => {
-      if (typeof orders !== 'undefined') {
-        orders = [];
-        snap.forEach(d => orders.push({...d.data(), id: d.id}));
+      const orderList = [];
+      snap.forEach(d => orderList.push({...d.data(), id: d.id}));
+      if (typeof window.applyFirestoreOrders === 'function') {
+        window.applyFirestoreOrders(orderList);
       }
-      if (typeof currentPage !== 'undefined' && currentPage === 'orders') renderOrders();
     }, err => console.warn('Orders snapshot:', err.message));
 
     // ─── ✅ FIX: User ki apni videos ka real-time listener (status changes dikhao) ───
@@ -1600,18 +1584,16 @@ onAuthStateChanged(auth, async (user) => {
     //   but Firestore where+orderBy on different fields needs composite index.
     //   createdAt uses serverTimestamp() and is compatible without extra index.
     const userVidsQ = query(collection(db, 'videos'), where('uploaderUid', '==', uid), orderBy('createdAt', 'desc'));
-    onSnapshot(userVidsQ, (snap) => {
-      if (typeof userVideos !== 'undefined') {
-        // Replace userVideos with fresh Firestore data (has latest status from admin)
-        userVideos = snap.docs.map(d => ({...d.data(), id: d.id, _fsId: d.id}));
-        userVideos.forEach(v => { v.views = Number(v.views) || 0; });
-        // ✅ FIX: Also sync status back into user doc so local saves are consistent
-        if (window._fsHelpers && uid) {
-          const { db: fdb, doc: fdoc, updateDoc } = window._fsHelpers;
-          updateDoc(fdoc(fdb, 'users', uid), { user_videos: userVideos }).catch(()=>{});
-        }
+onSnapshot(userVidsQ, (snap) => {
+      const vids = snap.docs.map(d => ({...d.data(), id: d.id, _fsId: d.id}));
+      vids.forEach(v => { v.views = Number(v.views) || 0; });
+      if (typeof window.applyFirestoreUserVideos === 'function') {
+        window.applyFirestoreUserVideos(vids);
       }
-      if (typeof currentPage !== 'undefined' && currentPage === 'my-videos') renderMyVideos();
+      if (window._fsHelpers && uid) {
+        const { db: fdb, doc: fdoc, updateDoc } = window._fsHelpers;
+        updateDoc(fdoc(fdb, 'users', uid), { user_videos: vids }).catch(()=>{});
+      }
     }, err => console.warn('User videos snapshot:', err.message));
 // ✅ FIX: seller_verifications real-time listener
 // Admin approve kare → user ko turant pata chale
@@ -1620,27 +1602,15 @@ onSnapshot(doc(db, 'seller_verifications', uid), (snap) => {
   const svData = snap.data();
   if (!svData || !svData.status) return;
 
-  if (typeof sellerVerification !== 'undefined') {
-    if (!sellerVerification) sellerVerification = {};
-    sellerVerification.status = svData.status;
+  if (typeof window.applySellerVerification === 'function') {
+    window.applySellerVerification(svData);
   }
 
-  if (svData.status === 'approved' && typeof userRole !== 'undefined') {
-    userRole = 'seller';
-  }
-
-  // users/{uid} doc mein bhi sync karo
   updateDoc(doc(db, 'users', uid), {
     'seller_verification.status': svData.status,
     role: svData.status === 'approved' ? 'seller' : 'user',
     updatedAt: Date.now()
   }).catch(() => {});
-
-  // Page re-render
-  if (typeof currentPage !== 'undefined') {
-    if (currentPage === 'profile') renderProfile();
-    if (currentPage === 'seller-dashboard') renderSellerDashboard();
-  }
 }, err => console.warn('Seller verification listener:', err.message));
 
   } else {
@@ -2056,7 +2026,8 @@ function stopAllXplorVideos() {
 }
 
 function showPage(page, productId) {
-  // ✅ FIX 2: Jab bhi xplor se kisi aur page par jao → videos band karo
+  window.currentPage = page; // ← यह line ADD करो
+  // ✅ FIX 2: Jab bhi xplor se kisi aur page par jao
   if (currentPage === 'xplor' && page !== 'xplor') {
     stopAllXplorVideos();
   }
