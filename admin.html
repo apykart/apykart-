@@ -1677,11 +1677,24 @@ _SEL_UNSUB=onSnapshot(
   collection(db,'sellers'),
   async snap=>{
     _SELLERS=snap.docs.map(d=>({_did:d.id,...d.data()}));
-    // Agar sellers collection empty hai → users collection check karo
     if(_SELLERS.length===0){
       try{
-        const{getDocs}=window._FB;
+        // ✅ FIX: window._FB की बजाय local db use करो
         const uSnap=await getDocs(collection(db,'users'));
+        const sellerUsers=uSnap.docs.map(d=>({_did:d.id,...d.data()}))
+          .filter(u=>
+            u.role==='seller'||
+            u.isSeller===true||
+            u.sellerVerification?.status==='approved'||
+            u.seller_verification?.status==='approved'
+          );
+        if(sellerUsers.length>0) _SELLERS=sellerUsers;
+      }catch(e){console.warn('Users-as-sellers fallback:',e);}
+    }
+    if(_PAGE==='sellers')filterSellers();
+  },
+  e=>console.warn('🔴 Sellers listener:',e)
+);
         const sellerUsers=uSnap.docs.map(d=>({_did:d.id,...d.data()}))
           .filter(u=>
             u.role==='seller'||
@@ -2742,9 +2755,12 @@ function filterSellers(q){
   };
   tbody.innerHTML=items.length?items.map(s=>{
     // Multiple field names support
-    const name=s.name||s.shopName||s.storeName||s.sellerName||s.displayName||'Unknown';
-    const phone=s.phone||s.mobile||s.contactPhone||s.userPhone||'—';
-    const email=s.email||s.contactEmail||s.userEmail||'—';
+    const name = s.name || s.shopName || s.storeName || s.sellerName 
+           || s.displayName || s.profile?.name || s.userName || 'Unknown';
+const phone = s.phone || s.mobile || s.contactPhone || s.userPhone 
+            || s.profile?.phone || '—';
+const email = s.email || s.contactEmail || s.userEmail 
+            || s.profile?.email || '—';
     const status=s.status||(s.role==='seller'?'seller':null)||'pending';
     const st=stMap[status]||{b:'bdg-n',l:status};
     return `<tr>
@@ -3717,26 +3733,67 @@ function viewDoc(url){
 
 async function approveVerification(docId,userId){
   confirm2('Approve Seller','This will grant seller status. Are you sure?',async()=>{
-    const{db,doc,updateDoc,serverTimestamp,setDoc,collection}=window._FB;
+    const{db,doc,updateDoc,serverTimestamp,setDoc,getDoc}=window._FB;
     try{
-      // Update verification record
+      // 1. seller_verifications update
       if(!docId.startsWith('local_')){
-        await updateDoc(doc(db,'seller_verifications',docId),{status:'approved',reviewedAt:serverTimestamp(),reviewedBy:window._ADMIN?.name||'Admin'}).catch(()=>{});
+        await updateDoc(doc(db,'seller_verifications',docId),{
+          status:'approved',
+          reviewedAt:serverTimestamp(),
+          reviewedBy:window._ADMIN?.name||'Admin'
+        }).catch(()=>{});
       }
-      // Update user record - set role to seller
+
+      // 2. Users collection se REAL name/email/phone fetch karo
+      let userName='', userPhone='', userEmail='';
       if(userId){
-        await updateDoc(doc(db,'users',userId),{'sellerVerification.status':'approved',userRole:'seller',updatedAt:serverTimestamp()}).catch(()=>{});
+        const uSnap=await getDoc(doc(db,'users',userId)).catch(()=>null);
+        if(uSnap&&uSnap.exists()){
+          const ud=uSnap.data();
+          userName = ud.profile?.name || ud.name || ud.displayName || '';
+          userPhone = ud.profile?.phone || ud.phone || ud.mobile || '';
+          userEmail = ud.profile?.email || ud.email || '';
+        }
       }
-      // Create seller record
+
+      // verData se bhi try karo agar user doc mein nahi mila
+      const verData=_VER_LIST.find(v=>v._did===docId)||{};
+      if(!userName) userName = verData.name||verData.userName||'Unknown';
+      if(!userPhone) userPhone = verData.phone||verData.userPhone||'';
+      if(!userEmail) userEmail = verData.email||verData.userEmail||'';
+
+      // 3. Users doc update — role seller karo
       if(userId){
-        const verData=_VER_LIST.find(v=>v._did===docId)||{};
-        await setDoc(doc(db,'sellers',userId),{uid:userId,name:verData.userName||'',phone:verData.userPhone||'',status:'verified',verifiedAt:serverTimestamp(),verifiedBy:window._ADMIN?.name||'Admin',docType:verData.docType||'',createdAt:serverTimestamp()},{merge:true});
+        await updateDoc(doc(db,'users',userId),{
+          role:'seller',
+          userRole:'seller',
+          isSeller:true,
+          'sellerVerification.status':'approved',
+          'sellerVerification.approvedAt':serverTimestamp(),
+          'seller_verification.status':'approved',
+          updatedAt:serverTimestamp()
+        }).catch(e=>console.warn('User update:',e));
       }
-      toast('Seller approved ✅ User role updated — they can now list products!','suc');
-    }catch(e){toast('Error: '+e.message,'err');}
+
+      // 4. Sellers collection mein proper data ke saath save karo
+      if(userId){
+        await setDoc(doc(db,'sellers',userId),{
+          uid:userId,
+          name:userName,
+          phone:userPhone,
+          email:userEmail,
+          status:'verified',
+          verifiedAt:serverTimestamp(),
+          verifiedBy:window._ADMIN?.name||'Admin',
+          docType:verData.docType||'',
+          createdAt:serverTimestamp()
+        },{merge:true});
+      }
+
+      toast('Seller approved ✅ Name: '+userName,'suc');
+    }catch(e){toast('Error: '+e.message,'err');console.error(e);}
   },'✅','Approve');
 }
-
 async function rejectVerification(docId,userId){
   confirm2('Reject Verification','Reject this seller application?',async()=>{
     const{db,doc,updateDoc,serverTimestamp}=window._FB;
