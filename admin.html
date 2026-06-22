@@ -1694,23 +1694,6 @@ _SEL_UNSUB=onSnapshot(
   },
   e=>console.warn('🔴 Sellers listener:',e)
 );
-        const sellerUsers=uSnap.docs.map(d=>({_did:d.id,...d.data()}))
-          .filter(u=>
-            u.role==='seller'||
-            u.isSeller===true||
-            u.sellerProfile||
-            u.shopInfo||
-            u.shopName||
-            u.sellerVerification?.status==='approved'
-          );
-        if(sellerUsers.length>0) _SELLERS=sellerUsers;
-      }catch(e){console.warn('Users-as-sellers fallback:',e);}
-    }
-    if(_PAGE==='sellers')filterSellers();
-  },
-  e=>console.warn('🔴 Sellers listener:',e)
-);
-
   // ── Withdrawals (live) ──
   if(_WD_UNSUB)_WD_UNSUB();
   try{
