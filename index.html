@@ -1598,6 +1598,29 @@ onSnapshot(userVidsQ, (snap) => {
 // ✅ FIX: seller_verifications real-time listener
 // Admin approve kare → user ko turant pata chale
 onSnapshot(doc(db, 'seller_verifications', uid), (snap) => {
+  // ✅ sellers/{uid} real-time listener
+// Admin sellers collection update karta hai — yahan se user ko pata chalega
+onSnapshot(doc(db, 'sellers', uid), (snap) => {
+  if (!snap.exists()) return;
+  const sd = snap.data();
+  if (!sd || !sd.status) return;
+
+  if (!sellerVerification) sellerVerification = {};
+  sellerVerification.status = sd.status;
+
+  if (sd.status === 'approved') {
+    userRole = 'seller';
+    // users doc bhi update karo
+    updateDoc(doc(db, 'users', uid), {
+      role: 'seller',
+      'seller_verification.status': 'approved',
+      updatedAt: Date.now()
+    }).catch(() => {});
+  }
+
+  if (currentPage === 'profile') renderProfile();
+  if (currentPage === 'seller-dashboard') renderSellerDashboard();
+}, err => console.warn('sellers listener:', err.message));
   if (!snap.exists()) return;
   const svData = snap.data();
   if (!svData || !svData.status) return;
@@ -1767,9 +1790,13 @@ window.applyFirestoreUserData = function(d, user) {
   if (Array.isArray(d.wishlist))         wishlist           = d.wishlist;
   if (Array.isArray(d.addresses))        addresses          = d.addresses;
   if (d.coins)                           coinData           = d.coins;
-  if (d.role)                            userRole           = d.role;
-  if (d.seller_verification)             sellerVerification = d.seller_verification;
-  if (d.sellerVerification)             sellerVerification = d.sellerVerification;
+  if (d.role) userRole = d.role;
+
+const svData = d.sellerVerification || d.seller_verification || null;
+if (svData) {
+  sellerVerification = svData;
+  if (svData.status === 'approved') userRole = 'seller';
+}
   if (Array.isArray(d.seller_products))  sellerProducts     = d.seller_products;
   if (Array.isArray(d.seller_earnings))  sellerEarnings     = d.seller_earnings;
   if (Array.isArray(d.withdrawals))      withdrawalRequests = d.withdrawals;
@@ -3477,10 +3504,17 @@ function renderSellerDashboard() {
     return;
   }
   // NAYA — yeh lagao
-const verSt = sellerVerification?.status || '';
+// Multiple sources se status check karo
+const verSt = sellerVerification?.status
+           || sellerVerification?.verification?.status
+           || '';
+
 if (verSt === 'approved') userRole = 'seller';
 
-if (userRole !== 'seller' && verSt !== 'approved') {
+// Sirf tab redirect karo jab koi verification submit hi nahi ki
+const hasEverSubmitted = ['pending', 'approved', 'rejected'].includes(verSt);
+
+if (userRole !== 'seller' && !hasEverSubmitted) {
   showPage('profile');
   openSellerVerificationModal();
   return;
@@ -4013,6 +4047,15 @@ async function submitSellerVerificationWithFiles() {
   if (!uid) { showToast('Login required', 'warn'); return; }
 
   // Update submit button
+  // ✅ Sahi data collect karo — Google Auth + guestUser dono se
+const _sellerName  = window.currentUser?.displayName
+                  || guestUser?.name
+                  || window.currentUser?.email?.split('@')[0]
+                  || '';
+const _sellerEmail = window.currentUser?.email 
+                  || guestUser?.email 
+                  || '';
+const _sellerPhone = guestUser?.phone || '';
   const btn = document.querySelector('[onclick="submitSellerVerificationWithFiles()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading...'; }
   showToast('Documents upload ho rahe hain...', 'info');
@@ -4059,10 +4102,10 @@ if (uid && window._fsHelpers) {
   
   // 1. sellers/{uid} — admin sellers page यहाँ से पढ़ता है
   setDoc(doc(db, 'sellers', uid), {
-    uid,
-    name: window.currentUser?.displayName || guestUser?.name || '',
-    phone: guestUser?.phone || window.currentUser?.phoneNumber || '',
-    email: window.currentUser?.email || guestUser?.email || '',
+  uid,
+  name:  _sellerName,
+  phone: _sellerPhone,
+  email: _sellerEmail,
     status: 'pending',
     verification: {
       docType,
@@ -4079,10 +4122,10 @@ if (uid && window._fsHelpers) {
 
   // 2. seller_verifications/{uid} — admin verification page यहाँ से पढ़ता है
   setDoc(doc(db, 'seller_verifications', uid), {
-    userId: uid,
-    userName: window.currentUser?.displayName || guestUser.name || '',
-    userPhone: guestUser.phone || '',
-    userEmail: window.currentUser?.email || '',
+  userId: uid,
+  userName:  _sellerName,
+  userPhone: _sellerPhone,
+  userEmail: _sellerEmail,
     docType,
     docNumber,
     frontImage: frontImageUrl || '',
