@@ -2737,12 +2737,16 @@ function filterSellers(q){
   };
   tbody.innerHTML=items.length?items.map(s=>{
     // Multiple field names support
-    const name = s.name || s.shopName || s.storeName || s.sellerName 
-           || s.displayName || s.profile?.name || s.userName || 'Unknown';
-const phone = s.phone || s.mobile || s.contactPhone || s.userPhone 
-            || s.profile?.phone || '—';
-const email = s.email || s.contactEmail || s.userEmail 
-            || s.profile?.email || '—';
+const name = s.name       || s.shopName    || s.storeName
+          || s.sellerName || s.displayName || s.profile?.name
+          || s.userName   || s.ownerName   || 'Unknown';
+
+const phone = s.phone    || s.mobile       || s.contactPhone
+           || s.userPhone || s.phoneNumber || s.profile?.phone
+           || '—';
+
+const email = s.email       || s.contactEmail  || s.userEmail
+           || s.profile?.email || s.emailAddress || '—';
     const status=s.status||(s.role==='seller'?'seller':null)||'pending';
     const st=stMap[status]||{b:'bdg-n',l:status};
     return `<tr>
@@ -3732,17 +3736,20 @@ async function approveVerification(docId,userId){
         const uSnap=await getDoc(doc(db,'users',userId)).catch(()=>null);
         if(uSnap&&uSnap.exists()){
           const ud=uSnap.data();
-          userName = ud.profile?.name || ud.name || ud.displayName || '';
-          userPhone = ud.profile?.phone || ud.phone || ud.mobile || '';
-          userEmail = ud.profile?.email || ud.email || '';
+userName  = ud.profile?.name  || ud.name  || ud.displayName
+         || ud.sellerName     || ud.ownerName               || '';
+userPhone = ud.profile?.phone || ud.phone || ud.mobile
+         || ud.phoneNumber    || ud.contactPhone             || '';
+userEmail = ud.profile?.email || ud.email || ud.emailAddress || '';
         }
       }
 
       // verData se bhi try karo agar user doc mein nahi mila
       const verData=_VER_LIST.find(v=>v._did===docId)||{};
-      if(!userName) userName = verData.name||verData.userName||'Unknown';
-      if(!userPhone) userPhone = verData.phone||verData.userPhone||'';
-      if(!userEmail) userEmail = verData.email||verData.userEmail||'';
+ if (!userName)  userName  = verData.name  || verData.userName
+             || verData.ownerName         || 'Unknown';
+if (!userPhone) userPhone = verData.phone || verData.userPhone || '';
+if (!userEmail) userEmail = verData.email || verData.userEmail || '';
 
       // 3. Users doc update — role seller karo
       if(userId){
@@ -3759,18 +3766,21 @@ async function approveVerification(docId,userId){
 
       // 4. Sellers collection mein proper data ke saath save karo
       if(userId){
-        await setDoc(doc(db,'sellers',userId),{
-          uid:userId,
-          name:userName,
-          phone:userPhone,
-          email:userEmail,
-          status:'verified',
-          verifiedAt:serverTimestamp(),
-          verifiedBy:window._ADMIN?.name||'Admin',
-          docType:verData.docType||'',
-          createdAt:serverTimestamp()
-        },{merge:true});
-      }
+await setDoc(doc(db,'sellers',userId),{
+  uid:     userId,
+  name:    userName,
+  phone:   userPhone,
+  email:   userEmail,
+  status:  'verified',
+  verifiedAt:  serverTimestamp(),
+  verifiedBy:  window._ADMIN?.name || 'Admin',
+  docType:     verData.docType     || '',
+  // ✅ Ye fields admin panel sellers table mein display hote hain
+  shopName:    verData.shopName    || '',
+  storeName:   verData.storeName   || userName,
+  createdAt:   serverTimestamp(),
+  updatedAt:   serverTimestamp()
+},{merge:true});
 
       toast('Seller approved ✅ Name: '+userName,'suc');
     }catch(e){toast('Error: '+e.message,'err');console.error(e);}
