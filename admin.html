@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1329,19 +1328,27 @@ img { display: block; max-width: 100%; }
   <div class="mod mod-md">
     <div class="mh"><div class="mt" id="ban-mod-title">🖼️ Add Banner</div><div class="mx" onclick="closeOv('ov-banner')">✕</div></div>
     <div class="mb">
-      <div class="fg" style="margin-bottom:12px"><label class="fl">Title <span style="color:var(--text3);font-weight:500;text-transform:none;letter-spacing:0">(optional if image uploaded)</span></label><input class="fi" id="bm-title" placeholder="Big Summer Sale is Live! (optional)"></div>
-      <div class="fg" style="margin-bottom:12px"><label class="fl">Subtitle</label><input class="fi" id="bm-sub" placeholder="Up to 70% off"></div>
-      <div class="frow frow2" style="margin-bottom:12px"><div class="fg"><label class="fl">Button Label</label><input class="fi" id="bm-btn" placeholder="Shop Now →"></div><div class="fg"><label class="fl">Tag Label</label><input class="fi" id="bm-tag" placeholder="⚡ Limited Time"></div></div>
-      <div class="frow frow2" style="margin-bottom:12px"><div class="fg"><label class="fl">Emoji</label><input class="fi" id="bm-emoji" placeholder="🎉" style="font-size:20px"></div><div class="fg"><label class="fl">Sort Order</label><input class="fi" id="bm-ord" type="number" value="1"></div></div>
-      <div class="fg" style="margin-bottom:12px"><label class="fl">Background Gradient</label><input class="fi" id="bm-bg" placeholder="linear-gradient(135deg,#ff6b35,#f7c948)"></div>
-      <div class="fg" style="margin-bottom:12px"><label class="fl">Action on Click</label><select class="fs" id="bm-act"><option value="search">Go to Search</option><option value="home">Go to Home</option><option value="sale">Flash Sale</option></select></div>
-      <div class="fg" style="margin-bottom:12px">
-        <label class="fl">Banner Image</label>
-        <div class="uzone"><input type="file" accept="image/*" onchange="handleBannerImg(this.files[0])"><div class="uzone-icon" style="font-size:24px">🖼️</div><div class="uzone-lbl">Upload banner image</div></div>
+      <div class="fg" style="margin-bottom:16px">
+        <label class="fl">Banner Image <span class="req">*</span></label>
+        <div class="uzone"><input type="file" accept="image/*" onchange="handleBannerImg(this.files[0])"><div class="uzone-icon" style="font-size:24px">🖼️</div><div class="uzone-lbl">Upload banner image</div><div class="uzone-sub">Upload karte hi neeche preview dikhega</div></div>
         <div class="uprog" id="bm-uprog"><div class="uprog-fill" id="bm-uprog-fill" style="width:0%"></div></div>
         <div id="bm-img-prev" style="margin-top:10px"></div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between"><label class="fl" style="margin:0">Active</label><label class="tog"><input type="checkbox" id="bm-act2" checked><span class="tog-sl"></span></label></div>
+      <div class="fg" style="margin-bottom:14px">
+        <label class="fl">Banner Size</label>
+        <select class="fs" id="bm-size">
+          <option value="3:1">🖼️ Wide Banner (3:1) — Homepage top strip</option>
+          <option value="16:9">📺 Landscape (16:9)</option>
+          <option value="21:9">📏 Ultra-wide (21:9)</option>
+          <option value="1:1">◻️ Square (1:1)</option>
+          <option value="4:5">📱 Portrait (4:5)</option>
+        </select>
+        <div class="fhint">Apni image jaisi shape ki ho, wahi size chuno — banner usi hisaab se fit hoga</div>
+      </div>
+      <div class="frow frow2">
+        <div class="fg"><label class="fl">Sort Order</label><input class="fi" id="bm-ord" type="number" value="1"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;justify-content:flex-start;gap:10px"><label class="fl" style="margin:0">Active</label><label class="tog"><input type="checkbox" id="bm-act2" checked><span class="tog-sl"></span></label></div>
+      </div>
     </div>
     <div class="mf"><button class="btn btn-g" onclick="closeOv('ov-banner')">Cancel</button><button class="btn btn-p" id="bm-save" onclick="saveBanner()">💾 Save Banner</button></div>
   </div>
@@ -2492,11 +2499,27 @@ function delCat(docId,name){confirm2('Delete Category',`Remove "${name}"?`,async
 
 /* ════════ BANNERS ════════ */
 async function loadBanners(){ renderBanners(); }
+function bannerRatioPct(size){
+  const map={'3:1':33.33,'16:9':56.25,'21:9':42.86,'1:1':100,'4:5':125};
+  return map[size]||33.33;
+}
 function renderBanners(){
   const grid=document.getElementById('ban-grid');if(!grid)return;
-  grid.innerHTML=_BANNERS.length?_BANNERS.map(b=>`<div class="card" style="overflow:hidden"><div style="background:${b.bg||'var(--s3)'};padding:18px 22px;position:relative;min-height:80px;display:flex;align-items:center;gap:18px"><div style="flex:1;position:relative;z-index:1">${b.tag?`<div style="font-size:10px;font-weight:700;background:rgba(255,255,255,.18);color:#fff;padding:2px 9px;border-radius:20px;display:inline-block;margin-bottom:7px">${esc(b.tag)}</div>`:''}<div style="font-size:19px;font-weight:800;color:#fff;line-height:1.2">${esc(b.title||'')}</div><div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px">${esc(b.sub||'')}</div></div><div style="font-size:48px;opacity:.75;z-index:1">${b.emoji||'🎉'}</div>${b.imageUrl?`<img src="${b.imageUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.22" alt="">`:''}</div><div class="cb" style="padding:11px 16px;display:flex;align-items:center;gap:12px"><label class="tog" style="transform:scale(.85)"><input type="checkbox" ${b.active?'checked':''} onchange="togBan('${b._did}',this.checked)"><span class="tog-sl"></span></label><span style="font-size:12px;color:var(--text2)">${b.active?'Active':'Inactive'}</span><span style="font-size:11px;color:var(--text3);flex:1">Order: ${b.order||1}</span><button class="btn btn-g btn-xs" onclick="openBannerModal('${b._did}')">✏️</button><button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="delBan('${b._did}','${esc(b.title||'')}')">🗑️</button></div></div>`).join(''):'<div class="empty"><div class="empty-ic">🖼️</div><div class="empty-tt">No banners yet</div><button class="btn btn-p" onclick="openBannerModal(null)" style="margin-top:10px">Add First Banner</button></div>';
+  grid.innerHTML=_BANNERS.length?_BANNERS.map(b=>`<div class="card" style="overflow:hidden"><div style="position:relative;width:100%;padding-top:${bannerRatioPct(b.size)}%;background:var(--s3)">${b.imageUrl?`<img src="${b.imageUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="banner">`:`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--text3)">🖼️ No image</div>`}</div><div class="cb" style="padding:11px 16px;display:flex;align-items:center;gap:12px"><label class="tog" style="transform:scale(.85)"><input type="checkbox" ${b.active?'checked':''} onchange="togBan('${b._did}',this.checked)"><span class="tog-sl"></span></label><span style="font-size:12px;color:var(--text2)">${b.active?'Active':'Inactive'}</span><span style="font-size:11px;color:var(--text3);flex:1">Order: ${b.order||1} · ${b.size||'3:1'}</span><button class="btn btn-g btn-xs" onclick="openBannerModal('${b._did}')">✏️</button><button class="btn btn-xs" style="background:var(--red-g);color:var(--red)" onclick="delBan('${b._did}','Banner')">🗑️</button></div></div>`).join(''):'<div class="empty"><div class="empty-ic">🖼️</div><div class="empty-tt">No banners yet</div><button class="btn btn-p" onclick="openBannerModal(null)" style="margin-top:10px">Add First Banner</button></div>';
 }
-function openBannerModal(docId){_EDIT_BAN_ID=docId||null;_BAN_IMG_URL=null;const b=docId?_BANNERS.find(x=>x._did===docId):null;document.getElementById('ban-mod-title').textContent=b?'✏️ Edit Banner':'🖼️ Add Banner';const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??'';};sv('bm-title',b?.title||'');sv('bm-sub',b?.sub||'');sv('bm-btn',b?.btnLabel||'Shop Now →');sv('bm-tag',b?.tag||'');sv('bm-emoji',b?.emoji||'🎉');sv('bm-bg',b?.bg||'linear-gradient(135deg,#ff6b35 0%,#f7c948 100%)');sv('bm-act',b?.action||'search');sv('bm-ord',b?.order||1);document.getElementById('bm-act2').checked=b?.active!==false;_BAN_IMG_URL=b?.imageUrl||null;const prev=document.getElementById('bm-img-prev');if(prev)prev.innerHTML=_BAN_IMG_URL?`<div class="uthumb" style="width:120px;height:56px"><img src="${_BAN_IMG_URL}" alt="banner"><div class="uthumb-x" onclick="_BAN_IMG_URL=null;this.closest('.uthumb').remove()">✕</div></div>`:'';document.getElementById('bm-uprog').style.display='none';openOv('ov-banner');}
+function openBannerModal(docId){
+  _EDIT_BAN_ID=docId||null;_BAN_IMG_URL=null;
+  const b=docId?_BANNERS.find(x=>x._did===docId):null;
+  document.getElementById('ban-mod-title').textContent=b?'✏️ Edit Banner':'🖼️ Add Banner';
+  document.getElementById('bm-size').value=b?.size||'3:1';
+  document.getElementById('bm-ord').value=b?.order||1;
+  document.getElementById('bm-act2').checked=b?.active!==false;
+  _BAN_IMG_URL=b?.imageUrl||null;
+  const prev=document.getElementById('bm-img-prev');
+  if(prev)prev.innerHTML=_BAN_IMG_URL?`<div class="uthumb" style="width:160px;height:60px"><img src="${_BAN_IMG_URL}" alt="banner"><div class="uthumb-x" onclick="_BAN_IMG_URL=null;this.closest('.uthumb').remove()">✕</div></div>`:'';
+  document.getElementById('bm-uprog').style.display='none';
+  openOv('ov-banner');
+}
 async function handleBannerImg(file) {
   if (!file) return;
   const fill = document.getElementById('bm-uprog-fill');
@@ -2524,9 +2547,8 @@ async function handleBannerImg(file) {
   }
 }
 async function saveBanner(){
-  const gv=id=>document.getElementById(id)?.value?.trim()||'';
-  if(!gv('bm-title') && !_BAN_IMG_URL){toast('Title ya Image me se ek to bharo','wrn');return;}
-  const data={title:gv('bm-title')||'Banner',sub:gv('bm-sub'),btnLabel:gv('bm-btn')||'Shop Now →',emoji:gv('bm-emoji')||'🎉',bg:gv('bm-bg')||'linear-gradient(135deg,#3b82f6,#6366f1)',tag:gv('bm-tag'),action:gv('bm-act')||'search',order:parseInt(gv('bm-ord'))||1,active:document.getElementById('bm-act2')?.checked,imageUrl:_BAN_IMG_URL||null};
+  if(!_BAN_IMG_URL){toast('Pehle banner image upload karo','wrn');return;}
+  const data={imageUrl:_BAN_IMG_URL,size:document.getElementById('bm-size')?.value||'3:1',order:parseInt(document.getElementById('bm-ord')?.value)||1,active:document.getElementById('bm-act2')?.checked};
   const{db,collection,doc,addDoc,updateDoc,serverTimestamp}=window._FB;const btn=document.getElementById('bm-save');if(btn)btn.classList.add('btn-ld');
   try{if(_EDIT_BAN_ID){await updateDoc(doc(db,'banners',_EDIT_BAN_ID),{...data,updatedAt:serverTimestamp()});toast('Banner updated ✅','suc');}else{await addDoc(collection(db,'banners'),{...data,createdAt:serverTimestamp()});toast('Banner added ✅','suc');}closeOv('ov-banner');}catch(e){toast('Save failed: '+e.message,'err');}finally{if(btn)btn.classList.remove('btn-ld');}
 }
