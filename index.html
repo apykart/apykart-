@@ -818,7 +818,6 @@ a{text-decoration:none;color:inherit}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:7px 0;position:relative;transition:transform .15s}
 .nav-item:active{transform:scale(.88)}
 .nav-xplor-btn{background:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-bottom:2px;transition:transform .15s;color:var(--text3)}
-.nav-item.active .nav-xplor-btn{color:var(--primary)}
 
 /* ─── NOTIFICATIONS (HOME) ─── */
 .notifications-panel{position:fixed;top:70px;right:0;width:300px;max-width:90vw;background:#fff;border-radius:0 0 0 16px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);box-shadow:-8px 8px 32px rgba(0,0,0,.12);z-index:200;max-height:70vh;overflow-y:auto;animation:slideInRight .25s cubic-bezier(.34,1.2,.64,1)}
@@ -1169,12 +1168,9 @@ a{text-decoration:none;color:inherit}
       <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
       <div class="nav-label">Search</div><div class="nav-active-dot"></div>
     </div>
-    <div class="nav-item" id="nav-xplor" onclick="showPage('xplor')">
-      <div class="nav-xplor-btn">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M8 10l4 2-4 2V10z"/><line x1="2" y1="7" x2="22" y2="7"/><line x1="7" y1="2" x2="7" y2="7"/><line x1="17" y1="2" x2="17" y2="7"/></svg>
-      </div>
-      <div class="nav-label" style="font-size:9px;font-weight:800;letter-spacing:.3px">XPLOR</div>
-      <div class="nav-active-dot"></div>
+<div class="nav-item" id="nav-xplor" onclick="showPage('xplor')">
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></div>
+      <div class="nav-label">Xplor</div><div class="nav-active-dot"></div>
     </div>
     <div class="nav-item" id="nav-cart" onclick="showPage('cart')">
       <div class="nav-cart-wrap">
@@ -1481,8 +1477,8 @@ function setupBannersListener() {
       query(collection(db, 'banners'), orderBy('order', 'asc')),
       (snap) => {
         const active = snap.docs
-          .map(d => ({...d.data(), _bid: d.id}))
-          .filter(b => b.active !== false);
+  .map(d => ({...d.data(), _bid: d.id}))
+  .filter(b => b.active !== false && !!b.imageUrl); // ✅ blank/broken banner skip
 
         window._fsBanners = active;
 
@@ -2162,10 +2158,13 @@ function initHeroCarousel() {
   // to sirf clean image dikhao — koi tag/title/sub/button overlay nahi.
   wrap.innerHTML = HERO_SLIDES.map((s,i)=>{
     if (s.imageOnly) {
-      return `<div class="hero-slide ${i===0?'active':''}" id="heroSlide${i}" style="position:relative;overflow:hidden;padding:0">
-        <img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0" onclick="${s.action||''}">
-      </div>`;
-    }
+  if (!s.imageUrl) {
+    return `<div class="hero-slide ${i===0?'active':''}" id="heroSlide${i}" style="background:linear-gradient(135deg,#7c3aed,#2563eb)"></div>`;
+  }
+  return `<div class="hero-slide ${i===0?'active':''}" id="heroSlide${i}" style="position:relative;overflow:hidden;padding:0;background:linear-gradient(135deg,#7c3aed,#2563eb)">
+    <img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0" onclick="${s.action||''}" onerror="this.style.display='none'">
+  </div>`;
+}
     return `<div class="hero-slide ${s.cls} ${i===0?'active':''}" id="heroSlide${i}" style="${s.bg&&!s.cls?'background:'+s.bg:''}${s.imageUrl?';position:relative;overflow:hidden':''}">
       ${s.imageUrl ? `<img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;z-index:0">` : ''}
       <div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
@@ -3697,23 +3696,16 @@ function renderAddProductFormWithLimit(slotsLeft) {
   document.getElementById('sellerTabContent').innerHTML = `
     <div class="seller-section">
       <div style="background:#fef9e7;border:1.5px solid #f7c948;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:700;color:#92400e">
-        ⚡ ${slotsLeft} product slot${slotsLeft!==1?'s':''} remaining (pending verification mein max 5)
+        ⚡ ${slotsLeft} product slot${slotsLeft!==1?'s':''} remaining
       </div>
       <div class="seller-page-title">➕ Add Product</div>
       <div class="seller-card" style="padding:14px">
+
+        <!-- 📦 PRODUCT DETAILS -->
+        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase">📦 Product Details</div>
         <div class="seller-input-group" style="margin-bottom:10px">
           <label class="form-label">Product Name *</label>
           <input type="text" id="prodName" placeholder="e.g. Nike Air Max 270" class="form-input">
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:10px">
-          <div class="seller-input-group" style="flex:1">
-            <label class="form-label">Price (₹) *</label>
-            <input type="number" id="prodPrice" placeholder="999" class="form-input">
-          </div>
-          <div class="seller-input-group" style="flex:1">
-            <label class="form-label">Stock *</label>
-            <input type="number" id="prodStock" placeholder="10" value="10" class="form-input">
-          </div>
         </div>
         <div class="seller-input-group" style="margin-bottom:10px">
           <label class="form-label">Category</label>
@@ -3736,22 +3728,126 @@ function renderAddProductFormWithLimit(slotsLeft) {
           <label class="form-label">Product Images (up to 5)</label>
           <input type="file" id="prodImages" accept="image/*" multiple class="form-input">
         </div>
-        <div id="imagePreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div id="imagePreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+        <div class="seller-input-group" style="margin-bottom:16px">
+          <label class="form-label">Stock Quantity *</label>
+          <input type="number" id="prodStock" placeholder="10" value="10" class="form-input">
+        </div>
+
+        <!-- 💰 PRICING -->
+        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">💰 Pricing</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <div class="seller-input-group" style="flex:1">
+            <label class="form-label">MRP (₹) *</label>
+            <input type="number" id="prodMRP" placeholder="1200" class="form-input" oninput="updateProductCalc()">
+          </div>
+          <div class="seller-input-group" style="flex:1">
+            <label class="form-label">Selling Price (₹) *</label>
+            <input type="number" id="prodPrice" placeholder="1000" class="form-input" oninput="updateProductCalc()">
+          </div>
+        </div>
+
+        <!-- 🤝 AFFILIATE -->
+        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🤝 Affiliate</div>
+        <div class="seller-input-group" style="margin-bottom:16px">
+          <label class="form-label">Affiliate Commission (%)</label>
+          <input type="number" id="prodAffiliateCommission" placeholder="5" value="5" min="0" max="50" class="form-input" oninput="updateProductCalc()">
+        </div>
+
+        <!-- 🪙 BUYER REWARDS -->
+        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🪙 Buyer Rewards</div>
+        <div class="seller-input-group" style="margin-bottom:16px">
+          <label class="form-label">Buyer Coin Reward</label>
+          <input type="number" id="prodCoinReward" placeholder="50" value="50" min="0" class="form-input" oninput="updateProductCalc()">
+        </div>
+
+        <!-- 🚚 SHIPPING -->
+        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🚚 Shipping</div>
+        <div class="seller-input-group" style="margin-bottom:16px">
+          <label class="form-label">Weight (grams)</label>
+          <input type="number" id="prodWeight" placeholder="500" class="form-input">
+        </div>
+
+        <!-- 🏪 STATUS -->
+        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🏪 Product Status</div>
+        <div class="seller-input-group" style="margin-bottom:16px">
+          <select id="prodAvailability" class="form-input">
+            <option value="active">✅ Active</option>
+            <option value="out_of_stock">🚫 Out of Stock</option>
+          </select>
+        </div>
+
+        <!-- 🏢 PLATFORM FEE (read-only) -->
+        <div style="background:#f1f5f9;border-radius:10px;padding:12px 14px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:12px;font-weight:800;color:var(--text)">🏢 Platform Fee</span>
+            <span style="font-size:13px;font-weight:800;color:var(--text3)">Fixed 10% 🔒</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Apykart charges a fixed 10% platform fee on every successful order.</div>
+        </div>
+
+        <!-- 💡 AUTO CALCULATION -->
+        <div id="calcBox" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #bfdbfe;border-radius:12px;padding:14px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px">💡 Earnings Breakdown</div>
+          <div style="font-size:12px;color:var(--text3)">Enter Selling Price to see calculation</div>
+        </div>
+
         <button onclick="submitNewProductBtn()" class="form-submit-btn">🚀 Submit for Approval</button>
       </div>
     </div>`;
   document.getElementById('prodImages').addEventListener('change', previewImages);
 }
+function updateProductCalc() {
+  const price = parseFloat(document.getElementById('prodPrice')?.value) || 0;
+  const commissionPct = parseFloat(document.getElementById('prodAffiliateCommission')?.value) || 0;
+  const coins = parseFloat(document.getElementById('prodCoinReward')?.value) || 0;
+  const box = document.getElementById('calcBox');
+  if (!box) return;
 
+  if (price <= 0) {
+    box.innerHTML = `<div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px">💡 Earnings Breakdown</div><div style="font-size:12px;color:var(--text3)">Enter Selling Price to see calculation</div>`;
+    return;
+  }
+
+  const platformFee   = price * 0.10;
+  const affiliateAmt  = price * (commissionPct / 100);
+  const coinRate      = window.COIN_TO_RUPEE || 0.10;
+  const coinValue     = coins * coinRate;
+  const sellerReceives = Math.max(0, price - platformFee - affiliateAmt - coinValue);
+
+  box.innerHTML = `
+    <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:10px">💡 Earnings Breakdown</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Selling Price</span><span style="font-weight:700">₹${price.toFixed(0)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Platform Fee (10%)</span><span style="font-weight:700;color:var(--danger)">−₹${platformFee.toFixed(0)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Affiliate Commission (${commissionPct}%)</span><span style="font-weight:700;color:var(--danger)">−₹${affiliateAmt.toFixed(0)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Buyer Reward (${coins} coins)</span><span style="font-weight:700;color:var(--danger)">−₹${coinValue.toFixed(0)}</span></div>
+      <div style="border-top:1px solid #bfdbfe;margin-top:4px;padding-top:8px;display:flex;justify-content:space-between">
+        <span style="font-weight:800;color:var(--text)">Estimated You Receive</span>
+        <span style="font-weight:900;color:#166534;font-size:14px">₹${sellerReceives.toFixed(0)}</span>
+      </div>
+    </div>`;
+}
 async function submitNewProductBtn() {
   if (!window.currentUser) { showToast('Pehle login karo bhai', 'warn'); return; }
+
   const name = (document.getElementById('prodName')?.value || '').trim();
+  const mrp = parseFloat(document.getElementById('prodMRP')?.value || 0);
   const price = parseFloat(document.getElementById('prodPrice')?.value || 0);
   const desc = document.getElementById('prodDesc')?.value || '';
   const category = document.getElementById('prodCategory')?.value || 'all';
   const stock = parseInt(document.getElementById('prodStock')?.value) || 10;
+  const affiliateCommission = parseFloat(document.getElementById('prodAffiliateCommission')?.value) || 0;
+  const buyerCoinReward = parseInt(document.getElementById('prodCoinReward')?.value) || 0;
+  const weightGrams = parseFloat(document.getElementById('prodWeight')?.value) || 0;
+  const availabilityStatus = document.getElementById('prodAvailability')?.value || 'active';
+
   if (!name) { showToast('Product name dalo', 'warn'); return; }
-  if (!price || price <= 0) { showToast('Valid price dalo', 'warn'); return; }
+  if (!mrp || mrp <= 0) { showToast('Valid MRP dalo', 'warn'); return; }
+  if (!price || price <= 0) { showToast('Valid Selling Price dalo', 'warn'); return; }
+  if (price > mrp) { showToast('Selling Price, MRP se zyada nahi ho sakti', 'warn'); return; }
+
+  const discount = Math.round(((mrp - price) / mrp) * 100);
 
   const imageFiles = Array.from(document.getElementById('prodImages')?.files || []).slice(0, 5);
   const uid = getUid();
@@ -3789,15 +3885,23 @@ async function submitNewProductBtn() {
     || 'Seller';
 
   const newProduct = {
-    id: prodId, name, price, ogPrice: price, discount: 0,
+    id: prodId, name,
+    ogPrice: mrp,
+    price,
+    discount,
     category, images: imageUrls, img: imageUrls[0] || '', desc, stock,
+    affiliateCommission,
+    buyerCoinReward,
+    weightGrams,
+    availabilityStatus,
+    platformFeePct: 10,
     status: 'pending',
     approvalStatus: 'pending',
     submittedAt: new Date().toISOString(),
     sellerId: uid,
     sellerName: sellerNameResolved,
     sellerEmail: window.currentUser?.email || '',
-    rating: 0, reviews: '0', coinsEarned: 10,
+    rating: 0, reviews: '0', coinsEarned: buyerCoinReward || 10,
     createdAt: new Date().toISOString()
   };
 
@@ -3821,7 +3925,6 @@ async function submitNewProductBtn() {
   window._sellerActiveTab = 'products';
   renderMyProducts();
 }
-
 async function submitNewProduct(e) {
   e.preventDefault();
   submitNewProductBtn();
