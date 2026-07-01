@@ -1513,6 +1513,7 @@ function setupBannersListener() {
           });
           if (typeof currentPage !== 'undefined' && currentPage === 'home') initHeroCarousel();
         }
+      },
       err => console.warn('Banners listener error:', err.message)
     );
   } catch(e) { console.warn('Banners listener setup failed:', e.message); }
