@@ -1476,46 +1476,54 @@ function setupBannersListener() {
     onSnapshot(
       query(collection(db, 'banners'), orderBy('order', 'asc')),
       (snap) => {
-        const active = snap.docs
-  .map(d => ({...d.data(), _bid: d.id}))
-  .filter(b => b.active !== false && !!b.imageUrl); // ✅ blank/broken banner skip
+        // ✅ FIX: Sare banners lo (image ho ya na ho)
+        const allBanners = snap.docs
+          .map(d => ({...d.data(), _bid: d.id}))
+          .filter(b => b.active !== false);  // ✅ Sirf active filters
 
-        window._fsBanners = active;
+        window._fsBanners = allBanners;
 
-// If Firestore has banners, rebuild HERO_SLIDES and restart carousel
-        if (active.length > 0 && typeof HERO_SLIDES !== 'undefined') {
+        // ✅ Agar banners hain toh HERO_SLIDES rebuild karo
+        if (allBanners.length > 0 && typeof HERO_SLIDES !== 'undefined') {
           HERO_SLIDES.length = 0;
-          active.forEach((b, i) => {
+          allBanners.forEach((b, i) => {
             const gradients = [
               'linear-gradient(135deg,#7c3aed 0%,#2563eb 100%)',
               'linear-gradient(135deg,#0f172a 0%,#1e3a8a 100%)',
               'linear-gradient(135deg,#be123c 0%,#f97316 100%)'
             ];
-            // ✅ FIX: Admin ab sirf imageUrl+size bhejta hai. Text fields nahi honge
-            // to koi bhi tag/title/btn overlay mat dikhao — sirf pure image banner.
             HERO_SLIDES.push({
               cls:    'hero-slide-' + ((i % 3) + 1),
-              tag:    b.tag   || '',
-              title:  b.title || '',
+              tag:    b.tag   || '🔥 Featured',
+              title:  b.title || 'Shop Now',
               sub:    b.sub   || '',
-              btn:    b.btn   || b.btnLabel || '',
-              emoji:  b.emoji || '',
+              btn:    b.btn   || b.btnLabel || 'Shop Now →',
+              emoji:  b.emoji || '🛍️',
               action: b.action === 'search' ? "showPage('search')" : (b.action || "showPage('search')"),
               bg:     b.bg    || gradients[i % 3],
               imageUrl: b.imageUrl || '',
+              // ✅ Ye important hai — batata hai ki sirf image hai ya text bhi
               imageOnly: !b.title && !b.tag && !b.btn && !b.btnLabel && !!b.imageUrl,
               size: b.size || '3:1'
             });
           });
           if (typeof currentPage !== 'undefined' && currentPage === 'home') initHeroCarousel();
+        } else {
+          // ✅ Agar koi banner nahi hai — default slides use karo
+          if (typeof HERO_SLIDES !== 'undefined' && HERO_SLIDES.length === 0) {
+            HERO_SLIDES = [
+              { cls:'hero-slide-1', tag:'🔥 Big Sale', title:'Up to 70% Off\nTop Brands', sub:'Limited time · Grab before it\'s gone', btn:'Shop Deals', emoji:'🛍️', action:"showPage('search')" },
+              { cls:'hero-slide-2', tag:'🆕 Just Arrived', title:'New Season\nCollection', sub:'Latest mobiles, fashion & more', btn:'Explore Now', emoji:'✨', action:"filterByCategory('mobiles')" },
+              { cls:'hero-slide-3', tag:'🪙 ApyCoins', title:'Earn & Save\nEvery Order', sub:'Earn coins · Redeem discounts', btn:'Learn More', emoji:'🎁', action:"showPage('wallet')" },
+            ];
+            if (typeof currentPage !== 'undefined' && currentPage === 'home') initHeroCarousel();
+          }
         }
       },
       err => console.warn('Banners listener error:', err.message)
     );
   } catch(e) { console.warn('Banners listener setup failed:', e.message); }
 }
-setupBannersListener();
-
 // ─── Dispatch event so non-module script knows Firebase is ready ───
 window._fbReady = true;
 window.dispatchEvent(new Event('firebase-ready'));
@@ -2154,31 +2162,40 @@ let HERO_SLIDES = [
 function initHeroCarousel() {
   const wrap = document.getElementById('heroCarousel');
   if (!wrap) return;
-  // ✅ FIX: Agar banner imageOnly hai (admin ne sirf image upload ki, text nahi bhara)
-  // to sirf clean image dikhao — koi tag/title/sub/button overlay nahi.
-  wrap.innerHTML = HERO_SLIDES.map((s,i)=>{
-    if (s.imageOnly) {
-  if (!s.imageUrl) {
-    return `<div class="hero-slide ${i===0?'active':''}" id="heroSlide${i}" style="background:linear-gradient(135deg,#7c3aed,#2563eb)"></div>`;
+  
+  // ✅ Agar HERO_SLIDES empty hai toh default set karo
+  if (!HERO_SLIDES || HERO_SLIDES.length === 0) {
+    HERO_SLIDES = [
+      { cls:'hero-slide-1', tag:'🔥 Big Sale', title:'Up to 70% Off\nTop Brands', sub:'Limited time · Grab before it\'s gone', btn:'Shop Deals', emoji:'🛍️', action:"showPage('search')" },
+      { cls:'hero-slide-2', tag:'🆕 Just Arrived', title:'New Season\nCollection', sub:'Latest mobiles, fashion & more', btn:'Explore Now', emoji:'✨', action:"filterByCategory('mobiles')" },
+      { cls:'hero-slide-3', tag:'🪙 ApyCoins', title:'Earn & Save\nEvery Order', sub:'Earn coins · Redeem discounts', btn:'Learn More', emoji:'🎁', action:"showPage('wallet')" },
+    ];
   }
-  return `<div class="hero-slide ${i===0?'active':''}" id="heroSlide${i}" style="position:relative;overflow:hidden;padding:0;background:linear-gradient(135deg,#7c3aed,#2563eb)">
-    <img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0" onclick="${s.action||''}" onerror="this.style.display='none'">
-  </div>`;
-}
-    return `<div class="hero-slide ${s.cls} ${i===0?'active':''}" id="heroSlide${i}" style="${s.bg&&!s.cls?'background:'+s.bg:''}${s.imageUrl?';position:relative;overflow:hidden':''}">
-      ${s.imageUrl ? `<img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;z-index:0">` : ''}
+
+  wrap.innerHTML = HERO_SLIDES.map((s, i) => {
+    // ✅ Image-only banner — clean image, no overlay text
+    if (s.imageOnly && s.imageUrl) {
+      return `<div class="hero-slide ${i === 0 ? 'active' : ''}" id="heroSlide${i}" style="position:relative;overflow:hidden;padding:0;background:linear-gradient(135deg,#7c3aed,#2563eb)">
+        <img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:block" onclick="${s.action || ''}" onerror="this.style.display='none'">
+      </div>`;
+    }
+    
+    // ✅ Normal banner with text overlay
+    return `<div class="hero-slide ${s.cls || 'hero-slide-1'} ${i === 0 ? 'active' : ''}" id="heroSlide${i}" style="${s.bg && !s.cls ? 'background:' + s.bg : ''}${s.imageUrl ? ';position:relative;overflow:hidden' : ''}">
+      ${s.imageUrl ? `<img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;z-index:0" onerror="this.style.display='none'">` : ''}
       <div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
-        ${s.tag?`<div class="hero-tag">${s.tag}</div>`:''}
-        ${s.title?`<div class="hero-title">${s.title.replace('\n','<br>')}</div>`:''}
-        ${s.sub?`<div class="hero-sub">${s.sub}</div>`:''}
-        ${s.btn?`<div class="hero-btn" onclick="${s.action}">${s.btn} →</div>`:''}
+        ${s.tag ? `<div class="hero-tag">${s.tag}</div>` : ''}
+        ${s.title ? `<div class="hero-title">${s.title.replace('\n', '<br>')}</div>` : ''}
+        ${s.sub ? `<div class="hero-sub">${s.sub}</div>` : ''}
+        ${s.btn ? `<div class="hero-btn" onclick="${s.action || ''}">${s.btn} →</div>` : ''}
       </div>
-      ${s.emoji?`<div class="hero-emoji">${s.emoji}</div>`:''}
+      ${s.emoji ? `<div class="hero-emoji">${s.emoji}</div>` : ''}
     </div>`;
   }).join('') +
-    `<div class="hero-dots">${HERO_SLIDES.map((_,i)=>`<div class="hero-dot ${i===0?'active':''}" onclick="goHeroSlide(${i})" id="heroDot${i}"></div>`).join('')}</div>`;
+  `<div class="hero-dots">${HERO_SLIDES.map((_, i) => `<div class="hero-dot ${i === 0 ? 'active' : ''}" onclick="goHeroSlide(${i})" id="heroDot${i}"></div>`).join('')}</div>`;
+  
   if (_heroTimer) clearInterval(_heroTimer);
-  _heroTimer = setInterval(()=>goHeroSlide((_heroIdx+1)%HERO_SLIDES.length), 3500);
+  _heroTimer = setInterval(() => goHeroSlide((_heroIdx + 1) % HERO_SLIDES.length), 3500);
 }
 function goHeroSlide(n) {
   document.querySelectorAll('.hero-slide').forEach((s,i)=>s.classList.toggle('active',i===n));
