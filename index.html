@@ -1474,16 +1474,15 @@ window._fsBanners = [];
 function setupBannersListener() {
   try {
     onSnapshot(
-      query(collection(db, 'banners'), orderBy('order', 'asc')),
+      collection(db, 'Banner'),
       (snap) => {
-        // ✅ FIX: Sare banners lo (image ho ya na ho)
         const allBanners = snap.docs
           .map(d => ({...d.data(), _bid: d.id}))
-          .filter(b => b.active !== false);  // ✅ Sirf active filters
+          .filter(b => b.active !== false);
 
+        allBanners.sort((a,b) => (Number(a.order)||0) - (Number(b.order)||0));
         window._fsBanners = allBanners;
 
-        // ✅ Agar banners hain toh HERO_SLIDES rebuild karo
         if (allBanners.length > 0 && typeof HERO_SLIDES !== 'undefined') {
           HERO_SLIDES.length = 0;
           allBanners.forEach((b, i) => {
@@ -1502,14 +1501,12 @@ function setupBannersListener() {
               action: b.action === 'search' ? "showPage('search')" : (b.action || "showPage('search')"),
               bg:     b.bg    || gradients[i % 3],
               imageUrl: b.imageUrl || '',
-              // ✅ Ye important hai — batata hai ki sirf image hai ya text bhi
               imageOnly: !b.title && !b.tag && !b.btn && !b.btnLabel && !!b.imageUrl,
               size: b.size || '3:1'
             });
           });
           if (typeof currentPage !== 'undefined' && currentPage === 'home') initHeroCarousel();
         } else {
-          // ✅ Agar koi banner nahi hai — default slides use karo
           if (typeof HERO_SLIDES !== 'undefined' && HERO_SLIDES.length === 0) {
             HERO_SLIDES = [
               { cls:'hero-slide-1', tag:'🔥 Big Sale', title:'Up to 70% Off\nTop Brands', sub:'Limited time · Grab before it\'s gone', btn:'Shop Deals', emoji:'🛍️', action:"showPage('search')" },
@@ -1524,6 +1521,8 @@ function setupBannersListener() {
     );
   } catch(e) { console.warn('Banners listener setup failed:', e.message); }
 }
+setupBannersListener();
+
 // ─── Dispatch event so non-module script knows Firebase is ready ───
 window._fbReady = true;
 window.dispatchEvent(new Event('firebase-ready'));
