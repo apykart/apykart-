@@ -5884,23 +5884,55 @@ function toggleNotifications() {
 }
 
 /* ─── PRODUCT DEEP LINK ON LOAD ─── */
-function checkDeepLink() {
+function checkDeepLink(onDone) {
   const params = new URLSearchParams(window.location.search);
   const productId = params.get('product');
   const videoId = params.get('video');
+  const finish = () => { if (typeof onDone === 'function') onDone(); };
+
   if (productId) {
-    // Wait for products to load
+    let attempts = 0;
+    const maxAttempts = 24; // ~12 sec tak retry karega (Firestore load hone ka wait)
     const tryOpen = () => {
       const p = findProd(productId);
-      if (p) { setTimeout(()=>showPage('detail',productId),400); }
-      else if (PRODUCTS.length === 0) { setTimeout(tryOpen, 500); }
+      if (p) {
+        showPage('detail', productId);   // ✅ product mil gaya -> seedha detail page kholo
+        setTimeout(finish, 200);
+        return;
+      }
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(tryOpen, 500);        // ✅ ab hamesha retry karega, PRODUCTS.length check hataya
+      } else {
+        showToast('Product not found or removed', 'warn');
+        finish();
+      }
     };
     tryOpen();
   } else if (videoId) {
-    setTimeout(()=>showPage('xplor'),400);
+    let attempts = 0;
+    const maxAttempts = 24;
+    const tryOpenVid = () => {
+      const vids = window._approvedVideos || [];
+      const found = vids.find(v => v.id === videoId || v._fsId === videoId);
+      if (found) {
+        showPage('xplor', videoId);      // ✅ correct video par seedha jaayega
+        setTimeout(finish, 200);
+        return;
+      }
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(tryOpenVid, 500);
+      } else {
+        showPage('xplor');               // fallback: general xplor feed
+        finish();
+      }
+    };
+    tryOpenVid();
+  } else {
+    finish();
   }
 }
-
 /* ─── INIT ─── */
 function init() {
   renderHome();
@@ -5908,15 +5940,12 @@ function init() {
   updateCartBadge();
   startTimer();
   setTimeout(hideLoadingScreen, 2200);
-  // Load Firebase-controlled branding & theme — Firebase ready hone ke baad
   if (window._fbReady) {
     loadDynamicBranding();
   } else {
     window.addEventListener('firebase-ready', loadDynamicBranding, { once: true });
-    // Safety fallback after 3 seconds
     setTimeout(loadDynamicBranding, 3000);
   }
-  // Check product/video deep links
   checkDeepLink();
 }
 
