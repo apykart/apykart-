@@ -1474,7 +1474,7 @@ window._fsBanners = [];
 function setupBannersListener() {
   try {
     onSnapshot(
-      collection(db, 'Banner'),
+      collection(db, 'banners'),
       (snap) => {
         const allBanners = snap.docs
           .map(d => ({...d.data(), _bid: d.id}))
@@ -1620,20 +1620,16 @@ onSnapshot(doc(db, 'seller_verifications', uid), (snap) => {
   }).catch(() => {});
 }, err => console.warn('Seller verification listener:', err.message));
 
-  } else {
+} else {
     window.currentUser = null;
-    if (typeof cart !== 'undefined') {
-      cart=[]; wishlist=[]; addresses=[]; orders=[];
-      coinData={balance:0,transactions:[]};
-      guestUser={name:'',email:'',phone:''};
-      userRole='user'; sellerVerification=null;
-      sellerProducts=[]; sellerEarnings=[];
-      withdrawalRequests=[]; sellerProfile={bankName:'',accountNumber:'',ifsc:'',upi:''};
-      userVideos=[];
-    }
+    // ✅ FIX: Ab yaha data khali NAHI hoga. Pehle yaha cart/wishlist/addresses/
+    // orders/guestUser sab khali ho jaate the jab Firebase Auth transient/
+    // token-refresh null bhejta tha — isse Name, Orders, Address sab UI se
+    // gayab dikhte the, jabki Firestore mein data poori tarah safe tha.
+    // Ab reset sirf explicit "Sign Out" button (logoutUser()) se hoga.
     updateCartBadge();
     if (typeof currentPage !== 'undefined' && currentPage === 'profile') renderProfile();
-  }
+}
 });
 
 </script>
@@ -4698,9 +4694,19 @@ function logoutUser() {
   const { signOut, auth } = window._fbAuth;
   signOut(auth).then(() => {
     window.currentUser = null;
-    // reloadUserData will be called by onAuthStateChanged automatically
+    // ✅ FIX: Ab data sirf yaha, explicit Sign Out par hi khali hoga —
+    // random auth glitches se nahi (upar module listener se woh hata diya)
+    cart=[]; wishlist=[]; addresses=[]; orders=[];
+    coinData={balance:0,transactions:[]};
+    guestUser={name:'',email:'',phone:''};
+    userRole='user'; sellerVerification=null;
+    sellerProducts=[]; sellerEarnings=[];
+    withdrawalRequests=[]; sellerProfile={bankName:'',accountNumber:'',ifsc:'',upi:''};
+    userVideos=[];
+    updateCartBadge();
     showToast('Logged out', 'info');
     renderProfile();
+    renderHome();
   });
 }
 
