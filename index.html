@@ -1481,16 +1481,25 @@ setupCategoriesListener();
 window._fsBanners = [];
 function setupBannersListener() {
   try {
+    const { db, collection, query, orderBy, onSnapshot } = window._fsHelpers || window._fb?.fsHelpers;
+    
+    // ✅ Safety check — agar db available nahi hai toh return
+    if (!db || typeof onSnapshot !== 'function') {
+      console.warn('Firestore not ready for banners listener');
+      return;
+    }
+
     onSnapshot(
-      collection(db, 'banners'),
+      query(collection(db, 'banners'), orderBy('order', 'asc')),
       (snap) => {
+        // ✅ FIX: Sare banners lo (image ho ya na ho)
         const allBanners = snap.docs
           .map(d => ({...d.data(), _bid: d.id}))
-          .filter(b => b.active !== false);
+          .filter(b => b.active !== false);  // ✅ Sirf active filters
 
-        allBanners.sort((a,b) => (Number(a.order)||0) - (Number(b.order)||0));
         window._fsBanners = allBanners;
 
+        // ✅ Agar banners hain toh HERO_SLIDES rebuild karo
         if (allBanners.length > 0 && typeof HERO_SLIDES !== 'undefined') {
           HERO_SLIDES.length = 0;
           allBanners.forEach((b, i) => {
@@ -1501,33 +1510,46 @@ function setupBannersListener() {
             ];
             HERO_SLIDES.push({
               cls:    'hero-slide-' + ((i % 3) + 1),
-              tag:    b.tag   || '🔥 Featured',
-              title:  b.title || 'Shop Now',
+              tag:    b.tag   || '',
+              title:  b.title || '',
               sub:    b.sub   || '',
-              btn:    b.btn   || b.btnLabel || 'Shop Now →',
-              emoji:  b.emoji || '🛍️',
+              btn:    b.btn   || b.btnLabel || '',
+              emoji:  b.emoji || '',
               action: b.action === 'search' ? "showPage('search')" : (b.action || "showPage('search')"),
               bg:     b.bg    || gradients[i % 3],
               imageUrl: b.imageUrl || '',
+              // ✅ Ye important hai — batata hai ki sirf image hai ya text bhi
               imageOnly: !b.title && !b.tag && !b.btn && !b.btnLabel && !!b.imageUrl,
               size: b.size || '3:1'
             });
           });
-          if (typeof currentPage !== 'undefined' && currentPage === 'home') initHeroCarousel();
+          if (typeof currentPage !== 'undefined' && currentPage === 'home') {
+            initHeroCarousel();
+          }
         } else {
+          // ✅ Agar koi banner nahi hai — default slides use karo
           if (typeof HERO_SLIDES !== 'undefined' && HERO_SLIDES.length === 0) {
-            HERO_SLIDES = [
+            // ✅ Keep default slides if no banners in Firestore
+            const defaultSlides = [
               { cls:'hero-slide-1', tag:'🔥 Big Sale', title:'Up to 70% Off\nTop Brands', sub:'Limited time · Grab before it\'s gone', btn:'Shop Deals', emoji:'🛍️', action:"showPage('search')" },
               { cls:'hero-slide-2', tag:'🆕 Just Arrived', title:'New Season\nCollection', sub:'Latest mobiles, fashion & more', btn:'Explore Now', emoji:'✨', action:"filterByCategory('mobiles')" },
               { cls:'hero-slide-3', tag:'🪙 ApyCoins', title:'Earn & Save\nEvery Order', sub:'Earn coins · Redeem discounts', btn:'Learn More', emoji:'🎁', action:"showPage('wallet')" },
             ];
-            if (typeof currentPage !== 'undefined' && currentPage === 'home') initHeroCarousel();
+            // ✅ Sirf tab set karo jab HERO_SLIDES empty ho
+            if (HERO_SLIDES.length === 0) {
+              defaultSlides.forEach(s => HERO_SLIDES.push(s));
+            }
+            if (typeof currentPage !== 'undefined' && currentPage === 'home') {
+              initHeroCarousel();
+            }
           }
         }
       },
       err => console.warn('Banners listener error:', err.message)
     );
-  } catch(e) { console.warn('Banners listener setup failed:', e.message); }
+  } catch(e) { 
+    console.warn('Banners listener setup failed:', e.message); 
+  }
 }
 setupBannersListener();
 
@@ -1818,6 +1840,16 @@ function saveAddresses() { firestoreSetField('addresses', addresses); }
 function saveCoins()     { firestoreSetField('coins', coinData); }
 function saveGuest()     { firestoreSetField('profile', guestUser); }
 
+// ✅ NEW: Checkout ke fields ab type karte hi save hote hain (debounced)
+// Order complete kiye bina bhi Name/Phone/Email hamesha ke liye fix ho jayega
+// jab tak user khud dubara change na kare
+let _guestFieldSaveTimer = null;
+function updateGuestField(field, value) {
+  guestUser[field] = value;
+  clearTimeout(_guestFieldSaveTimer);
+  _guestFieldSaveTimer = setTimeout(() => { saveGuest(); }, 700);
+}
+
 function saveSellerData() {
   const uid = getUid();
   if (!uid || !window._db) return;
@@ -1845,30 +1877,33 @@ function syncUser()           { saveGuest(); saveCoins(); }
 // + users/{uid}/orders subcollection mein bhi (user ke My Orders ke liye)
 async function saveOrderToFirestore(order) {
   if (!window._fsHelpers) return;
-  const { db, addDoc, collection, serverTimestamp } = window._fsHelpers;
+  const { db, doc, setDoc, serverTimestamp } = window._fsHelpers;
   const uid = getUid();
+  const orderData = {
+    ...order,
+    userId: uid || 'guest',
+    userName: guestUser.name || window.currentUser?.displayName || '',
+    userEmail: guestUser.email || window.currentUser?.email || '',
+    userPhone: guestUser.phone || '',
+    createdAt: serverTimestamp()
+  };
+  // ✅ FIX: order.id (APK...) ab dono jagah SAME rehta hai
+  // Isse cancel/return update dono collections ko sahi target karega
+  // aur dono writes independent hain — ek fail ho to doosra bhi chalega
   try {
-    const orderData = {
-      ...order,
-      userId: uid || 'guest',
-      userName: guestUser.name || window.currentUser?.displayName || '',
-      userEmail: guestUser.email || window.currentUser?.email || '',
-      userPhone: guestUser.phone || '',
-      createdAt: serverTimestamp()
-    };
-    // PRIMARY: Top-level 'orders' collection — admin isko sunata hai
-    const ref = await addDoc(collection(db, 'orders'), orderData);
-    order.id = ref.id;
-    // SECONDARY: User subcollection — user ke My Orders page ke liye
-    if (uid) {
-      await addDoc(collection(db, 'users', uid, 'orders'), {...orderData, orderId: ref.id}).catch(()=>{});
-    }
+    await setDoc(doc(db, 'orders', order.id), orderData);
   } catch(e) {
-    console.warn('saveOrder Firestore error:', e.message);
+    console.warn('Primary order save failed:', e.message);
     showToast('Order save mein issue: ' + e.message, 'warn');
   }
+  if (uid) {
+    try {
+      await setDoc(doc(db, 'users', uid, 'orders', order.id), {...orderData, orderId: order.id});
+    } catch(e) {
+      console.warn('User order subcollection save failed:', e.message);
+    }
+  }
 }
-
 // ✅ FIX: Update order in BOTH Firestore collections so admin & user stay in sync
 async function updateOrderInFirestore(orderId, updates) {
   const uid = getUid();
@@ -2162,19 +2197,22 @@ let HERO_SLIDES = [
   { cls:'hero-slide-2', tag:'🆕 Just Arrived', title:'New Season\nCollection', sub:'Latest mobiles, fashion & more', btn:'Explore Now', emoji:'✨', action:"filterByCategory('mobiles')" },
   { cls:'hero-slide-3', tag:'🪙 ApyCoins', title:'Earn & Save\nEvery Order', sub:'Earn coins · Redeem discounts', btn:'Learn More', emoji:'🎁', action:"showPage('wallet')" },
 ];
+/* ─── HERO CAROUSEL ─── */
 function initHeroCarousel() {
   const wrap = document.getElementById('heroCarousel');
   if (!wrap) return;
   
   // ✅ Agar HERO_SLIDES empty hai toh default set karo
   if (!HERO_SLIDES || HERO_SLIDES.length === 0) {
-    HERO_SLIDES = [
+    const defaultSlides = [
       { cls:'hero-slide-1', tag:'🔥 Big Sale', title:'Up to 70% Off\nTop Brands', sub:'Limited time · Grab before it\'s gone', btn:'Shop Deals', emoji:'🛍️', action:"showPage('search')" },
       { cls:'hero-slide-2', tag:'🆕 Just Arrived', title:'New Season\nCollection', sub:'Latest mobiles, fashion & more', btn:'Explore Now', emoji:'✨', action:"filterByCategory('mobiles')" },
       { cls:'hero-slide-3', tag:'🪙 ApyCoins', title:'Earn & Save\nEvery Order', sub:'Earn coins · Redeem discounts', btn:'Learn More', emoji:'🎁', action:"showPage('wallet')" },
     ];
+    defaultSlides.forEach(s => HERO_SLIDES.push(s));
   }
 
+  // ✅ Build carousel HTML
   wrap.innerHTML = HERO_SLIDES.map((s, i) => {
     // ✅ Image-only banner — clean image, no overlay text
     if (s.imageOnly && s.imageUrl) {
@@ -2197,6 +2235,7 @@ function initHeroCarousel() {
   }).join('') +
   `<div class="hero-dots">${HERO_SLIDES.map((_, i) => `<div class="hero-dot ${i === 0 ? 'active' : ''}" onclick="goHeroSlide(${i})" id="heroDot${i}"></div>`).join('')}</div>`;
   
+  // ✅ Reset timer
   if (_heroTimer) clearInterval(_heroTimer);
   _heroTimer = setInterval(() => goHeroSlide((_heroIdx + 1) % HERO_SLIDES.length), 3500);
 }
@@ -2826,9 +2865,9 @@ function renderCheckout() {
       <div class="checkout-card">
         <div class="checkout-card-header"><div class="checkout-card-icon">👤</div><div><div class="checkout-card-title">Your Details</div><div class="checkout-card-sub">Required for order</div></div></div>
         <div class="checkout-user-form">
-          <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="co_name" value="${guestUser.name}" placeholder="Enter your full name"><span class="form-error-msg" id="err_name">Please enter your name</span></div>
-          <div class="form-group"><label class="form-label">Phone Number * (10 digits)</label><input class="form-input" id="co_phone" type="tel" maxlength="10" value="${guestUser.phone.replace(/\D/g,'').slice(-10)}" placeholder="9876543210"><span class="form-error-msg" id="err_phone">Enter valid 10-digit number</span></div>
-          <div class="form-group"><label class="form-label">Email Address *</label><input class="form-input" id="co_email" type="email" value="${guestUser.email}" placeholder="yourname@gmail.com"><span class="form-error-msg" id="err_email">Enter valid email</span></div>
+          <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="co_name" value="${guestUser.name}" placeholder="Enter your full name" oninput="updateGuestField('name',this.value)"><span class="form-error-msg" id="err_name">Please enter your name</span></div>
+          <div class="form-group"><label class="form-label">Phone Number * (10 digits)</label><input class="form-input" id="co_phone" type="tel" maxlength="10" value="${guestUser.phone.replace(/\D/g,'').slice(-10)}" placeholder="9876543210" oninput="updateGuestField('phone',this.value)"><span class="form-error-msg" id="err_phone">Enter valid 10-digit number</span></div>
+          <div class="form-group"><label class="form-label">Email Address *</label><input class="form-input" id="co_email" type="email" value="${guestUser.email}" placeholder="yourname@gmail.com" oninput="updateGuestField('email',this.value)"><span class="form-error-msg" id="err_email">Enter valid email</span></div>
         </div>
       </div>
       <div class="checkout-card">
