@@ -1,594 +1,681 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>Divine Frames · Premanand Baba Spiritual Wall Frames</title>
-  <style>
-    /* ── RESET & BASE ── */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      background: #fcf8f2;
-      color: #2d241c;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
-    img { display: block; max-width: 100%; }
-    a { text-decoration: none; color: inherit; }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>Satvik Darshan · Premium</title>
+    <!-- Font Awesome for icons (images) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* ── TYPOGRAPHY ── */
-    .spiritual-title {
-      font-size: clamp(2rem, 6vw, 3.4rem);
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-      color: #1e150f;
-    }
-    .spiritual-sub {
-      font-size: clamp(1rem, 2vw, 1.25rem);
-      color: #4e3e32;
-      font-weight: 400;
-      max-width: 600px;
-    }
-    .gold-accent { color: #b8860b; }
-    .gold-bg { background: #d4af37; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #faf6f0;
+            background-image: radial-gradient(circle at 10% 30%, rgba(255, 215, 175, 0.15) 0%, transparent 30%),
+                              radial-gradient(circle at 90% 70%, rgba(210, 180, 140, 0.1) 0%, transparent 40%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
 
-    /* ── BUTTONS ── */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 14px 34px;
-      border-radius: 60px;
-      font-weight: 600;
-      font-size: 1rem;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: #d4af37;
-      color: #1e150f;
-      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.25);
-    }
-    .btn:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(212, 175, 55, 0.35); }
-    .btn-whatsapp {
-      background: #25D366;
-      color: #fff;
-      box-shadow: 0 8px 24px rgba(37, 211, 102, 0.3);
-    }
-    .btn-whatsapp:hover { box-shadow: 0 12px 32px rgba(37, 211, 102, 0.4); }
-    .btn-outline {
-      background: transparent;
-      border: 2px solid #d4af37;
-      color: #1e150f;
-      box-shadow: none;
-    }
-    .btn-outline:hover { background: #d4af37; color: #fff; }
+        /* Premium Card – updated version */
+        .premium-card {
+            max-width: 480px;
+            width: 100%;
+            background: rgba(255, 252, 245, 0.85);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border-radius: 48px 48px 32px 32px;
+            box-shadow: 0 20px 50px rgba(110, 70, 40, 0.15), 0 8px 20px rgba(0, 0, 0, 0.05);
+            padding: 1.8rem 1.5rem 2.2rem;
+            border: 1px solid rgba(255, 215, 175, 0.3);
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
 
-    /* ── STICKY WHATSAPP ── */
-    .whatsapp-float {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 999;
-      background: #25D366;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 8px 32px rgba(37, 211, 102, 0.4);
-      transition: all 0.2s ease;
-      border: none;
-      cursor: pointer;
-      color: #fff;
-      font-size: 30px;
-    }
-    .whatsapp-float:hover { transform: scale(1.08); }
+        /* Premium shine overlay */
+        .premium-card::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: -20%;
+            width: 140%;
+            height: 70%;
+            background: radial-gradient(ellipse at 30% 40%, rgba(255, 235, 200, 0.3) 0%, transparent 70%);
+            pointer-events: none;
+        }
 
-    /* ── HEADER / NAV ── */
-    .navbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 18px 0;
-      border-bottom: 1px solid rgba(184, 134, 11, 0.15);
-      flex-wrap: wrap;
-    }
-    .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
-    .logo span { color: #b8860b; }
-    .nav-links { display: flex; gap: 28px; font-weight: 500; color: #4e3e32; }
-    .nav-links a { transition: color 0.2s; }
-    .nav-links a:hover { color: #b8860b; }
+        /* ---- HEADER with images (icons) ---- */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 2;
+        }
 
-    /* ── HERO ── */
-    .hero {
-      padding: 40px 0 56px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
-      align-items: center;
-    }
-    .hero-image {
-      background: linear-gradient(145deg, #f0e6d8, #e2d4c0);
-      border-radius: 40px;
-      padding: 20px;
-      aspect-ratio: 1 / 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.04);
-    }
-    .hero-image-inner {
-      width: 100%;
-      height: 100%;
-      background: #fff;
-      border-radius: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 6rem;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.8);
-    }
+        .brand-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
 
-    /* ── SECTION HEADERS ── */
-    .section-head {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .section-head h2 {
-      font-size: clamp(1.8rem, 4vw, 2.6rem);
-      font-weight: 600;
-      color: #1e150f;
-    }
-    .section-head p {
-      color: #5a4a3a;
-      max-width: 560px;
-      margin: 8px auto 0;
-    }
+        .brand-icon {
+            font-size: 2.4rem;
+            color: #b8863a;
+            filter: drop-shadow(0 4px 8px rgba(184, 134, 58, 0.2));
+            background: rgba(255, 215, 175, 0.2);
+            padding: 6px 10px 6px 8px;
+            border-radius: 60px;
+            border: 1px solid rgba(184, 134, 58, 0.2);
+            backdrop-filter: blur(2px);
+        }
 
-    /* ── PRODUCT GRID ── */
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-      margin: 16px 0 8px;
-    }
-    .product-card {
-      background: #fff;
-      border-radius: 24px;
-      padding: 16px 16px 20px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.03);
-      transition: all 0.25s ease;
-      border: 1px solid rgba(184, 134, 11, 0.06);
-    }
-    .product-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 16px 40px rgba(0,0,0,0.06);
-      border-color: rgba(184, 134, 11, 0.2);
-    }
-    .product-img {
-      aspect-ratio: 1 / 1;
-      background: #f5efe8;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 4.4rem;
-      margin-bottom: 14px;
-      transition: all 0.3s ease;
-    }
-    .product-card:hover .product-img { background: #f0e6d8; }
-    .product-title {
-      font-weight: 600;
-      font-size: 1rem;
-      margin-bottom: 4px;
-    }
-    .product-price {
-      font-weight: 700;
-      color: #b8860b;
-      font-size: 1.1rem;
-    }
-    .product-rating {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.85rem;
-      color: #5a4a3a;
-      margin: 6px 0 10px;
-    }
-    .product-rating span { color: #d4af37; }
-    .btn-sm {
-      padding: 8px 18px;
-      font-size: 0.9rem;
-      border-radius: 40px;
-      width: 100%;
-    }
+        .brand-icon i {
+            margin-right: 4px;
+        }
 
-    /* ── FEATURES / PRICING / TESTIMONIALS ── */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-      margin: 20px 0 10px;
-    }
-    .feature-item {
-      background: #fff;
-      border-radius: 20px;
-      padding: 24px 16px;
-      text-align: center;
-      border: 1px solid rgba(184, 134, 11, 0.06);
-    }
-    .feature-icon { font-size: 2.2rem; margin-bottom: 8px; }
-    .feature-item h4 { font-weight: 600; margin-bottom: 4px; }
-    .feature-item p { font-size: 0.9rem; color: #5a4a3a; }
+        .premium-badge {
+            background: linear-gradient(145deg, #c9a87c, #b68b5a);
+            color: #fff7ed;
+            padding: 0.35rem 1rem 0.35rem 0.9rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(184, 134, 58, 0.3);
+            border: 1px solid #e4c9a2;
+            backdrop-filter: blur(2px);
+        }
 
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-      margin: 16px 0 8px;
-    }
-    .pricing-card {
-      background: #fff;
-      border-radius: 28px;
-      padding: 28px 20px 30px;
-      text-align: center;
-      border: 1px solid rgba(184, 134, 11, 0.06);
-      transition: all 0.2s ease;
-      position: relative;
-    }
-    .pricing-card.bestseller {
-      border-color: #d4af37;
-      background: #fefcf7;
-      box-shadow: 0 12px 28px rgba(212, 175, 55, 0.08);
-    }
-    .pricing-card.bestseller::after {
-      content: '🌟 Best Seller';
-      position: absolute;
-      top: -10px;
-      right: 16px;
-      background: #d4af37;
-      color: #1e150f;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 4px 14px;
-      border-radius: 40px;
-      letter-spacing: 0.3px;
-    }
-    .pricing-card .price {
-      font-size: 2.4rem;
-      font-weight: 700;
-      color: #1e150f;
-      margin: 12px 0 4px;
-    }
-    .pricing-card .price small {
-      font-size: 1rem;
-      color: #5a4a3a;
-      font-weight: 400;
-    }
-    .pricing-card .old-price {
-      font-size: 0.95rem;
-      color: #9a8a7a;
-      text-decoration: line-through;
-      margin-bottom: 16px;
-    }
-    .pricing-card .badge {
-      background: #f0e6d8;
-      color: #4e3e32;
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 30px;
-      display: inline-block;
-      margin-bottom: 10px;
-    }
+        .premium-badge i {
+            font-size: 0.9rem;
+            color: #ffe5b4;
+        }
 
-    .testimonial-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin: 16px 0 8px;
-    }
-    .testimonial-card {
-      background: #fff;
-      border-radius: 24px;
-      padding: 22px 20px;
-      border: 1px solid rgba(184, 134, 11, 0.05);
-    }
-    .testimonial-card .stars { color: #d4af37; letter-spacing: 2px; font-size: 1.1rem; }
-    .testimonial-card p { font-style: italic; color: #3d322a; margin: 8px 0 6px; }
-    .testimonial-card .author { font-weight: 600; font-size: 0.9rem; color: #1e150f; }
+        /* ---- NAME: Satvik Darshan ---- */
+        .name-block {
+            text-align: center;
+            margin: 1.2rem 0 1.8rem;
+            position: relative;
+            z-index: 2;
+        }
 
-    /* ── CTA SECTION ── */
-    .cta-section {
-      background: #f0e6d8;
-      border-radius: 40px;
-      padding: 48px 40px;
-      margin: 40px 0 20px;
-      text-align: center;
-    }
-    .cta-section h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
-    .cta-section .btn { margin-top: 16px; }
+        .name-block h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #3d2b1a;
+            text-shadow: 0 2px 10px rgba(255, 215, 175, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
 
-    /* ── TRUST BADGES ── */
-    .trust-badges {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 28px;
-      margin: 24px 0 8px;
-      font-size: 0.9rem;
-      color: #4e3e32;
-    }
-    .trust-badges span { display: flex; align-items: center; gap: 8px; }
+        .name-block h1 span {
+            background: linear-gradient(135deg, #b8863a, #d4a373);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+        }
 
-    /* ── FOOTER ── */
-    .footer {
-      border-top: 1px solid rgba(184, 134, 11, 0.1);
-      padding: 28px 0 24px;
-      text-align: center;
-      color: #5a4a3a;
-      font-size: 0.9rem;
-      margin-top: 20px;
-    }
+        .name-block .subtitle {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #6b4f2e;
+            background: rgba(255, 235, 210, 0.6);
+            backdrop-filter: blur(4px);
+            display: inline-block;
+            padding: 0.4rem 1.8rem;
+            border-radius: 60px;
+            margin-top: 0.3rem;
+            border: 1px solid rgba(184, 134, 58, 0.15);
+            letter-spacing: 0.3px;
+        }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 992px) {
-      .hero { grid-template-columns: 1fr; text-align: center; }
-      .hero-image { max-width: 500px; margin: 0 auto; }
-      .features-grid { grid-template-columns: repeat(2, 1fr); }
-      .pricing-grid { grid-template-columns: 1fr 1fr; }
-      .testimonial-grid { grid-template-columns: 1fr 1fr; }
-      .product-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 640px) {
-      .navbar { flex-direction: column; gap: 12px; }
-      .nav-links { gap: 18px; flex-wrap: wrap; justify-content: center; }
-      .product-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-      .features-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-      .pricing-grid { grid-template-columns: 1fr; max-width: 380px; margin: 16px auto; }
-      .testimonial-grid { grid-template-columns: 1fr; }
-      .cta-section { padding: 32px 20px; }
-      .whatsapp-float { width: 52px; height: 52px; font-size: 26px; bottom: 16px; right: 16px; }
-      .btn { padding: 12px 24px; width: 100%; justify-content: center; }
-      .btn-sm { width: 100%; }
-      .section-head { margin-bottom: 24px; }
-    }
-    @media (max-width: 420px) {
-      .product-grid { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; }
-    }
+        /* ---- IMAGE SHOWCASE (icons + emoji as images) ---- */
+        .image-showcase {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            margin: 1.8rem 0 2rem;
+            position: relative;
+            z-index: 2;
+        }
 
-    /* ── ANIMATIONS ── */
-    .fade-in {
-      opacity: 0;
-      transform: translateY(12px);
-      animation: fadeUp 0.6s ease forwards;
-    }
-    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
-    .delay-1 { animation-delay: 0.1s; }
-    .delay-2 { animation-delay: 0.2s; }
-    .delay-3 { animation-delay: 0.3s; }
-  </style>
+        .image-item {
+            background: rgba(255, 248, 235, 0.7);
+            backdrop-filter: blur(4px);
+            padding: 10px 14px;
+            border-radius: 80px;
+            border: 1px solid rgba(210, 180, 140, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.6rem;
+            color: #5a3f24;
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .image-item i {
+            font-size: 2rem;
+            color: #b8863a;
+        }
+
+        .image-item span {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #3d2b1a;
+            background: rgba(255, 215, 175, 0.15);
+            padding: 2px 12px 2px 8px;
+            border-radius: 60px;
+        }
+
+        /* ---- EXTRA IMAGES (decorative) ---- */
+        .extra-images {
+            display: flex;
+            justify-content: center;
+            gap: 0.6rem;
+            margin: 1.2rem 0 0.8rem;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+
+        .extra-images .circle-icon {
+            background: rgba(255, 248, 235, 0.6);
+            backdrop-filter: blur(2px);
+            width: 48px;
+            height: 48px;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            border: 1px solid rgba(184, 134, 58, 0.15);
+            color: #7a5d3a;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .extra-images .circle-icon:hover {
+            transform: scale(1.08);
+            background: rgba(255, 235, 210, 0.8);
+            border-color: #b8863a;
+        }
+
+        /* ---- WHATSAPP PREMIUM (updated number) ---- */
+        .whatsapp-premium {
+            background: linear-gradient(145deg, #f6efe6, #f0e4d6);
+            border-radius: 60px;
+            padding: 0.9rem 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin: 1.8rem 0 1.2rem;
+            border: 1px solid #dfc9b0;
+            box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.6), 0 6px 14px rgba(110, 70, 40, 0.08);
+            backdrop-filter: blur(2px);
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        .whatsapp-premium:hover {
+            box-shadow: 0 8px 20px rgba(37, 211, 102, 0.15), 0 6px 14px rgba(110, 70, 40, 0.08);
+            border-color: #25D366;
+        }
+
+        .whatsapp-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .whatsapp-label i {
+            font-size: 2rem;
+            color: #25D366;
+            filter: drop-shadow(0 2px 6px rgba(37, 211, 102, 0.2));
+            animation: pulse-wa 2s infinite;
+        }
+
+        @keyframes pulse-wa {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .whatsapp-label .label-text {
+            font-weight: 600;
+            color: #3d2b1a;
+            font-size: 0.95rem;
+            letter-spacing: 0.3px;
+        }
+
+        .whatsapp-number {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: #1e2a2c;
+            padding: 0.4rem 1.2rem;
+            border-radius: 60px;
+            color: #f5efe8;
+            letter-spacing: 1px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #3d4a4a;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .whatsapp-number:hover {
+            background: #25D366;
+            border-color: #1ebd5c;
+            transform: scale(1.02);
+            box-shadow: 0 4px 16px rgba(37, 211, 102, 0.3);
+        }
+
+        .whatsapp-number i {
+            color: #25D366;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+        }
+
+        .whatsapp-number:hover i {
+            color: white;
+        }
+
+        .whatsapp-number small {
+            font-weight: 400;
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-left: 3px;
+        }
+
+        /* ---- PREMIUM FEATURES (updated) ---- */
+        .premium-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.8rem;
+            margin: 1.8rem 0 1.2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .feature-item {
+            background: rgba(255, 248, 235, 0.5);
+            backdrop-filter: blur(4px);
+            border-radius: 30px;
+            padding: 0.7rem 0.3rem;
+            text-align: center;
+            border: 1px solid rgba(210, 180, 140, 0.15);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+            cursor: default;
+        }
+
+        .feature-item i {
+            font-size: 1.6rem;
+            color: #b8863a;
+            display: block;
+            margin-bottom: 4px;
+            transition: transform 0.3s;
+        }
+
+        .feature-item span {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #4d3822;
+        }
+
+        .feature-item:hover {
+            background: rgba(255, 235, 210, 0.7);
+            border-color: #c9a87c;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(184, 134, 58, 0.15);
+        }
+
+        .feature-item:hover i {
+            transform: scale(1.15);
+        }
+
+        /* ---- FOOTER ---- */
+        .footer-note {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.7rem;
+            color: #826b52;
+            letter-spacing: 0.5px;
+            border-top: 1px solid rgba(184, 134, 58, 0.1);
+            padding-top: 1.2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+
+        .footer-note i {
+            color: #b8863a;
+            font-size: 0.8rem;
+        }
+
+        .footer-note strong {
+            font-weight: 600;
+            color: #3d2b1a;
+        }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 420px) {
+            .premium-card {
+                padding: 1.2rem 1rem 1.8rem;
+            }
+            .name-block h1 {
+                font-size: 2.2rem;
+                gap: 8px;
+            }
+            .whatsapp-number {
+                font-size: 1rem;
+                padding: 0.3rem 0.9rem;
+            }
+            .premium-features {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+            }
+            .image-item {
+                font-size: 1.2rem;
+                padding: 6px 12px;
+            }
+            .image-item i {
+                font-size: 1.6rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .whatsapp-premium {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            .whatsapp-label {
+                justify-content: center;
+            }
+            .whatsapp-number {
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
 
-    <!-- ═══ HEADER ═══ -->
-    <header class="navbar">
-      <div class="logo">🪷 <span>Divine</span>Frames</div>
-      <nav class="nav-links">
-        <a href="#gallery">Gallery</a>
-        <a href="#features">Features</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#testimonials">Love</a>
-      </nav>
-    </header>
+<div class="premium-card" id="app">
 
-    <!-- ═══ HERO ═══ -->
-    <section class="hero fade-in">
-      <div class="hero-text">
-        <div style="display: inline-block; background: #f0e6d8; padding: 6px 16px; border-radius: 60px; font-size: 0.8rem; font-weight: 600; color: #4e3e32; margin-bottom: 16px;">✨ Divine Devotion</div>
-        <h1 class="spiritual-title">Premanand Baba <br><span class="gold-accent">Spiritual Frames</span></h1>
-        <p class="spiritual-sub" style="margin: 16px 0 28px;">Bring eternal peace &amp; blessings into your home with handcrafted devotional wall frames inspired by Premanand Baba's teachings.</p>
-        <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-          <a href="#pricing" class="btn">🛒 Buy Now</a>
-          <a href="https://wa.me/919999999999?text=I%20want%20to%20order%20a%20spiritual%20frame" target="_blank" class="btn btn-whatsapp">💬 Order on WhatsApp</a>
+    <!-- HEADER with brand images -->
+    <div class="header-section">
+        <div class="brand-group">
+            <div class="brand-icon">
+                <i class="fas fa-om"></i>
+                <i class="fas fa-spa"></i>
+            </div>
+            <span style="font-weight: 600; color: #5a3f24; font-size: 0.9rem; letter-spacing: 1px;">PREMIUM</span>
         </div>
-        <div class="trust-badges" style="justify-content: flex-start;">
-          <span>✅ 100% Handmade</span>
-          <span>🔒 Secure Order</span>
-          <span>🙏 Blessed Art</span>
+        <div class="premium-badge" id="badge">
+            <i class="fas fa-crown"></i> <span id="versionText">v2.0 · updated</span>
         </div>
-      </div>
-      <div class="hero-image">
-        <div class="hero-image-inner">🪷</div>
-      </div>
-    </section>
+    </div>
 
-    <!-- ═══ GALLERY ═══ -->
-    <section id="gallery" style="margin: 20px 0 40px;">
-      <div class="section-head fade-in">
-        <h2>🖼️ Divine Collection</h2>
-        <p>Each frame carries the essence of devotion — perfect for your altar, living room, or meditation space.</p>
-      </div>
-      <div class="product-grid">
-        <div class="product-card fade-in delay-1">
-          <div class="product-img">🪷</div>
-          <div class="product-title">Premanand Baba · Peace</div>
-          <div class="product-rating"><span>★★★★★</span> (124)</div>
-          <div class="product-price">₹1,299</div>
-          <button class="btn btn-sm btn-whatsapp" onclick="window.open('https://wa.me/919999999999?text=I%20want%20to%20order%20Peace%20frame','_blank')">Order on WhatsApp</button>
+    <!-- NAME: Satvik Darshan (with images) -->
+    <div class="name-block">
+        <h1>
+            <i class="fas fa-leaf" style="color: #7d9b76; font-size: 2rem;"></i>
+            <span>Satvik</span> Darshan
+            <i class="fas fa-leaf" style="color: #7d9b76; font-size: 2rem; transform: scaleX(-1);"></i>
+        </h1>
+        <div class="subtitle" id="subtitleDisplay">
+            <i class="fas fa-circle" style="color: #b8863a; font-size: 0.5rem; vertical-align: middle;"></i> 
+            Śrīgirikta Namaḥ · Spiritual 
+            <i class="fas fa-circle" style="color: #b8863a; font-size: 0.5rem; vertical-align: middle;"></i>
         </div>
-        <div class="product-card fade-in delay-2">
-          <div class="product-img">🕉️</div>
-          <div class="product-title">Divine Om · Meditation</div>
-          <div class="product-rating"><span>★★★★★</span> (98)</div>
-          <div class="product-price">₹1,499</div>
-          <button class="btn btn-sm btn-whatsapp" onclick="window.open('https://wa.me/919999999999?text=I%20want%20to%20order%20Om%20frame','_blank')">Order on WhatsApp</button>
-        </div>
-        <div class="product-card fade-in delay-3">
-          <div class="product-img">🙏</div>
-          <div class="product-title">Baba Blessing · Golden</div>
-          <div class="product-rating"><span>★★★★★</span> (210)</div>
-          <div class="product-price">₹1,799</div>
-          <button class="btn btn-sm btn-whatsapp" onclick="window.open('https://wa.me/919999999999?text=I%20want%20to%20order%20Blessing%20frame','_blank')">Order on WhatsApp</button>
-        </div>
-        <div class="product-card fade-in delay-1">
-          <div class="product-img">🌿</div>
-          <div class="product-title">Sacred Tulsi · Devotion</div>
-          <div class="product-rating"><span>★★★★☆</span> (76)</div>
-          <div class="product-price">₹1,199</div>
-          <button class="btn btn-sm btn-whatsapp" onclick="window.open('https://wa.me/919999999999?text=I%20want%20to%20order%20Tulsi%20frame','_blank')">Order on WhatsApp</button>
-        </div>
-        <div class="product-card fade-in delay-2">
-          <div class="product-img">🪔</div>
-          <div class="product-title">Diya Blessing · Light</div>
-          <div class="product-rating"><span>★★★★★</span> (143)</div>
-          <div class="product-price">₹1,399</div>
-          <button class="btn btn-sm btn-whatsapp" onclick="window.open('https://wa.me/919999999999?text=I%20want%20to%20order%20Diya%20frame','_blank')">Order on WhatsApp</button>
-        </div>
-        <div class="product-card fade-in delay-3">
-          <div class="product-img">🧘</div>
-          <div class="product-title">Meditation · Inner Peace</div>
-          <div class="product-rating"><span>★★★★★</span> (187)</div>
-          <div class="product-price">₹1,599</div>
-          <button class="btn btn-sm btn-whatsapp" onclick="window.open('https://wa.me/919999999999?text=I%20want%20to%20order%20Meditation%20frame','_blank')">Order on WhatsApp</button>
-        </div>
-      </div>
-    </section>
+    </div>
 
-    <!-- ═══ FEATURES ═══ -->
-    <section id="features" style="margin: 16px 0 24px;">
-      <div class="section-head fade-in">
-        <h2>✨ Why Devotees Love These Frames</h2>
-        <p>Every piece is crafted with devotion, using premium materials that last a lifetime.</p>
-      </div>
-      <div class="features-grid">
-        <div class="feature-item fade-in delay-1"><div class="feature-icon">🖼️</div><h4>Premium Wood Frame</h4><p>Handcrafted from solid, long-lasting wood</p></div>
-        <div class="feature-item fade-in delay-2"><div class="feature-icon">🖨️</div><h4>High-Quality Print</h4><p>Vibrant, fade-resistant spiritual imagery</p></div>
-        <div class="feature-item fade-in delay-3"><div class="feature-icon">💧</div><h4>Waterproof Finish</h4><p>Protected against humidity &amp; dust</p></div>
-        <div class="feature-item fade-in delay-1"><div class="feature-icon">🔗</div><h4>Ready to Hang</h4><p>Comes with hooks — hang in seconds</p></div>
-      </div>
-    </section>
-
-    <!-- ═══ PRICING ═══ -->
-    <section id="pricing" style="margin: 16px 0 24px;">
-      <div class="section-head fade-in">
-        <h2>💰 Choose Your Divine Frame</h2>
-        <p>Select the frame that resonates with your spiritual journey.</p>
-      </div>
-      <div class="pricing-grid">
-        <div class="pricing-card fade-in delay-1">
-          <div class="badge">🌿 Classic</div>
-          <div class="price">₹1,299</div>
-          <div class="old-price">₹1,599</div>
-          <div style="font-size:0.9rem; color:#4e3e32; margin-bottom:18px;">Sacred Om &amp; Peace design</div>
-          <a href="https://wa.me/919999999999?text=I%20want%20to%20order%20Classic%20frame" target="_blank" class="btn btn-sm btn-whatsapp">Order on WhatsApp</a>
+    <!-- IMAGE SHOWCASE (icons as images) -->
+    <div class="image-showcase" id="imageShowcase">
+        <div class="image-item" data-label="Shraddha">
+            <i class="fas fa-praying-hands"></i>
+            <span>Shraddha</span>
         </div>
-        <div class="pricing-card bestseller fade-in delay-2">
-          <div class="badge">🌟 Best Seller</div>
-          <div class="price">₹1,499</div>
-          <div class="old-price">₹1,899</div>
-          <div style="font-size:0.9rem; color:#4e3e32; margin-bottom:18px;">Premanand Baba · Golden Blessing</div>
-          <a href="https://wa.me/919999999999?text=I%20want%20to%20order%20Bestseller%20frame" target="_blank" class="btn btn-sm btn-whatsapp">Order on WhatsApp</a>
+        <div class="image-item" data-label="Sattva">
+            <i class="fas fa-lotus"></i>
+            <span>Sattva</span>
         </div>
-        <div class="pricing-card fade-in delay-3">
-          <div class="badge">🪷 Devotee Set</div>
-          <div class="price">₹2,999</div>
-          <div class="old-price">₹3,599</div>
-          <div style="font-size:0.9rem; color:#4e3e32; margin-bottom:18px;">3-frame set · Om, Tulsi, Blessing</div>
-          <a href="https://wa.me/919999999999?text=I%20want%20to%20order%20Devotee%20Set" target="_blank" class="btn btn-sm btn-whatsapp">Order on WhatsApp</a>
+        <div class="image-item" data-label="Prakash">
+            <i class="fas fa-sun"></i>
+            <span>Prakash</span>
         </div>
-      </div>
-    </section>
+    </div>
 
-    <!-- ═══ TESTIMONIALS ═══ -->
-    <section id="testimonials" style="margin: 16px 0 24px;">
-      <div class="section-head fade-in">
-        <h2>🧘 What Devotees Say</h2>
-        <p>Real words from souls who found peace through these frames.</p>
-      </div>
-      <div class="testimonial-grid">
-        <div class="testimonial-card fade-in delay-1"><div class="stars">★★★★★</div><p>“This frame brings so much positive energy to my puja room. The quality is divine.”</p><div class="author">— Radhika S.</div></div>
-        <div class="testimonial-card fade-in delay-2"><div class="stars">★★★★★</div><p>“Gifted this to my mother and she couldn't stop crying tears of joy. Absolutely blessed.”</p><div class="author">— Amit K.</div></div>
-        <div class="testimonial-card fade-in delay-3"><div class="stars">★★★★★</div><p>“The golden finish is stunning. Feels like a piece of the temple in my home.”</p><div class="author">— Priya M.</div></div>
-      </div>
-    </section>
+    <!-- EXTRA IMAGES (decorative) -->
+    <div class="extra-images" id="extraImages">
+        <div class="circle-icon" data-tooltip="Dharma"><i class="fas fa-dharmachakra"></i></div>
+        <div class="circle-icon" data-tooltip="Seedling"><i class="fas fa-seedling"></i></div>
+        <div class="circle-icon" data-tooltip="Moon"><i class="fas fa-moon"></i></div>
+        <div class="circle-icon" data-tooltip="Water"><i class="fas fa-water"></i></div>
+        <div class="circle-icon" data-tooltip="Fire"><i class="fas fa-fire"></i></div>
+    </div>
 
-    <!-- ═══ FINAL CTA ═══ -->
-    <section class="cta-section fade-in">
-      <h2>🪷 Bring Eternal Blessings Home</h2>
-      <p style="max-width: 500px; margin: 8px auto 0; color: #4e3e32;">Order now and receive a <strong>free spiritual bookmark</strong> with every frame.</p>
-      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px;">
-        <a href="https://wa.me/919999999999?text=I%20want%20to%20order%20a%20spiritual%20frame" target="_blank" class="btn btn-whatsapp">💬 Order on WhatsApp</a>
-        <a href="#gallery" class="btn btn-outline">Explore Gallery</a>
-      </div>
-      <div class="trust-badges" style="margin-top: 18px;">
-        <span>✅ Handcrafted with Love</span>
-        <span>🔒 100% Secure Checkout</span>
-        <span>🚚 Free Shipping</span>
-      </div>
-    </section>
+    <!-- WHATSAPP PREMIUM – updated number +91 87077 06166 -->
+    <div class="whatsapp-premium" id="whatsappSection">
+        <div class="whatsapp-label">
+            <i class="fab fa-whatsapp"></i>
+            <span class="label-text">WhatsApp Premium</span>
+        </div>
+        <div class="whatsapp-number" id="whatsappBtn" data-number="+918707706166">
+            <i class="fab fa-whatsapp"></i>
+            +91 87077 06166
+            <small>✧</small>
+        </div>
+    </div>
 
-    <!-- ═══ FOOTER ═══ -->
-    <footer class="footer">
-      <p>🪷 DivineFrames — bring peace to every wall. <br>© 2025 · Made with devotion.</p>
-    </footer>
-  </div>
+    <!-- PREMIUM FEATURES – updated version -->
+    <div class="premium-features" id="features">
+        <div class="feature-item" data-feature="VIP">
+            <i class="fas fa-gem"></i>
+            <span>VIP</span>
+        </div>
+        <div class="feature-item" data-feature="Unlimited">
+            <i class="fas fa-infinity"></i>
+            <span>Unlimited</span>
+        </div>
+        <div class="feature-item" data-feature="Secure">
+            <i class="fas fa-shield-alt"></i>
+            <span>Secure</span>
+        </div>
+    </div>
 
-  <!-- ═══ STICKY WHATSAPP ═══ -->
-  <button class="whatsapp-float" onclick="window.open('https://wa.me/919999999999?text=I%20want%20to%20order%20a%20spiritual%20frame','_blank')" aria-label="Order on WhatsApp">
-    💬
-  </button>
+    <!-- FOOTER with image reference -->
+    <div class="footer-note" id="footer">
+        <i class="fas fa-om"></i>
+        <span>Śrīgirikta Namaḥ · </span>
+        <i class="fas fa-code"></i>
+        <strong id="versionFooter">Version 2.0</strong>
+        <i class="fas fa-circle" style="font-size: 0.3rem; opacity: 0.5;"></i>
+        <span style="font-weight: 300;">Premium Update</span>
+        <i class="fas fa-image" style="margin-left: 4px;"></i>
+    </div>
 
-  <!-- ═══ JAVASCRIPT ═══ -->
-  <script>
+    <!-- hidden note: images are represented via FontAwesome icons & emoji -->
+    <div style="display: none;">image assets: icons + emoji as per premium design</div>
+
+</div>
+
+<!-- ===== JAVASCRIPT – complete interactive logic ===== -->
+<script>
     (function() {
-      // Smooth scroll for nav links
-      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-          const href = this.getAttribute('href');
-          if (href === '#') return;
-          e.preventDefault();
-          const target = document.querySelector(href);
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+        'use strict';
+
+        console.log('✨ Satvik Darshan · Premium v2.0 loaded');
+
+        // ---------- 1. WHATSAPP BUTTON – click to open chat ----------
+        const whatsappBtn = document.getElementById('whatsappBtn');
+        if (whatsappBtn) {
+            whatsappBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Extract number (remove any non-digit characters except +)
+                let rawNumber = this.getAttribute('data-number') || '+918707706166';
+                // Ensure it starts with + if not already
+                if (!rawNumber.startsWith('+')) {
+                    rawNumber = '+' + rawNumber;
+                }
+                // Clean: keep only digits and +
+                const cleanNumber = rawNumber.replace(/[^0-9+]/g, '');
+                const waUrl = `https://wa.me/${cleanNumber}?text=Namaste%20Satvik%20Darshan%20%F0%9F%99%8F%20I%20want%20to%20know%20more%20about%20premium%20services.`;
+                window.open(waUrl, '_blank');
+            });
+        }
+
+        // ---------- 2. FEATURE ITEMS – click shows alert with feature name ----------
+        const featureItems = document.querySelectorAll('.feature-item');
+        featureItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const feature = this.getAttribute('data-feature') || 'premium';
+                alert(`✨ ${feature} feature — unlocked in Satvik Darshan Premium`);
+            });
         });
-      });
 
-      // Button click feedback
-      document.querySelectorAll('.btn, .whatsapp-float').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-          // slight haptic feedback via scale
-          this.style.transform = 'scale(0.96)';
-          setTimeout(() => { this.style.transform = ''; }, 150);
+        // ---------- 3. IMAGE ITEMS – click shows label ----------
+        const imageItems = document.querySelectorAll('.image-item');
+        imageItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const label = this.getAttribute('data-label') || 'image';
+                alert(`🪷 ${label} — symbol of Satvik Darshan`);
+            });
         });
-      });
 
-      // Small "limited stock" urgency on load
-      const urgency = document.createElement('div');
-      urgency.style.cssText = 'text-align:center; font-size:0.85rem; color:#b8860b; font-weight:500; margin-top:6px; background:#fcf6ec; padding:6px 12px; border-radius:40px; display:inline-block;';
-      urgency.textContent = '🔥 Limited stock — order soon';
-      const pricingSection = document.querySelector('#pricing .section-head');
-      if (pricingSection) {
-        const wrap = document.createElement('div');
-        wrap.style.textAlign = 'center';
-        wrap.appendChild(urgency);
-        pricingSection.parentNode.insertBefore(wrap, pricingSection.nextSibling);
-      }
+        // ---------- 4. EXTRA IMAGES (circle icons) – click shows tooltip ----------
+        const circleIcons = document.querySelectorAll('.circle-icon');
+        circleIcons.forEach(icon => {
+            icon.addEventListener('click', function() {
+                const tooltip = this.getAttribute('data-tooltip') || 'sacred symbol';
+                alert(`🔮 ${tooltip} — divine element`);
+            });
+        });
 
-      console.log('🪷 DivineFrames — spiritual eCommerce ready.');
+        // ---------- 5. PREMIUM BADGE – double-click to toggle version text ----------
+        const badge = document.getElementById('badge');
+        const versionText = document.getElementById('versionText');
+        const versionFooter = document.getElementById('versionFooter');
+        if (badge && versionText) {
+            let clickCount = 0;
+            badge.addEventListener('dblclick', function(e) {
+                e.stopPropagation();
+                clickCount++;
+                if (clickCount % 2 === 1) {
+                    versionText.textContent = '🌟 Premium+ · exclusive';
+                    if (versionFooter) versionFooter.textContent = 'Version 2.1 · Premium+';
+                    this.style.background = 'linear-gradient(145deg, #d4a373, #b8863a)';
+                    this.style.boxShadow = '0 4px 20px rgba(184, 134, 58, 0.5)';
+                } else {
+                    versionText.textContent = 'v2.0 · updated';
+                    if (versionFooter) versionFooter.textContent = 'Version 2.0';
+                    this.style.background = 'linear-gradient(145deg, #c9a87c, #b68b5a)';
+                    this.style.boxShadow = '0 4px 12px rgba(184, 134, 58, 0.3)';
+                }
+            });
+        }
+
+        // ---------- 6. SUBTITLE – click to change mantra ----------
+        const subtitleDisplay = document.getElementById('subtitleDisplay');
+        if (subtitleDisplay) {
+            const subtitles = [
+                'Śrīgirikta Namaḥ · Spiritual',
+                'ॐ Satvik Darshan · Premium',
+                'Peace · Love · Harmony',
+                'सत्यं शिवं सुन्दरम्'
+            ];
+            let subIndex = 0;
+            subtitleDisplay.addEventListener('click', function() {
+                subIndex = (subIndex + 1) % subtitles.length;
+                // preserve the circle icon structure
+                this.innerHTML = `
+                    <i class="fas fa-circle" style="color: #b8863a; font-size: 0.5rem; vertical-align: middle;"></i> 
+                    ${subtitles[subIndex]} 
+                    <i class="fas fa-circle" style="color: #b8863a; font-size: 0.5rem; vertical-align: middle;"></i>
+                `;
+            });
+        }
+
+        // ---------- 7. CARD ANIMATION ON LOAD (premium entrance) ----------
+        const card = document.querySelector('.premium-card');
+        if (card) {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px) scale(0.98)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.7s cubic-bezier(0.23, 1, 0.32, 1)';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0) scale(1)';
+            }, 100);
+        }
+
+        // ---------- 8. CONSOLE WELCOME ----------
+        console.log('🙏 Satvik Darshan Premium — all images loaded via FontAwesome');
+        console.log('📞 WhatsApp: +91 87077 06166');
+
+        // ---------- 9. KEYBOARD SHORTCUT: press 'P' for premium info ----------
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'p' || e.key === 'P') {
+                if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+                    alert('🌟 Satvik Darshan Premium v2.0\n📞 +91 87077 06166\n🪷 Spiritual · Peace · Harmony');
+                }
+            }
+        });
+
+        // ---------- 10. TOUCH / MOBILE FRIENDLY: long-press on card shows info ----------
+        let pressTimer = null;
+        if (card) {
+            card.addEventListener('touchstart', function(e) {
+                pressTimer = setTimeout(() => {
+                    alert('🙏 Satvik Darshan Premium\n✨ Updated version with images\n📞 +91 87077 06166');
+                }, 1200);
+            });
+            card.addEventListener('touchend', function() {
+                clearTimeout(pressTimer);
+            });
+            card.addEventListener('touchmove', function() {
+                clearTimeout(pressTimer);
+            });
+        }
+
+        console.log('✅ All interactive features ready.');
+
     })();
-  </script>
+</script>
 
 </body>
 </html>
