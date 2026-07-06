@@ -79,7 +79,11 @@ service cloud.firestore {
     }
   }
 }
-
+ // ─── BANNERS (Admin hero banners) ───
+match /banners/{bannerId} {
+  allow read: if true;        // Public — user panel needs to read active banners
+  allow write: if isManager(); // Only admin can add/edit banners
+}
 ════════════════════════════════════════════════════════════════════════
 
 FIREBASE STORAGE RULES — Copy to Firebase Console → Storage → Rules:
@@ -203,8 +207,8 @@ a{text-decoration:none;color:inherit}
 .header-loc-label{font-size:10px;font-weight:600;color:var(--text3);line-height:1;text-transform:uppercase;letter-spacing:.4px}
 .header-loc-val{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:2px;line-height:1.4}
 .header-actions{display:flex;gap:6px}
-.header-btn{width:36px;height:36px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;border:1px solid var(--border);transition:background .15s;position:relative}
-.header-btn:active{background:var(--primary-light)}
+.header-btn{width:36px;height:36px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer;border:none;position:relative}
+.header-btn:active{opacity:.6}
 .cart-badge{position:absolute;top:-5px;right:-5px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:99px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;padding:0 2px;line-height:1}
 
 /* ─── PAGES ─── */
@@ -324,12 +328,12 @@ a{text-decoration:none;color:inherit}
 .swiper-dot{width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.5);transition:all .25s;cursor:pointer}
 .swiper-dot.active{background:#fff;width:16px}
 .detail-discount-badge{position:absolute;top:10px;left:10px;background:var(--danger);color:#fff;font-size:12px;font-weight:800;padding:3px 10px;border-radius:6px;z-index:5}
-.detail-wishlist{position:absolute;top:10px;right:52px;width:36px;height:36px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow2);border:none;z-index:5;transition:transform .15s}
+.detail-wishlist{position:absolute;top:10px;right:52px;width:36px;height:36px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;z-index:5;transition:transform .15s}
 .detail-wishlist:active{transform:scale(.88)}
-.detail-wishlist svg{width:18px;height:18px;display:block}
-.detail-share-btn{position:absolute;top:10px;right:10px;width:36px;height:36px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow2);border:none;z-index:5;transition:transform .15s}
+.detail-wishlist svg{width:20px;height:20px;display:block}
+.detail-share-btn{position:absolute;top:10px;right:10px;width:36px;height:36px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;z-index:5;transition:transform .15s}
 .detail-share-btn:active{transform:scale(.88)}
-.detail-share-btn svg{width:18px;height:18px;display:block}
+.detail-share-btn svg{width:20px;height:20px;display:block}
 .detail-info{padding:0 13px 110px}
 .detail-brand{font-size:11px;color:var(--primary);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
 .detail-title{font-family:var(--font-head);font-size:18px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:10px}
@@ -738,7 +742,7 @@ a{text-decoration:none;color:inherit}
 .header-video-dot{width:5px;height:5px;background:#f97316;border-radius:50%;animation:videoPulse 2s infinite;flex-shrink:0}
 @keyframes videoPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
 .header-video-label{font-size:9px;font-weight:700;color:#ea580c;letter-spacing:.3px;text-transform:uppercase}
-.header-btn{background:rgba(37,99,235,.06)!important;border:1.5px solid rgba(37,99,235,.12)!important;color:var(--primary)!important;border-radius:12px!important;width:38px!important;height:38px!important}
+.header-btn{background:transparent!important;border:none!important;box-shadow:none!important;color:#000!important;width:38px!important;height:38px!important}
 .header-upload-btn{background:linear-gradient(135deg,#f97316,#ea580c)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 3px 10px rgba(249,115,22,.3)!important}
 
 /* ─── XPLOR PAGE ─── */
@@ -820,7 +824,7 @@ a{text-decoration:none;color:inherit}
 .detail-offer-chip-text{display:flex;flex-direction:column}
 .detail-offer-chip-label{font-size:10px;font-weight:800;color:var(--text)}
 .detail-offer-chip-sub{font-size:9px;color:var(--text3);font-weight:600}
-.media-swiper-wrap{height:340px!important}
+.media-swiper-wrap{aspect-ratio:1/1!important;height:auto!important}
 .media-slide img{object-fit:cover!important;padding:0!important}
 
 /* ─── 5-TAB BOTTOM NAV ─── */
@@ -943,22 +947,24 @@ a{text-decoration:none;color:inherit}
       </div>
     </div>
     <div style="flex:1"></div>
-    <div class="header-actions" style="display:flex;gap:8px;align-items:center">
-      <div class="header-btn" onclick="showPage('search')" title="Search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </div>
-      <div class="header-btn" onclick="showPage('cart')" title="Cart" style="position:relative">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-        <span class="cart-badge" id="cartBadge" style="display:none">0</span>
-      </div>
-    </div>
+   <div class="header-actions" style="display:flex;gap:8px;align-items:center">
+  <div class="header-btn" onclick="showPage('wallet')" title="ApyCoins" style="width:auto;padding:0 10px;display:flex;align-items:center;gap:5px;background:var(--coin-bg);border-radius:99px;height:34px">
+    <span style="font-size:16px">🪙</span>
+    <span id="headerCoinBalance" style="font-size:13px;font-weight:800;color:var(--coin)">0</span>
+  </div>
+</div>
   </header>
 
   <div class="page-scroll" id="pageScroll">
 
     <div class="page active" id="page-home">
-      <!-- Hero Carousel -->
-      <div class="hero-carousel" id="heroCarousel"></div>
+  <div class="home-search-bar">
+    <div class="home-search-input" onclick="showPage('search')" style="justify-content:flex-start">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text3);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Search products, brands…</span>
+    </div>
+  </div>
+ <div class="hero-carousel" id="heroCarousel"></div>
       <!-- Trending Videos Section -->
       <div class="section-header" style="padding-top:14px">
         <div class="section-title">🎬 Trending Videos</div>
@@ -1296,6 +1302,7 @@ function setupProductsListener() {
           badge:    x.badge    || '',
           desc:     x.desc     || x.name || '',
           features: Array.isArray(x.features) ? x.features : [],
+          sizes:    Array.isArray(x.sizes) ? x.sizes : [],
           images:   Array.isArray(x.images) && x.images.length ? x.images : (x.img ? [x.img] : []),
           video:    x.video    || '',
           img:      (Array.isArray(x.images) && x.images[0]) ? x.images[0] : (x.img || ''),
@@ -1329,16 +1336,6 @@ setupProductsListener();
 function setupVideosListener() {
   try {
     const videosCol = collection(db, 'videos');
-    // ✅ FIX #2 — VIDEO NOT GOING LIVE AFTER ADMIN APPROVES
-    // ROOT CAUSE: Query had orderBy('uploadedAt') but uploadedAt is saved as
-    //   new Date().toISOString() (a plain string). Firestore's where() + orderBy()
-    //   on DIFFERENT fields requires a COMPOSITE INDEX. Without it, Firestore
-    //   silently returns 0 results — no error, just empty feed.
-    //
-    // FIX: Changed orderBy to 'createdAt' which uses serverTimestamp() (Firestore Timestamp).
-    //   Firestore can index where('status') + orderBy('createdAt') without composite index
-    //   when the where field and orderBy field are compatible.
-    //   We ALSO sort client-side as a safety net so videos always appear.
     const q = query(videosCol, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(50));
     onSnapshot(q, (snap) => {
       const vids = [];
@@ -1346,19 +1343,16 @@ function setupVideosListener() {
         const v = docSnap.data();
         if (v) vids.push({...v, id: docSnap.id, _fsId: docSnap.id});
       });
-      // Client-side sort fallback — handles both ISO string and Firestore Timestamp
       vids.sort((a, b) => {
         const ta = a.createdAt?.seconds || a.createdAt?.toMillis?.() / 1000 || (a.uploadedAt ? new Date(a.uploadedAt).getTime() / 1000 : 0);
         const tb = b.createdAt?.seconds || b.createdAt?.toMillis?.() / 1000 || (b.uploadedAt ? new Date(b.uploadedAt).getTime() / 1000 : 0);
         return tb - ta;
       });
       window._approvedVideos = vids;
-      // Real-time refresh - Admin approve kare toh turant feed mein aaye
       if (typeof currentPage !== 'undefined' && currentPage === 'xplor') renderXplor();
       if (typeof currentPage !== 'undefined' && currentPage === 'home')   renderTrendingVideos();
       if (typeof currentPage !== 'undefined' && currentPage === 'my-videos') renderMyVideos();
     }, err => {
-      // ✅ FIX: If composite index missing, fall back to simpler query (no orderBy)
       console.warn('Videos listener error (trying fallback):', err.message);
       const qFallback = query(videosCol, where('status', '==', 'approved'), limit(50));
       onSnapshot(qFallback, (snap2) => {
@@ -1478,28 +1472,26 @@ function setupCategoriesListener() {
 setupCategoriesListener();
 
 // ─── ✅ FIX: BANNERS realtime listener — Admin changes hero banners → instantly reflected in user carousel ───
-window._fsBanners = [];
 function setupBannersListener() {
   try {
     const { db, collection, query, orderBy, onSnapshot } = window._fsHelpers || window._fb?.fsHelpers;
     
-    // ✅ Safety check — agar db available nahi hai toh return
     if (!db || typeof onSnapshot !== 'function') {
       console.warn('Firestore not ready for banners listener');
       return;
     }
 
     onSnapshot(
-      query(collection(db, 'banners'), orderBy('order', 'asc')),
+      collection(db, 'banners'),
       (snap) => {
-        // ✅ FIX: Sare banners lo (image ho ya na ho)
+        // ✅ FIX: Duplicate declaration hata di — ab sirf ek baar allBanners banta hai
         const allBanners = snap.docs
           .map(d => ({...d.data(), _bid: d.id}))
-          .filter(b => b.active !== false);  // ✅ Sirf active filters
+          .filter(b => b.active !== false)
+          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
         window._fsBanners = allBanners;
 
-        // ✅ Agar banners hain toh HERO_SLIDES rebuild karo
         if (allBanners.length > 0 && typeof HERO_SLIDES !== 'undefined') {
           HERO_SLIDES.length = 0;
           allBanners.forEach((b, i) => {
@@ -1518,7 +1510,6 @@ function setupBannersListener() {
               action: b.action === 'search' ? "showPage('search')" : (b.action || "showPage('search')"),
               bg:     b.bg    || gradients[i % 3],
               imageUrl: b.imageUrl || '',
-              // ✅ Ye important hai — batata hai ki sirf image hai ya text bhi
               imageOnly: !b.title && !b.tag && !b.btn && !b.btnLabel && !!b.imageUrl,
               size: b.size || '3:1'
             });
@@ -1527,15 +1518,12 @@ function setupBannersListener() {
             initHeroCarousel();
           }
         } else {
-          // ✅ Agar koi banner nahi hai — default slides use karo
           if (typeof HERO_SLIDES !== 'undefined' && HERO_SLIDES.length === 0) {
-            // ✅ Keep default slides if no banners in Firestore
             const defaultSlides = [
               { cls:'hero-slide-1', tag:'🔥 Big Sale', title:'Up to 70% Off\nTop Brands', sub:'Limited time · Grab before it\'s gone', btn:'Shop Deals', emoji:'🛍️', action:"showPage('search')" },
               { cls:'hero-slide-2', tag:'🆕 Just Arrived', title:'New Season\nCollection', sub:'Latest mobiles, fashion & more', btn:'Explore Now', emoji:'✨', action:"filterByCategory('mobiles')" },
               { cls:'hero-slide-3', tag:'🪙 ApyCoins', title:'Earn & Save\nEvery Order', sub:'Earn coins · Redeem discounts', btn:'Learn More', emoji:'🎁', action:"showPage('wallet')" },
             ];
-            // ✅ Sirf tab set karo jab HERO_SLIDES empty ho
             if (HERO_SLIDES.length === 0) {
               defaultSlides.forEach(s => HERO_SLIDES.push(s));
             }
@@ -1545,7 +1533,24 @@ function setupBannersListener() {
           }
         }
       },
-      err => console.warn('Banners listener error:', err.message)
+      err => {
+  console.warn('Banners listener error:', err.message);
+  if (err.code === 'permission-denied') {
+    console.error('🚨 BANNERS COLLECTION: Firestore rules me banners ka read rule missing hai!');
+  }
+  // ✅ FIX: Firestore fail ho jaye tab bhi default banner zaroor dikhe
+  if (typeof HERO_SLIDES !== 'undefined' && HERO_SLIDES.length === 0) {
+    const defaultSlides = [
+      { cls:'hero-slide-1', tag:'🔥 Big Sale', title:'Up to 70% Off\nTop Brands', sub:'Limited time · Grab before it\'s gone', btn:'Shop Deals', emoji:'🛍️', action:"showPage('search')" },
+      { cls:'hero-slide-2', tag:'🆕 Just Arrived', title:'New Season\nCollection', sub:'Latest mobiles, fashion & more', btn:'Explore Now', emoji:'✨', action:"filterByCategory('mobiles')" },
+      { cls:'hero-slide-3', tag:'🪙 ApyCoins', title:'Earn & Save\nEvery Order', sub:'Earn coins · Redeem discounts', btn:'Learn More', emoji:'🎁', action:"showPage('wallet')" },
+    ];
+    defaultSlides.forEach(s => HERO_SLIDES.push(s));
+  }
+  if (typeof currentPage !== 'undefined' && currentPage === 'home' && typeof initHeroCarousel === 'function') {
+    initHeroCarousel();
+  }
+}
     );
   } catch(e) { 
     console.warn('Banners listener setup failed:', e.message); 
@@ -1775,7 +1780,10 @@ function reloadUserData() {
   setTimeout(updateHeaderLocation, 100);
   updateCartBadge();
 }
-
+function updateCoinBadge() {
+  const el = document.getElementById('headerCoinBalance');
+  if (el) el.textContent = coinData.balance;
+}
 // Dynamic store config — Admin se update hone par automatically change hota hai
 // Use getter-style so they always read the latest value set by setupSettingsListener
 let _COIN_TO_RUPEE_DEFAULT   = 0.10;
@@ -2192,11 +2200,7 @@ function showPage(page, productId) {
 /* ─── HERO CAROUSEL ─── */
 // ✅ FIX: Changed from 'const' to 'let' so Firestore banners listener can replace slides
 let _heroIdx = 0, _heroTimer = null;
-let HERO_SLIDES = [
-  { cls:'hero-slide-1', tag:'🔥 Big Sale', title:'Up to 70% Off\nTop Brands', sub:'Limited time · Grab before it\'s gone', btn:'Shop Deals', emoji:'🛍️', action:"showPage('search')" },
-  { cls:'hero-slide-2', tag:'🆕 Just Arrived', title:'New Season\nCollection', sub:'Latest mobiles, fashion & more', btn:'Explore Now', emoji:'✨', action:"filterByCategory('mobiles')" },
-  { cls:'hero-slide-3', tag:'🪙 ApyCoins', title:'Earn & Save\nEvery Order', sub:'Earn coins · Redeem discounts', btn:'Learn More', emoji:'🎁', action:"showPage('wallet')" },
-];
+let HERO_SLIDES = [];
 /* ─── HERO CAROUSEL ─── */
 function initHeroCarousel() {
   const wrap = document.getElementById('heroCarousel');
@@ -2216,10 +2220,10 @@ function initHeroCarousel() {
   wrap.innerHTML = HERO_SLIDES.map((s, i) => {
     // ✅ Image-only banner — clean image, no overlay text
     if (s.imageOnly && s.imageUrl) {
-      return `<div class="hero-slide ${i === 0 ? 'active' : ''}" id="heroSlide${i}" style="position:relative;overflow:hidden;padding:0;background:linear-gradient(135deg,#7c3aed,#2563eb)">
-        <img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:block" onclick="${s.action || ''}" onerror="this.style.display='none'">
-      </div>`;
-    }
+  return `<div class="hero-slide ${i === 0 ? 'active' : ''}" id="heroSlide${i}" style="position:relative;overflow:hidden;padding:0;background:linear-gradient(135deg,#7c3aed,#2563eb)">
+    <img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:block" onerror="console.error('Banner image load fail:', this.src); this.style.display='none'; this.parentElement.innerHTML+='<div style=position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700>⚠️ Image load failed</div>'" onclick="${s.action || ''}">
+  </div>`;
+}
     
     // ✅ Normal banner with text overlay
     return `<div class="hero-slide ${s.cls || 'hero-slide-1'} ${i === 0 ? 'active' : ''}" id="heroSlide${i}" style="${s.bg && !s.cls ? 'background:' + s.bg : ''}${s.imageUrl ? ';position:relative;overflow:hidden' : ''}">
@@ -2249,7 +2253,6 @@ function renderHome() {
   // Hero Carousel
   initHeroCarousel();
   updateHeaderLocation();
-
   // Trending Videos
   renderTrendingVideos();
 
@@ -2292,6 +2295,7 @@ function renderHome() {
           <div class="deal-info">
             <div class="deal-name">${p.name}</div>
             <div class="deal-price">₹${Number(p.price).toLocaleString()}</div>
+            
             ${p.ogPrice>p.price?`<div class="deal-og">₹${Number(p.ogPrice).toLocaleString()}</div>`:''}
           </div>
         </div>`;
@@ -2556,9 +2560,9 @@ function renderDetail(id) {
   const inQty    = cartItem ? cartItem.qty : 0;
   const media    = getProductMedia(p);
 
-  const heartFilled = `<svg viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
-  const heartEmpty  = `<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
-  const shareIcon   = `<svg viewBox="0 0 24 24" fill="none" stroke="#2874f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
+  const heartFilled = `<svg viewBox="0 0 24 24" fill="#000" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+const heartEmpty  = `<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+const shareIcon   = `<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
 
   // Build swiper HTML with overlay buttons injected
   const swiperHTML = buildSwiperWithBtns(media, p.discount, p.id, wished ? heartFilled : heartEmpty, heartFilled, heartEmpty, shareIcon);
@@ -2594,6 +2598,7 @@ function renderDetail(id) {
           <span style="font-size:11px;color:var(--text3)">incl. all taxes</span>
         </div>`:''}
       </div>
+      ${(p.sizes||[]).length ? `<div class="chip-row" style="margin:0 0 4px">${p.sizes.map(s=>`<div class="chip">Size: ${s}</div>`).join('')}</div>` : ''}
       <!-- Offer chips -->
       <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:0 13px 14px;margin:0 -13px">
         <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px">
@@ -2684,8 +2689,8 @@ function toggleWishlistDetail(id) {
   if (btn) {
     const filled = wishlist.includes(id);
     btn.innerHTML = filled
-      ? `<svg viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`
-      : `<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+      ? `<svg viewBox="0 0 24 24" fill="#000" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
   }
 }
 
@@ -2830,7 +2835,9 @@ function renderCart() {
               <button class="qty-btn" onclick="updateQty('${sid}',1)">+</button>
             </div>
           </div>
-          <div class="cart-item-remove" onclick="removeFromCart('${sid}')">🗑️</div>
+        <div class="cart-item-remove" onclick="removeFromCart('${sid}')">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+</div>
         </div>`;
       }).join('')}
     </div>
@@ -3768,7 +3775,7 @@ function renderAddProductFormWithLimit(slotsLeft) {
         </div>
         <div class="seller-input-group" style="margin-bottom:10px">
           <label class="form-label">Category</label>
-          <select id="prodCategory" class="form-input">
+<select id="prodCategory" class="form-input" onchange="toggleSizeOptions()">
             <option value="mobiles">📱 Mobiles</option>
             <option value="fashion">👗 Fashion</option>
             <option value="shoes">👟 Shoes</option>
@@ -3778,6 +3785,16 @@ function renderAddProductFormWithLimit(slotsLeft) {
             <option value="beauty">💄 Beauty</option>
             <option value="sports">⚽ Sports</option>
           </select>
+        </div>
+        <div class="seller-input-group" id="sizeGroupWrap" style="margin-bottom:10px;display:none">
+          <label class="form-label">Available Sizes</label>
+          <div id="sizeOptionsRow" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Stock me jo sizes available hain unhe select karo</div>
+        </div>
+      <div class="seller-input-group" style="margin-bottom:10px">
+          <label class="form-label">Key Features (ek line me ek feature likho)</label>
+          <textarea id="prodFeatures" placeholder="100% Cotton&#10;Machine Washable&#10;Slim Fit" class="form-input" style="height:80px;resize:none"></textarea>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Har feature naye line par — product page par "Key Highlights" me dikhega</div>
         </div>
         <div class="seller-input-group" style="margin-bottom:10px">
           <label class="form-label">Description</label>
@@ -3855,6 +3872,25 @@ function renderAddProductFormWithLimit(slotsLeft) {
       </div>
     </div>`;
   document.getElementById('prodImages').addEventListener('change', previewImages);
+  toggleSizeOptions();
+}
+
+const SIZE_SETS = {
+  fashion: ['XS','S','M','L','XL','XXL'],
+  shoes:   ['6','7','8','9','10','11','12']
+};
+function toggleSizeOptions() {
+  const cat = document.getElementById('prodCategory')?.value;
+  const wrap = document.getElementById('sizeGroupWrap');
+  const row = document.getElementById('sizeOptionsRow');
+  if (!wrap || !row) return;
+  const sizes = SIZE_SETS[cat];
+  if (!sizes) { wrap.style.display='none'; row.innerHTML=''; return; }
+  wrap.style.display='block';
+  row.innerHTML = sizes.map(s=>`
+    <label style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">
+      <input type="checkbox" value="${s}" class="prodSizeChk" style="accent-color:var(--primary)"> ${s}
+    </label>`).join('');
 }
 function updateProductCalc() {
   const price = parseFloat(document.getElementById('prodPrice')?.value) || 0;
@@ -3894,6 +3930,9 @@ async function submitNewProductBtn() {
   const mrp = parseFloat(document.getElementById('prodMRP')?.value || 0);
   const price = parseFloat(document.getElementById('prodPrice')?.value || 0);
   const desc = document.getElementById('prodDesc')?.value || '';
+  const featuresRaw = document.getElementById('prodFeatures')?.value || '';
+  const features = featuresRaw.split('\n').map(f=>f.trim()).filter(Boolean).slice(0,10);
+  const sizes = Array.from(document.querySelectorAll('.prodSizeChk:checked')).map(c=>c.value);
   const category = document.getElementById('prodCategory')?.value || 'all';
   const stock = parseInt(document.getElementById('prodStock')?.value) || 10;
   const affiliateCommission = parseFloat(document.getElementById('prodAffiliateCommission')?.value) || 0;
@@ -3948,7 +3987,7 @@ async function submitNewProductBtn() {
     ogPrice: mrp,
     price,
     discount,
-    category, images: imageUrls, img: imageUrls[0] || '', desc, stock,
+    category, images: imageUrls, img: imageUrls[0] || '', desc, features, sizes, stock,
     affiliateCommission,
     buyerCoinReward,
     weightGrams,
@@ -5086,42 +5125,44 @@ function _xplorSlideHTML(v, i) {
       </div>
     </div>
     
-    <div style="position:absolute;bottom:130px;right:12px;display:flex;flex-direction:column;gap:18px;align-items:center;z-index:15">
-      <div onclick="xplorLike(${i})" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
-        <div id="xlike_${i}" style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25)">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="${_xplorLiked[i]?'#ef4444':'none'}" stroke="${_xplorLiked[i]?'#ef4444':'white'}"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        </div>
-        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Like</span>
-      </div>
-      <div onclick="shareXplorVideo('${v.id}','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
-        <div style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        </div>
-        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Share</span>
-      </div>
-      <div onclick="showPage('detail','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
-        <div style="width:46px;height:46px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </div>
-        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">View</span>
-      </div>
+    <!-- ✅ RIGHT SIDE ICONS — CLEAN (No Circle, Sirf Icon) -->
+<div style="position:absolute;bottom:130px;right:12px;display:flex;flex-direction:column;gap:18px;align-items:center;z-index:15">
+  
+  <!-- LIKE — Sirf Icon, No Circle -->
+  <div onclick="xplorLike(${i})" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="${_xplorLiked[i]?'#ef4444':'none'}" stroke="${_xplorLiked[i]?'#ef4444':'white'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Like</span>
+  </div>
+  
+  <!-- SHARE — Sirf Icon, No Circle -->
+  <div onclick="shareXplorVideo('${v.id}','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Share</span>
+  </div>
+  
+  <!-- VIEW — Sirf Icon + Views Count, No Circle -->
+  <div onclick="showPage('detail','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">${v.views || 0}</span>
+  </div>
+</div>
+
+<!-- BOTTOM PRODUCT INFO + BUTTONS -->
+<div style="position:absolute;bottom:0;left:0;right:0;padding:0 14px 14px;z-index:15">
+  <div style="margin-bottom:10px">
+    ${v.productName ? `<div style="font-family:var(--font-head);font-size:16px;font-weight:800;color:#fff;margin-bottom:4px;text-shadow:0 2px 8px rgba(0,0,0,.5);max-width:75%">${v.productName}</div>` : ''}
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      ${v.price ? `<span style="font-size:15px;font-weight:800;color:#fff">₹${Number(v.price).toLocaleString()}</span>` : ''}
+      ${discount > 0 ? `<span style="background:#f97316;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px">${discount}% OFF</span>` : ''}
+      ${v.ogPrice > v.price ? `<span style="font-size:12px;color:rgba(255,255,255,.55);text-decoration:line-through">₹${Number(v.ogPrice).toLocaleString()}</span>` : ''}
     </div>
-    
-    <div style="position:absolute;bottom:0;left:0;right:0;padding:0 14px 14px;z-index:15">
-      <div style="margin-bottom:10px">
-        ${v.productName ? `<div style="font-family:var(--font-head);font-size:16px;font-weight:800;color:#fff;margin-bottom:4px;text-shadow:0 2px 8px rgba(0,0,0,.5);max-width:75%">${v.productName}</div>` : ''}
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          ${v.price ? `<span style="font-size:15px;font-weight:800;color:#fff">₹${Number(v.price).toLocaleString()}</span>` : ''}
-          ${discount > 0 ? `<span style="background:#f97316;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px">${discount}% OFF</span>` : ''}
-          ${v.ogPrice > v.price ? `<span style="font-size:12px;color:rgba(255,255,255,.55);text-decoration:line-through">₹${Number(v.ogPrice).toLocaleString()}</span>` : ''}
-        </div>
-        ${v.desc ? `<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;max-width:80%">${v.desc}</div>` : ''}
-      </div>
-      <div style="display:flex;gap:8px">
-        <button onclick="addToCart('${v.productId}');showToast('Added to cart! 🛒','success')" style="flex:1;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;cursor:pointer">🛒 Add to Cart</button>
-        <button onclick="buyNow('${v.productId}')" style="flex:1;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,.45)">⚡ Buy Now</button>
-      </div>
-    </div>
+    ${v.desc ? `<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;max-width:80%">${v.desc}</div>` : ''}
+  </div>
+  <div style="display:flex;gap:8px">
+    <button onclick="addToCart('${v.productId}');showToast('Added to cart! 🛒','success')" style="flex:1;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;cursor:pointer">🛒 Add to Cart</button>
+    <button onclick="buyNow('${v.productId}')" style="flex:1;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,.45)">⚡ Buy Now</button>
+  </div>
+</div>
   `;
 }
 
@@ -5444,7 +5485,8 @@ function renderVideoUpload() {
       <div style="display:flex;flex-direction:column;gap:12px">
         <div>
           <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:5px">Video Title *</label>
-          <input class="form-input" id="vUploadTitle" placeholder="E.g. Best earbuds under ₹2000!" value="${window._vTitle||''}">
+<input class="form-input" id="vUploadTitle" maxlength="150" oninput="document.getElementById('vTitleCount').textContent=this.value.length+'/150'" placeholder="E.g. Best earbuds under ₹2000!" value="${window._vTitle||''}">
+<div id="vTitleCount" style="text-align:right;font-size:11px;color:var(--text3);margin-top:3px">${(window._vTitle||'').length}/150</div>
         </div>
         <div>
           <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:5px">Description</label>
