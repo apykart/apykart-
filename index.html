@@ -958,9 +958,9 @@ a{text-decoration:none;color:inherit}
   <div class="page-scroll" id="pageScroll">
 
     <div class="page active" id="page-home">
-  <div class="home-search-bar">
+<div class="home-search-bar">
     <div class="home-search-input" onclick="showPage('search')" style="justify-content:flex-start">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text3);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#e2e8f0;flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <span>Search products, brands…</span>
     </div>
   </div>
@@ -1779,6 +1779,7 @@ let _swiperIdx         = 0;
 function reloadUserData() {
   setTimeout(updateHeaderLocation, 100);
   updateCartBadge();
+  updateCoinBadge();
 }
 function updateCoinBadge() {
   const el = document.getElementById('headerCoinBalance');
@@ -1818,6 +1819,7 @@ window.applyFirestoreUserData = function(d, user) {
   if (Array.isArray(d.user_videos))      userVideos         = d.user_videos;
 
   updateCartBadge();
+  updateCoinBadge();
   if (currentPage === 'profile')          renderProfile();
   else if (currentPage === 'cart')        renderCart();
   else if (currentPage === 'orders')      renderOrders();
@@ -2072,11 +2074,13 @@ function addCoins(amount, desc) {
   coinData.balance += amount;
   coinData.transactions.unshift({id:Date.now().toString(), type:'earned', amount, desc, date:new Date().toISOString()});
   saveCoins();
+  updateCoinBadge();
 }
 function deductCoins(amount, desc) {
   coinData.balance = Math.max(0, coinData.balance - amount);
   coinData.transactions.unshift({id:Date.now().toString(), type:'redeemed', amount, desc, date:new Date().toISOString()});
   saveCoins();
+  updateCoinBadge();
 }
 
 /* ─── CART HELPERS ─── */
@@ -5980,6 +5984,7 @@ function init() {
   renderHome();
   handleSearch('');
   updateCartBadge();
+  updateCoinBadge();
   startTimer();
   setTimeout(hideLoadingScreen, 2200);
   if (window._fbReady) {
