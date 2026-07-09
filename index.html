@@ -209,6 +209,25 @@ a{text-decoration:none;color:inherit}
 .header-actions{display:flex;gap:6px}
 .header-btn{width:36px;height:36px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer;border:none;position:relative}
 .header-btn:active{opacity:.6}
+/* ─── COIN BADGE HIGHLIGHT ─── */
+.coin-pill-glow{
+  background:linear-gradient(135deg,#fde68a,#fbbf24)!important;
+  border:1.5px solid #f59e0b!important;
+  box-shadow:0 2px 10px rgba(251,191,36,.5),0 0 0 0 rgba(251,191,36,.5)!important;
+  animation:coinPulse 2s ease-in-out infinite;
+}
+@keyframes coinPulse{
+  0%,100%{box-shadow:0 2px 10px rgba(251,191,36,.5),0 0 0 0 rgba(251,191,36,.45)}
+  50%{box-shadow:0 2px 16px rgba(251,191,36,.7),0 0 0 6px rgba(251,191,36,0)}
+}
+.coin-pill-glow span:first-child{
+  display:inline-block;
+  animation:coinBounce 2s ease-in-out infinite;
+}
+@keyframes coinBounce{
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  50%{transform:translateY(-2px) rotate(-10deg)}
+}
 .cart-badge{position:absolute;top:-5px;right:-5px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:99px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;padding:0 2px;line-height:1}
 
 /* ─── PAGES ─── */
@@ -977,10 +996,10 @@ a{text-decoration:none;color:inherit}
     </div>
     <div style="flex:1"></div>
    <div class="header-actions" style="display:flex;gap:8px;align-items:center">
-  <div class="header-btn" onclick="showPage('wallet')" title="ApyCoins" style="width:auto;padding:0 10px;display:flex;align-items:center;gap:5px;background:var(--coin-bg);border-radius:99px;height:34px">
+ <div class="header-btn coin-pill-glow" onclick="showPage('wallet')" title="ApyCoins" style="width:auto;padding:0 10px;display:flex;align-items:center;gap:5px;border-radius:99px;height:34px">
     <span style="font-size:16px">🪙</span>
-    <span id="headerCoinBalance" style="font-size:13px;font-weight:800;color:var(--coin)">0</span>
-  </div>
+    <span id="headerCoinBalance" style="font-size:13px;font-weight:800;color:#92400e">0</span>
+</div>
 </div>
   </header>
 
@@ -1350,6 +1369,40 @@ window._fsHelpers = {
   collection, onSnapshot, deleteDoc, query, where, orderBy,
   serverTimestamp, limit, increment
 };
+
+window._vTagsArr = window._vTagsArr || [];
+
+function handleTagKeydown(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,$/, '');
+    if (val && !window._vTagsArr.includes(val)) { window._vTagsArr.push(val); renderTagChips(); }
+    e.target.value = '';
+  } else if (e.key === 'Backspace' && !e.target.value && window._vTagsArr.length) {
+    window._vTagsArr.pop();
+    renderTagChips();
+  }
+}
+
+function renderTagChips() {
+  const wrap = document.getElementById('tagChipsWrap');
+  if (!wrap) return;
+  wrap.querySelectorAll('.tag-chip').forEach(c => c.remove());
+  const input = document.getElementById('vTagInput');
+  window._vTagsArr.forEach((t, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.style.cssText = 'background:var(--primary-light);color:var(--primary);font-size:11px;font-weight:700;padding:4px 8px;border-radius:99px;display:flex;align-items:center;gap:4px';
+    chip.innerHTML = `${t} <span onclick="removeTag(${i})" style="cursor:pointer">✕</span>`;
+    wrap.insertBefore(chip, input);
+  });
+  window._vTags = window._vTagsArr.join(',');
+}
+
+function removeTag(i) {
+  window._vTagsArr.splice(i, 1);
+  renderTagChips();
+}
 // ─── PRODUCTS: realtime listener from Firestore /products ───
 // ✅ FIX: Broadened query — catch 'active', 'approved', AND products where
 //   admin set approvalStatus='approved' but forgot to set status field.
@@ -1371,7 +1424,8 @@ function setupProductsListener() {
         fromFS.push({
           _fid:     fid,
           id:       fid,
-          name:     x.name     || '',
+name:     x.name     || '',
+          sku:      x.sku      || '',
           brand:    x.brand    || '',
           category: (x.category || 'all').toLowerCase(),
           price:    Number(x.price)    || 0,
@@ -1383,7 +1437,8 @@ function setupProductsListener() {
           desc:     x.desc     || x.name || '',
           features: Array.isArray(x.features) ? x.features : [],
           sizes:    Array.isArray(x.sizes) ? x.sizes : [],
-          images:   Array.isArray(x.images) && x.images.length ? x.images : (x.img ? [x.img] : []),
+images:   Array.isArray(x.images) && x.images.length ? x.images : (x.img ? [x.img] : []),
+          keywords: Array.isArray(x.keywords) ? x.keywords : [],
           video:    x.video    || '',
           img:      (Array.isArray(x.images) && x.images[0]) ? x.images[0] : (x.img || ''),
           status:   'approved',
@@ -2547,7 +2602,8 @@ function handleSearch(q) {
 const res = PRODUCTS.filter(p => {
     const st = (p.status || '').toLowerCase();
     const visible = !st || st === 'approved' || st === 'active';
-    return visible && (p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q));
+    const keywordMatch = Array.isArray(p.keywords) && p.keywords.some(k => k.includes(q));
+    return visible && (p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q) || keywordMatch);
   });
   if (!res.length) { cont.innerHTML=`<div class="search-empty"><div><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#c8d5f0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div><div style="font-family:var(--font-head);font-size:18px;font-weight:700">No Results</div><div style="font-size:14px;color:var(--text2)">Try different keywords</div></div>`; return; }
   cont.innerHTML=`<div style="padding:12px 14px 4px;font-size:13px;color:var(--text2);font-weight:600">${res.length} result${res.length!==1?'s':''} found</div><div class="products-grid" style="padding:4px 12px 16px">${res.map(p=>productCardHTML(p)).join('')}</div>`;
@@ -3802,8 +3858,9 @@ function renderMyProducts() {
         ${myProds.length ? myProds.map(p => `
           <div class="seller-prod-item">
             ${p.images?.[0] ? `<img src="${p.images[0]}" class="seller-prod-img" onerror="this.outerHTML='<div class=seller-prod-img-placeholder>📦</div>'">` : '<div class="seller-prod-img-placeholder">📦</div>'}
-            <div class="seller-prod-info">
+          <div class="seller-prod-info">
               <div class="seller-prod-name">${p.name}</div>
+              ${p.sku ? `<div style="font-size:10px;color:var(--text3);font-weight:700;margin-top:1px">SKU: ${p.sku}</div>` : ''}
               <div class="seller-prod-price">₹${Number(p.price).toLocaleString()}</div>
               <span class="seller-prod-status prod-status-${p.status}">${p.status}</span>
             </div>
@@ -3813,36 +3870,90 @@ function renderMyProducts() {
     </div>`;
 }
 
-// ✅ FIX: Added missing previewImages function
+// ✅ NEW: Square crop system with adjustable position slider
+window._prodImgs = [];
+
 function previewImages(e) {
-  const files = e.target.files;
+  const files = Array.from(e.target.files).slice(0, 5);
+  window._prodImgs = [];
   const previewDiv = document.getElementById('imagePreview');
   if (!previewDiv) return;
   previewDiv.innerHTML = '';
-  for (let file of files) {
-    const url = URL.createObjectURL(file);
-    const img = document.createElement('img');
-    img.src = url;
-    img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--border)';
-    img.onload = () => URL.revokeObjectURL(url);
-    previewDiv.appendChild(img);
-  }
+  files.forEach((file, idx) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        window._prodImgs[idx] = { file, img, focus: 50 };
+        renderImgCropCard(idx);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
-// Add after previewImages function
-function previewImages(e) {
-  const files = e.target.files;
+function renderImgCropCard(idx) {
+  const entry = window._prodImgs[idx];
   const previewDiv = document.getElementById('imagePreview');
-  if (!previewDiv) return;
-  previewDiv.innerHTML = '';
-  Array.from(files).slice(0, 5).forEach((file, i) => {
-    if (!file.type.startsWith('image/')) return;
-    const url = URL.createObjectURL(file);
-    const img = document.createElement('img');
-    img.src = url;
-    img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--border)';
-    img.onload = () => URL.revokeObjectURL(url);
-    previewDiv.appendChild(img);
+  if (!entry || !previewDiv) return;
+  let card = document.getElementById('imgCropCard' + idx);
+  if (!card) {
+    card = document.createElement('div');
+    card.id = 'imgCropCard' + idx;
+    card.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px';
+    previewDiv.appendChild(card);
+  }
+  const isSquareAlready = entry.img.width === entry.img.height;
+  card.innerHTML = `
+    <canvas id="imgCanvas${idx}" width="90" height="90" style="border-radius:8px;border:2px solid var(--border);background:#f1f5f9"></canvas>
+    ${!isSquareAlready ? `<input type="range" min="0" max="100" value="50" oninput="updateImgFocus(${idx}, this.value)" style="width:90px;accent-color:var(--primary)">` : `<span style="font-size:9px;color:var(--text3);font-weight:700">✓ Already Square</span>`}
+  `;
+  drawSquareCrop(idx);
+}
+
+function updateImgFocus(idx, val) {
+  window._prodImgs[idx].focus = Number(val);
+  drawSquareCrop(idx);
+}
+
+function drawSquareCrop(idx) {
+  const entry = window._prodImgs[idx];
+  const canvas = document.getElementById('imgCanvas' + idx);
+  if (!entry || !canvas) return;
+  const ctx = canvas.getContext('2d');
+  const img = entry.img;
+  const side = Math.min(img.width, img.height);
+  let sx = 0, sy = 0;
+  if (img.width > img.height) {
+    sx = (entry.focus / 100) * (img.width - side);
+  } else if (img.height > img.width) {
+    sy = (entry.focus / 100) * (img.height - side);
+  }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, sx, sy, side, side, 0, 0, canvas.width, canvas.height);
+}
+
+// Final upload-quality square image banata hai (900x900)
+function getSquareBlob(idx, outSize = 900) {
+  const entry = window._prodImgs[idx];
+  return new Promise((resolve, reject) => {
+    if (!entry) { reject(new Error('Image data missing')); return; }
+    try {
+      const img = entry.img;
+      const side = Math.min(img.width, img.height);
+      let sx = 0, sy = 0;
+      if (img.width > img.height) sx = (entry.focus / 100) * (img.width - side);
+      else if (img.height > img.width) sy = (entry.focus / 100) * (img.height - side);
+      const c = document.createElement('canvas');
+      c.width = outSize; c.height = outSize;
+      c.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
+      c.toBlob(b => {
+        if (!b) { reject(new Error('Canvas toBlob failed')); return; }
+        resolve(new File([b], entry.file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+      }, 'image/jpeg', 0.85);
+    } catch(e) { reject(e); }
   });
 }
 // ✅ FIX: Single deleteProduct function (removed duplicate)
@@ -3868,6 +3979,16 @@ function renderAddProductFormWithLimit(slotsLeft) {
         <div class="seller-input-group" style="margin-bottom:10px">
           <label class="form-label">Product Name *</label>
           <input type="text" id="prodName" placeholder="e.g. Nike Air Max 270" class="form-input">
+        </div>
+        <div class="seller-input-group" style="margin-bottom:10px">
+        <div class="seller-input-group" style="margin-bottom:10px">
+          <label class="form-label">SKU / Product Code</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="prodSKU" placeholder="e.g. NIKE-AM270-BLK-9" class="form-input" style="flex:1" oninput="this.value=this.value.toUpperCase();checkSKUUnique(this.value)">
+            <button type="button" onclick="autoGenerateSKU()" style="flex-shrink:0;background:var(--primary-light);color:var(--primary);font-size:12px;font-weight:800;padding:0 14px;border-radius:9px;border:1.5px solid var(--primary-mid);cursor:pointer">🔄 Auto</button>
+          </div>
+          <div id="skuError" style="font-size:10px;color:var(--danger);font-weight:600;margin-top:4px;display:none">Yeh SKU already use ho raha hai — dusra likho</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Apna internal stock code — inventory track karne mein help karega (optional but recommended)</div>
         </div>
         <div class="seller-input-group" style="margin-bottom:10px">
           <label class="form-label">Category</label>
@@ -3896,9 +4017,10 @@ function renderAddProductFormWithLimit(slotsLeft) {
           <label class="form-label">Description</label>
           <textarea id="prodDesc" placeholder="Describe your product..." class="form-input" style="height:80px;resize:none"></textarea>
         </div>
-        <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">Product Images (up to 5)</label>
+    <div class="seller-input-group" style="margin-bottom:10px">
+          <label class="form-label">Product Images (up to 5) — <span id="imgCountLabel" style="color:var(--primary);font-weight:800">0/5 selected</span></label>
           <input type="file" id="prodImages" accept="image/*" multiple class="form-input">
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Ek baar mein multiple select karo, ya baar-baar tap karke ek-ek jodo — dono chalega ✅</div>
         </div>
         <div id="imagePreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
         <div class="seller-input-group" style="margin-bottom:16px">
@@ -3970,7 +4092,32 @@ function renderAddProductFormWithLimit(slotsLeft) {
   document.getElementById('prodImages').addEventListener('change', previewImages);
   toggleSizeOptions();
 }
+// ✅ NEW: Auto SKU generate karo product name + category + random suffix se
+function autoGenerateSKU() {
+  const name = (document.getElementById('prodName')?.value || 'PROD').trim();
+  const cat = (document.getElementById('prodCategory')?.value || 'GEN').toUpperCase();
+  const namePart = name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'ITEM';
+  const catPart = cat.slice(0, 4);
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  const sku = `${catPart}-${namePart}-${rand}`;
+  const skuInput = document.getElementById('prodSKU');
+  if (skuInput) {
+    skuInput.value = sku;
+    checkSKUUnique(sku);
+  }
+}
 
+// ✅ NEW: Isi seller ke andar SKU duplicate na ho, check karo
+function checkSKUUnique(sku) {
+  const errEl = document.getElementById('skuError');
+  if (!errEl) return true;
+  const uid = getUid();
+  const trimmed = (sku || '').trim().toUpperCase();
+  if (!trimmed) { errEl.style.display = 'none'; return true; }
+  const clash = sellerProducts.some(p => p.sellerId === uid && (p.sku || '').toUpperCase() === trimmed);
+  errEl.style.display = clash ? 'block' : 'none';
+  return !clash;
+}
 const SIZE_SETS = {
   fashion: ['XS','S','M','L','XL','XXL'],
   shoes:   ['6','7','8','9','10','11','12']
@@ -4022,12 +4169,15 @@ function updateProductCalc() {
 async function submitNewProductBtn() {
   if (!window.currentUser) { showToast('Pehle login karo bhai', 'warn'); return; }
 
-  const name = (document.getElementById('prodName')?.value || '').trim();
+const name = (document.getElementById('prodName')?.value || '').trim();
+  const sku = (document.getElementById('prodSKU')?.value || '').trim().toUpperCase();
   const mrp = parseFloat(document.getElementById('prodMRP')?.value || 0);
   const price = parseFloat(document.getElementById('prodPrice')?.value || 0);
   const desc = document.getElementById('prodDesc')?.value || '';
   const featuresRaw = document.getElementById('prodFeatures')?.value || '';
   const features = featuresRaw.split('\n').map(f=>f.trim()).filter(Boolean).slice(0,10);
+  const keywordsRaw = document.getElementById('prodKeywords')?.value || '';
+  const keywords = keywordsRaw.split(',').map(k=>k.trim().toLowerCase()).filter(Boolean).slice(0,15);
   const sizes = Array.from(document.querySelectorAll('.prodSizeChk:checked')).map(c=>c.value);
   const category = document.getElementById('prodCategory')?.value || 'all';
   const stock = parseInt(document.getElementById('prodStock')?.value) || 10;
@@ -4037,6 +4187,7 @@ async function submitNewProductBtn() {
   const availabilityStatus = document.getElementById('prodAvailability')?.value || 'active';
 
   if (!name) { showToast('Product name dalo', 'warn'); return; }
+  if (sku && !checkSKUUnique(sku)) { showToast('Yeh SKU already use ho raha hai, dusra likho', 'warn'); return; }
   if (!mrp || mrp <= 0) { showToast('Valid MRP dalo', 'warn'); return; }
   if (!price || price <= 0) { showToast('Valid Selling Price dalo', 'warn'); return; }
   if (price > mrp) { showToast('Selling Price, MRP se zyada nahi ho sakti', 'warn'); return; }
@@ -4051,23 +4202,41 @@ async function submitNewProductBtn() {
   showToast('Images upload ho rahi hain...', 'info');
 
   let imageUrls = [];
-  try {
-    for (let i = 0; i < imageFiles.length; i++) {
-      const file = imageFiles[i];
-      if (file.size > 5 * 1024 * 1024) { showToast(`Image ${i+1} 5MB se badi hai, skip kar raha hoon`, 'warn'); continue; }
-      if (!file.type.startsWith('image/')) { showToast(`File ${i+1} image nahi hai`, 'warn'); continue; }
+  const totalImgs = window._prodImgs.filter(Boolean).length;
+  let failedCount = 0;
 
-      const path = `images/${uid}/products/${Date.now()}_${i}_${file.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
+  for (let i = 0; i < window._prodImgs.length; i++) {
+    if (!window._prodImgs[i]) continue;
+
+    // ✅ FIX: Har image apna alag try/catch — ek image fail hone se
+    // baaki images ka upload RUKEGA NAHI. Pehle poora loop ek hi try/catch
+    // mein tha, isliye ek image fail hote hi baaki sab skip ho jaate the
+    // aur sirf 1 image (jo pehle upload ho chuki thi) save hoti thi.
+    try {
+      const squareFile = await getSquareBlob(i); // har image square crop hokar jayegi
+      const path = `images/${uid}/products/${Date.now()}_${i}_sq.jpg`;
       if (window._uploadToStorage) {
-        const url = await window._uploadToStorage(file, path, (pct) => {
-          if (btn) btn.textContent = `⏳ Image ${i+1}/${imageFiles.length}: ${pct}%`;
+        const url = await window._uploadToStorage(squareFile, path, (pct) => {
+          if (btn) btn.textContent = `⏳ Image ${i+1}/${totalImgs}: ${pct}%`;
         });
-        if (url) imageUrls.push(url);
+        if (url) {
+          imageUrls.push(url);
+        } else {
+          failedCount++;
+        }
       }
+    } catch(e) {
+      failedCount++;
+      console.warn(`Image ${i+1} upload failed:`, e.message);
+      showToast(`Image ${i+1} upload fail hua, agli image try kar raha hoon...`, 'warn');
+      // loop yahan aage badhega — agli image try hogi
     }
-  } catch(e) {
-    console.warn('Image upload error:', e.message);
-    showToast('Image upload mein issue: ' + e.message, 'warn');
+  }
+
+  if (failedCount > 0 && imageUrls.length > 0) {
+    showToast(`${imageUrls.length} images upload ho gayi, ${failedCount} fail hui`, 'warn');
+  } else if (imageUrls.length === 0 && totalImgs > 0) {
+    showToast('Koi bhi image upload nahi ho payi. Dobara try karo.', 'warn');
   }
 
   if (btn) { btn.disabled = false; btn.textContent = '🚀 Submit for Approval'; }
@@ -4079,11 +4248,11 @@ async function submitNewProductBtn() {
     || 'Seller';
 
   const newProduct = {
-    id: prodId, name,
+    id: prodId, name, sku: sku || '',
     ogPrice: mrp,
     price,
     discount,
-    category, images: imageUrls, img: imageUrls[0] || '', desc, features, sizes, stock,
+    category, images: imageUrls, img: imageUrls[0] || '', desc, features, keywords, sizes, stock,
     affiliateCommission,
     buyerCoinReward,
     weightGrams,
@@ -5206,14 +5375,13 @@ function _xplorSlideHTML(v, i) {
     }
     
     <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.1) 35%,rgba(0,0,0,.05) 60%,rgba(0,0,0,.3) 100%);pointer-events:none"></div>
-    
     <div style="position:absolute;top:14px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;pointer-events:none">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ec4899);display:flex;align-items:center;justify-content:center;font-size:15px;border:2px solid rgba(255,255,255,.4);flex-shrink:0">${v.creatorEmoji||'🎬'}</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)">${v.creator||'Creator'}</div>
-      </div>
-      <div style="background:rgba(0,0,0,.4);backdrop-filter:blur(6px);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(255,255,255,.15)">${i+1}/${_xplorVideos.length}</div>
-    </div>
+  <div onclick="xplorToggleDesc(${i})" style="display:flex;align-items:center;gap:8px;pointer-events:auto;cursor:pointer">
+    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ec4899);display:flex;align-items:center;justify-content:center;font-size:15px;border:2px solid rgba(255,255,255,.4);flex-shrink:0">${v.creatorEmoji||'🎬'}</div>
+    <div style="font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)">${v.creator||'Creator'}</div>
+  </div>
+  <div style="background:rgba(0,0,0,.4);backdrop-filter:blur(6px);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(255,255,255,.15)">${i+1}/${_xplorVideos.length}</div>
+</div>
     
     <div id="xplayicon_${i}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s">
       <div style="width:64px;height:64px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.5)">
@@ -5221,23 +5389,23 @@ function _xplorSlideHTML(v, i) {
       </div>
     </div>
     
-    <!-- ✅ RIGHT SIDE ICONS — CLEAN (No Circle, Sirf Icon) -->
+<!-- ✅ FIX: id add kiye taaki JS sahi element target kare -->
 <div style="position:absolute;bottom:130px;right:12px;display:flex;flex-direction:column;gap:18px;align-items:center;z-index:15">
-  
-  <!-- LIKE — Sirf Icon, No Circle -->
-  <div onclick="xplorLike(${i})" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="${_xplorLiked[i]?'#ef4444':'none'}" stroke="${_xplorLiked[i]?'#ef4444':'white'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+
+  <!-- LIKE -->
+  <div id="xlike_${i}" onclick="xplorLike(${i})" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+    <svg id="xlikeIcon_${i}" width="28" height="28" viewBox="0 0 24 24" fill="${_xplorLiked[i]?'#ef4444':'none'}" stroke="${_xplorLiked[i]?'#ef4444':'white'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
     <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Like</span>
   </div>
-  
-  <!-- SHARE — Sirf Icon, No Circle -->
-  <div onclick="shareXplorVideo('${v.id}','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+
+  <!-- SHARE -->
+  <div id="xshare_${i}" onclick="shareXplorVideo('${v.id}','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
     <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">Share</span>
   </div>
-  
-  <!-- VIEW — Sirf Icon + Views Count, No Circle -->
-  <div onclick="showPage('detail','${v.productId}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+
+  <!-- VIEW -->
+  <div id="xview_${i}" onclick="${v.productId ? `showPage('detail','${v.productId}')` : `showToast('Product info unavailable','warn')`}" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
     <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">${v.views || 0}</span>
   </div>
@@ -5252,7 +5420,7 @@ function _xplorSlideHTML(v, i) {
       ${discount > 0 ? `<span style="background:#f97316;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px">${discount}% OFF</span>` : ''}
       ${v.ogPrice > v.price ? `<span style="font-size:12px;color:rgba(255,255,255,.55);text-decoration:line-through">₹${Number(v.ogPrice).toLocaleString()}</span>` : ''}
     </div>
-    ${v.desc ? `<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;max-width:80%">${v.desc}</div>` : ''}
+    ${v.desc ? `<div id="xdesc_${i}" style="display:none;font-size:12px;color:rgba(255,255,255,.85);margin-top:6px;max-width:85%;background:rgba(0,0,0,.35);padding:8px 10px;border-radius:8px;line-height:1.5">${v.desc}</div>` : ''}
   </div>
   <div style="display:flex;gap:8px">
     <button onclick="addToCart('${v.productId}');showToast('Added to cart! 🛒','success')" style="flex:1;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-size:13px;font-weight:800;padding:12px 10px;border-radius:12px;cursor:pointer">🛒 Add to Cart</button>
@@ -5498,25 +5666,37 @@ function xplorToggleMute(idx, event) {
 
 function xplorLike(idx) {
   _xplorLiked[idx] = !_xplorLiked[idx];
-  const btn = document.getElementById('xlike_' + idx);
-  if (btn) {
-    const isLiked = _xplorLiked[idx];
-    btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="${isLiked?'#ef4444':'none'}" stroke="${isLiked?'#ef4444':'white'}"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
-    btn.style.background = isLiked ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.15)';
-    btn.style.borderColor = isLiked ? '#ef4444' : 'rgba(255,255,255,.25)';
-    if (isLiked && typeof showToast === 'function') showToast('❤️ Liked!', 'success');
+  const isLiked = _xplorLiked[idx];
+  const icon = document.getElementById('xlikeIcon_' + idx);
+  if (icon) {
+    icon.setAttribute('fill', isLiked ? '#ef4444' : 'none');
+    icon.setAttribute('stroke', isLiked ? '#ef4444' : 'white');
   }
+  if (isLiked && typeof showToast === 'function') showToast('❤️ Liked!', 'success');
 }
-
+function xplorToggleDesc(idx) {
+  const el = document.getElementById('xdesc_' + idx);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
 function shareXplorVideo(vid, productId) {
   const url = `https://apykart.vercel.app?video=${vid}&product=${productId}`;
-  const text = `🎬 Watch this product video on Apykart!\n${url}`;
-  if (navigator.share) {
-    navigator.share({ title: 'Apykart Video', url }).catch(() => {});
-  } else if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => {
-      if (typeof showToast === 'function') showToast('Link copied!', 'success');
-    });
+  const copyFallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url)
+      .then(() => showToast('🔗 Link copied!', 'success'))
+      .catch(() => { copyFallback(); showToast('🔗 Link copied!', 'success'); });
+  } else {
+    copyFallback();
+    showToast('🔗 Link copied!', 'success');
   }
 }
 /* ─── VIDEO UPLOAD FLOW ─── */
@@ -5588,14 +5768,15 @@ function renderVideoUpload() {
           <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:5px">Description</label>
           <textarea class="form-input" id="vUploadDesc" placeholder="Tell viewers about this product..." rows="3" style="resize:none">${window._vDesc||''}</textarea>
         </div>
-        <div>
-          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:5px">Tags (optional, max 5)</label>
-          <input class="form-input" id="vUploadTags" placeholder="earbuds, wireless, budget" value="${window._vTags||''}">
+<div>
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:5px">Tags (jitne chaho utne lagao)</label>
+          <div id="tagChipsWrap" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1.5px solid var(--border);border-radius:9px;background:var(--bg);min-height:44px;align-items:center">
+            <input type="text" id="vTagInput" placeholder="Tag likho aur Enter dabao" style="border:none;background:none;outline:none;font-size:12px;flex:1;min-width:100px" onkeydown="handleTagKeydown(event)">
+          </div>
         </div>
         <button onclick="
           window._vTitle=document.getElementById('vUploadTitle').value;
           window._vDesc=document.getElementById('vUploadDesc').value;
-          window._vTags=document.getElementById('vUploadTags').value;
           if(!window._vTitle){showToast('Title zaroor daalo','warn');return;}
           _uploadStep=3;renderVideoUpload()
         " style="background:var(--primary);color:#fff;font-size:14px;font-weight:800;padding:14px;border-radius:12px;border:none;cursor:pointer;margin-top:4px">Next: Attach Product →</button>
@@ -5647,12 +5828,12 @@ function renderVideoUpload() {
     `;
   }
   
-  cont.innerHTML = `
+cont.innerHTML = `
     <div style="overflow-x:auto;display:flex;padding:0 16px;gap:0;border-bottom:1px solid var(--border);scrollbar-width:none">${stepsHTML}</div>
     <div style="flex:1;overflow-y:auto;padding:16px;padding-bottom:20px">${bodyHTML}</div>
   `;
+  if (_uploadStep === 2) renderTagChips(); // ✅ existing chips restore karo
 }
-
 function handleVideoSelect(input) {
   const file = input.files[0];
   if (!file) return;
