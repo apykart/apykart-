@@ -165,8 +165,10 @@ DATA STRUCTURE OVERVIEW:
   --accent:#f97316;--accent-dark:#ea580c;--accent2:#fbbf24;
   --success:#16a34a;--danger:#dc2626;
   --coin:#b45309;--coin-bg:#fffbeb;--coin-border:#fde68a;
-  --bg:#f0f2f5;--card:#fff;--text:#111827;--text2:#4b5563;--text3:#9ca3af;
-  --border:#e5e7eb;--shadow:0 2px 12px rgba(0,0,0,.07);--shadow2:0 1px 4px rgba(0,0,0,.06);--shadow3:0 8px 32px rgba(37,99,235,.18);
+  --bg:#f5f7fb;  /* ← CHANGE: #f0f2f5 se thoda cooler/cleaner grey */
+  --card:#fff;--text:#111827;--text2:#4b5563;--text3:#9ca3af;
+  --border:#e8eaf0; /* ← CHANGE: thoda softer border */
+  --shadow:0 2px 12px rgba(15,23,42,.06);--shadow2:0 1px 4px rgba(15,23,42,.05);--shadow3:0 8px 32px rgba(37,99,235,.16);
   --header-h:68px;--nav-h:62px;--radius:14px;--radius-sm:10px;--radius-lg:18px;
   --font-head:'Plus Jakarta Sans',system-ui,sans-serif;--font-body:'Inter',system-ui,sans-serif;
 }
@@ -209,6 +211,11 @@ a{text-decoration:none;color:inherit}
 .header-actions{display:flex;gap:6px}
 .header-btn{width:36px;height:36px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer;border:none;position:relative}
 .header-btn:active{opacity:.6}
+.header-profile-btn{display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 10px 3px 3px;border-radius:99px;background:#f1f5f9;border:1px solid var(--border);max-width:118px;flex-shrink:0;transition:background .15s}
+.header-profile-btn:active{background:var(--primary-light)}
+.header-profile-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ec4899);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.header-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.header-profile-name{font-size:11.5px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px}
 /* ─── COIN BADGE HIGHLIGHT ─── */
 .coin-pill-glow{
   background:linear-gradient(135deg,#fde68a,#fbbf24)!important;
@@ -286,6 +293,7 @@ a{text-decoration:none;color:inherit}
 .coin-earn-strip-arrow{font-size:18px;color:rgba(255,255,255,.7);flex-shrink:0}
 
 /* ─── EARN HUB CARD ─── */
+.earn-hub-card{margin:12px 12px 0;background:linear-gradient(145deg,#0B1F4D 0%,#0F2760 50%,#152F73 100%);...}
 .earn-hub-card{margin:12px 12px 0;background:linear-gradient(135deg,#0F2760 0%,#0B1F4D 55%,#081638 100%);border-radius:var(--radius-lg);padding:18px 16px;cursor:pointer;box-shadow:0 8px 28px rgba(11,31,77,.35);position:relative;overflow:hidden}
 .earn-hub-card::before{content:'';position:absolute;top:-30px;right:-30px;width:130px;height:130px;background:rgba(249,115,22,.12);border-radius:50%}
 .earn-hub-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:#fb923c;font-size:10px;font-weight:800;letter-spacing:.5px;padding:4px 10px;border-radius:99px;margin-bottom:10px;position:relative;z-index:1}
@@ -984,24 +992,21 @@ a{text-decoration:none;color:inherit}
   </div>
 </div>
 <div id="app">
-  <header class="app-header" id="appHeader">
-    <div class="header-logo" onclick="showPage('home')" style="flex:none">
-      <div style="display:flex;align-items:center;gap:7px">
-        <div class="header-logo-text" style="font-size:22px">apykart</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:3px;margin-top:2px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);border-radius:99px;padding:2px 7px;width:fit-content">
-        <div style="width:5px;height:5px;background:#f97316;border-radius:50%;animation:videoPulse 2s infinite"></div>
-        <span style="font-size:9px;font-weight:700;color:#ea580c;letter-spacing:.3px;text-transform:uppercase">Video Commerce</span>
-      </div>
+ <header class="app-header" id="appHeader">
+  <div class="header-profile-btn" onclick="handleHeaderProfileClick()" id="headerProfileBtn">
+    <div class="header-profile-avatar" id="headerProfileAvatar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     </div>
-    <div style="flex:1"></div>
-   <div class="header-actions" style="display:flex;gap:8px;align-items:center">
- <div class="header-btn coin-pill-glow" onclick="showPage('wallet')" title="ApyCoins" style="width:auto;padding:0 10px;display:flex;align-items:center;gap:5px;border-radius:99px;height:34px">
+    <span class="header-profile-name" id="headerProfileName">Sign In</span>
+  </div>
+
+  <div style="flex:1"></div>
+
+  <div class="header-btn coin-pill-glow" onclick="showPage('wallet')" title="ApyCoins" style="width:auto;padding:0 10px;display:flex;align-items:center;gap:5px;border-radius:99px;height:34px">
     <span style="font-size:16px">🪙</span>
     <span id="headerCoinBalance" style="font-size:13px;font-weight:800;color:#92400e">0</span>
-</div>
-</div>
-  </header>
+  </div>
+</header>
 
   <div class="page-scroll" id="pageScroll">
 
@@ -1915,10 +1920,39 @@ function reloadUserData() {
   setTimeout(updateHeaderLocation, 100);
   updateCartBadge();
   updateCoinBadge();
+  updateHeaderProfile(); 
 }
 function updateCoinBadge() {
   const el = document.getElementById('headerCoinBalance');
   if (el) el.textContent = coinData.balance;
+}
+
+// ✅ NEW: Header profile avatar update karo (real-time)
+function updateHeaderProfile() {
+  const av = document.getElementById('headerProfileAvatar');
+  const nm = document.getElementById('headerProfileName');
+  if (!av || !nm) return;
+  const isLoggedIn = !!window.currentUser;
+  if (!isLoggedIn) {
+    nm.textContent = 'Sign In';
+    av.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    return;
+  }
+  const name  = window.currentUser.displayName || guestUser.name || 'You';
+  const photo = window.currentUser.photoURL;
+  av.innerHTML = photo
+    ? `<img src="${photo}" alt="${name}">`
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+  nm.textContent = name.split(' ')[0];
+}
+
+// ✅ NEW: Header profile pe click → login check karke edit profile kholo
+function handleHeaderProfileClick() {
+  if (!window.currentUser) {
+    showLoginPrompt('default');
+  } else {
+    openEditProfile();
+  }
 }
 // Dynamic store config — Admin se update hone par automatically change hota hai
 // Use getter-style so they always read the latest value set by setupSettingsListener
@@ -1955,6 +1989,7 @@ window.applyFirestoreUserData = function(d, user) {
 
   updateCartBadge();
   updateCoinBadge();
+  updateHeaderProfile();  
   if (currentPage === 'profile')          renderProfile();
   else if (currentPage === 'cart')        renderCart();
   else if (currentPage === 'orders')      renderOrders();
@@ -4642,8 +4677,23 @@ function openEditProfile() {
         </div>
         <div class="form-group">
           <label class="form-label">Phone</label>
-          <input class="form-input" id="edit_phone" type="tel" maxlength="10" value="${guestUser.phone || ''}" placeholder="9876543210">
-        </div>
+        <div class="form-group" style="margin-top:4px">
+  <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin:6px 0 8px">Delivery Address</div>
+</div>
+<input class="form-input" id="edit_phone" type="tel" maxlength="10" value="${guestUser.phone || ''}" placeholder="9876543210">
+</div>
+<div class="form-group">
+  <label class="form-label">Address Line</label>
+  <input class="form-input" id="edit_addr_line1" value="${addresses[0]?.line1||''}" placeholder="House no., Street, Landmark">
+</div>
+<div class="form-row">
+  <div class="form-group"><label class="form-label">City</label><input class="form-input" id="edit_addr_city" value="${addresses[0]?.city||''}" placeholder="City"></div>
+  <div class="form-group"><label class="form-label">Pincode</label><input class="form-input" id="edit_addr_pin" value="${addresses[0]?.pin||''}" placeholder="000000" maxlength="6"></div>
+</div>
+<div class="form-group">
+  <label class="form-label">State</label>
+  <input class="form-input" id="edit_addr_state" value="${addresses[0]?.state||''}" placeholder="State">
+</div>
         <button class="form-submit-btn" onclick="saveProfile()">Save Changes</button>
       </div>
     </div>
@@ -4663,6 +4713,19 @@ function saveProfile() {
   closeModal();
   renderProfile();
   showToast('Profile updated! ✅', 'success');
+const aLine1 = document.getElementById('edit_addr_line1')?.value.trim();
+const aCity  = document.getElementById('edit_addr_city')?.value.trim();
+const aPin   = document.getElementById('edit_addr_pin')?.value.trim();
+const aState = document.getElementById('edit_addr_state')?.value.trim();
+if (aLine1 && aCity && aPin && aState) {
+  if (addresses[0]) {
+    addresses[0] = {...addresses[0], line1:aLine1, city:aCity, pin:aPin, state:aState, name, phone};
+  } else {
+    addresses.push({id:'addr'+Date.now(), type:'Home', name, phone, line1:aLine1, city:aCity, state:aState, pin:aPin, isDefault:true});
+  }
+  saveAddresses();
+}
+updateHeaderProfile();   // ← header turant refresh ho jayega naye name ke saath
 }
 /* ─── HELP & SUPPORT ─── */
 function renderHelp() {
@@ -4915,7 +4978,7 @@ function toggleTerms(i) {
 function renderAbout() {
   const team = [
     { name:'Abhishek Gandhi ', role:'Founder & CEO', emoji:'👨‍💼', desc:'Ex-Flipkart engineer. Passionate about making e-commerce accessible for everyone.' },
-    { name:'Pragya', role:'Head of Product', emoji:'👩‍💻', desc:'7 years in UX & product design. Building the most intuitive shopping experience in India.' },
+
   ];
   const milestones = [
     { year:'2023', event:'Apykart founded in Bihar , India 🇮🇳' },
@@ -5101,6 +5164,7 @@ function logoutUser() {
     showToast('Logged out', 'info');
     renderProfile();
     renderHome();
+    updateHeaderProfile();
   });
 }
 
@@ -6258,6 +6322,7 @@ function init() {
   handleSearch('');
   updateCartBadge();
   updateCoinBadge();
+  updateHeaderProfile();  
   startTimer();
   setTimeout(hideLoadingScreen, 2200);
   if (window._fbReady) {
