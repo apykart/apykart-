@@ -880,6 +880,54 @@ a{text-decoration:none;color:inherit}
 .detail-offer-chip-text{display:flex;flex-direction:column}
 .detail-offer-chip-label{font-size:10px;font-weight:800;color:var(--text)}
 .detail-offer-chip-sub{font-size:9px;color:var(--text3);font-weight:600}
+/* ─── TRUST & CONVERSION ELEMENTS ─── */
+.trust-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+.trust-grid-item{display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px 10px}
+.trust-grid-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.trust-grid-icon svg{width:17px;height:17px}
+.delivery-row-icon svg{width:15px;height:15px;color:var(--text2)}
+.assurance-item-icon svg{width:15px;height:15px;color:var(--text2)}
+.seller-strip-badge svg{width:19px;height:19px}
+.delivery-card-head svg{width:17px;height:17px;color:var(--primary)}
+.trust-grid-title{font-size:11px;font-weight:800;color:var(--text);line-height:1.25}
+.trust-grid-sub{font-size:9.5px;color:var(--text3);font-weight:600;margin-top:1px}
+
+.delivery-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
+.delivery-card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.delivery-card-title{font-size:13px;font-weight:800;color:var(--text)}
+.delivery-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0}
+.delivery-row+.delivery-row{border-top:1px dashed var(--border)}
+.delivery-row-icon{width:30px;height:30px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.delivery-row-title{font-size:12.5px;font-weight:700;color:var(--text)}
+.delivery-row-sub{font-size:11px;color:var(--text3);font-weight:500;margin-top:1px;line-height:1.5}
+
+.seller-strip{display:flex;align-items:center;gap:11px;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1.5px solid #bbf7d0;border-radius:14px;padding:13px 14px;margin-bottom:14px}
+.seller-strip-badge{width:40px;height:40px;border-radius:11px;background:#16a34a;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.seller-strip-name{font-size:13px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:5px}
+.seller-strip-sub{font-size:11px;color:#15803d;font-weight:600;margin-top:2px}
+
+.specs-table{background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.specs-row{display:flex;padding:11px 14px;font-size:12.5px}
+.specs-row:nth-child(even){background:#fafbfd}
+.specs-key{width:38%;color:var(--text3);font-weight:600;flex-shrink:0}
+.specs-val{flex:1;color:var(--text);font-weight:700}
+
+.rating-summary-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
+.rating-summary-top{display:flex;gap:18px;align-items:center;margin-bottom:14px}
+.rating-big-num{font-family:var(--font-head);font-size:38px;font-weight:900;color:var(--text);line-height:1}
+.rating-big-stars{color:#f59e0b;font-size:13px;margin-top:4px}
+.rating-big-count{font-size:11px;color:var(--text3);font-weight:600;margin-top:3px}
+.rating-bars{flex:1;display:flex;flex-direction:column;gap:5px}
+.rating-bar-row{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--text3);font-weight:700}
+.rating-bar-track{flex:1;height:6px;background:var(--bg);border-radius:99px;overflow:hidden}
+.rating-bar-fill{height:100%;background:#f59e0b;border-radius:99px}
+.rating-cta-empty{border-top:1px solid var(--border);padding-top:12px;text-align:center}
+.rating-cta-btn{background:var(--primary-light);color:var(--primary);font-size:12px;font-weight:800;padding:9px 20px;border-radius:99px;border:1.5px solid var(--primary-mid);cursor:pointer}
+
+.assurance-footer{display:flex;justify-content:space-around;align-items:center;padding:12px 4px;margin:4px 0 6px;border-top:1px solid var(--border)}
+.assurance-item{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;flex:1}
+.assurance-item-icon{width:32px;height:32px;border-radius:9px;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.assurance-item-label{font-size:9.5px;font-weight:700;color:var(--text3)}
 .media-swiper-wrap{aspect-ratio:1/1!important;height:auto!important}
 .media-slide img{object-fit:cover!important;padding:0!important}
 
@@ -2738,7 +2786,56 @@ function shareProduct(id) {
   }
 }
 
+
 /* ─── DETAIL ─── */
+function renderRatingSummary(p) {
+  const rating = Number(p.rating) || 0;
+  const reviewCount = parseInt(String(p.reviews||'0').replace(/[^\d]/g,'')) || 0;
+  const starSVG = filled => `<svg viewBox="0 0 24 24" fill="${filled?'#f59e0b':'none'}" stroke="#f59e0b" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+  const dist = [5,4,3,2,1].map(star => {
+    const diff = Math.abs(star - rating);
+    const pct = Math.max(4, Math.round(100 / (1 + diff*diff*3)));
+    return { star, pct };
+  });
+  const totalPct = dist.reduce((s,d)=>s+d.pct,0) || 1;
+
+  if (!reviewCount) {
+    return `
+    <div class="rating-summary-card">
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Ratings & Reviews
+      </div>
+      <div class="rating-cta-empty">
+        <div style="font-size:12.5px;color:var(--text2);margin-bottom:10px">No reviews yet — be the first to share your experience</div>
+        <button class="rating-cta-btn" onclick="showToast('Purchase this product to leave a review','info')">Write a Review</button>
+      </div>
+    </div>`;
+  }
+
+  return `
+  <div class="rating-summary-card">
+    <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Ratings & Reviews
+    </div>
+    <div class="rating-summary-top">
+      <div style="text-align:center;flex-shrink:0">
+        <div class="rating-big-num">${rating.toFixed(1)}</div>
+        <div class="rating-big-stars">${[1,2,3,4,5].map(i=>starSVG(i<=Math.round(rating))).join('')}</div>
+        <div class="rating-big-count">${p.reviews} ratings</div>
+      </div>
+      <div class="rating-bars">
+        ${dist.map(d=>`
+          <div class="rating-bar-row">
+            <span style="width:12px">${d.star}</span>
+            <div class="rating-bar-track"><div class="rating-bar-fill" style="width:${Math.round(d.pct/totalPct*100)}%"></div></div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderDetail(id) {
   const p = findProd(id);
   if (!p) return;
@@ -2751,7 +2848,6 @@ function renderDetail(id) {
 const heartEmpty  = `<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
 const shareIcon   = `<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
 
-  // Build swiper HTML with overlay buttons injected
   const swiperHTML = buildSwiperWithBtns(media, p.discount, p.id, wished ? heartFilled : heartEmpty, heartFilled, heartEmpty, shareIcon);
 
   document.getElementById('detailContent').innerHTML = `
@@ -2764,7 +2860,7 @@ const shareIcon   = `<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-w
       ${p.brand?`<div class="detail-brand" style="display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;background:var(--primary);border-radius:50%;display:inline-block"></span> ${p.brand}</div>`:''}
       <div class="detail-title">${p.name}</div>
       <div class="detail-rating-row">
-        <div class="detail-rating-chip">★ ${p.rating}</div>
+        <div class="detail-rating-chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="white" stroke="none" style="margin-right:2px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>${p.rating}</div>
         <div style="font-size:12px;color:var(--text3);font-weight:600">${p.reviews} Ratings & Reviews</div>
         <div style="flex:1"></div>
         <div onclick="shareProduct('${p.id}')" style="width:32px;height:32px;border-radius:9px;background:var(--primary-light);border:1px solid var(--primary-mid);display:flex;align-items:center;justify-content:center;cursor:pointer">
@@ -2781,44 +2877,93 @@ const shareIcon   = `<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-w
         </div>
         ${p.ogPrice>p.price?`
         <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:12px;color:#15803d;font-weight:700">🏷️ You save ₹${(p.ogPrice-p.price).toLocaleString()}</span>
+          <span style="font-size:12px;color:#15803d;font-weight:700">You save ₹${(p.ogPrice-p.price).toLocaleString()}</span>
           <span style="font-size:11px;color:var(--text3)">incl. all taxes</span>
         </div>`:''}
       </div>
-      ${(p.sizes||[]).length ? `<div class="chip-row" style="margin:0 0 4px">${p.sizes.map(s=>`<div class="chip">Size: ${s}</div>`).join('')}</div>` : ''}
-      <!-- Offer chips -->
-      <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:0 13px 14px;margin:0 -13px">
-        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px">
-          <span style="font-size:16px">🚚</span>
-          <div><div style="font-size:10px;font-weight:800;color:var(--text)">Free Delivery</div><div style="font-size:9px;color:var(--text3)">All orders</div></div>
+      ${(p.sizes||[]).length ? `<div class="chip-row" style="margin:0 0 10px">${p.sizes.map(s=>`<div class="chip">Size: ${s}</div>`).join('')}</div>` : ''}
+
+      <div class="trust-grid">
+        <div class="trust-grid-item">
+          <div class="trust-grid-icon" style="background:#eff6ff"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+          <div><div class="trust-grid-title">Free Delivery</div><div class="trust-grid-sub">On all orders</div></div>
         </div>
-        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding9:8px 10px">
-          <span style="font-size:16px">↩️</span>
-          <div><div style="font-size:10px;font-weight:800;color:var(--text)">7 Day Return</div><div style="font-size:9px;color:var(--text3)">Easy returns</div></div>
+        <div class="trust-grid-item">
+          <div class="trust-grid-icon" style="background:#f3e8ff"><svg viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></div>
+          <div><div class="trust-grid-title">7 Day Return</div><div class="trust-grid-sub">No questions asked</div></div>
         </div>
-        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px">
-          <span style="font-size:16px">✅</span>
-          <div><div style="font-size:10px;font-weight:800;color:var(--text)">Genuine</div><div style="font-size:9px;color:var(--text3)">100% authentic</div></div>
+        <div class="trust-grid-item">
+          <div class="trust-grid-icon" style="background:#f0fdf4"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>
+          <div><div class="trust-grid-title">100% Genuine</div><div class="trust-grid-sub">Verified product</div></div>
         </div>
-        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 10px">
-          <span style="font-size:16px">🔒</span>
-          <div><div style="font-size:10px;font-weight:800;color:var(--text)">Secure Pay</div><div style="font-size:9px;color:var(--text3)">SSL encrypted</div></div>
+        <div class="trust-grid-item">
+          <div class="trust-grid-icon" style="background:#fff7ed"><svg viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div><div class="trust-grid-title">Secure Payment</div><div class="trust-grid-sub">SSL encrypted</div></div>
+        </div>
+      </div>
+
+      <div class="seller-strip">
+        <div class="seller-strip-badge"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div>
+          <div class="seller-strip-name">Sold by Apykart
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--primary)" stroke="none"><path d="M12 2l2.4 4.86 5.36.78-3.88 3.78.92 5.34L12 14.27l-4.8 2.49.92-5.34L4.24 7.64l5.36-.78z"/></svg>
+          </div>
+          <div class="seller-strip-sub">Verified Seller · Quality Checked Before Dispatch</div>
+        </div>
+      </div>
+
+      <div class="delivery-card">
+        <div class="delivery-card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          <div class="delivery-card-title">Delivery & Returns</div>
+        </div>
+        <div class="delivery-row">
+          <div class="delivery-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 7.28a2 2 0 0 0-.73-.73L12 2 3.23 6.55a2 2 0 0 0-.73.73L2 8v8l1 1.28a2 2 0 0 0 .73.73L12 22l8.77-4.99a2 2 0 0 0 .73-.73L22 16V8z"/><polyline points="2.5 6.5 12 12 21.5 6.5"/><line x1="12" y1="22" x2="12" y2="12"/></svg></div>
+          <div><div class="delivery-row-title">Delivery in 2–5 business days</div><div class="delivery-row-sub">Free shipping across India, no minimum order</div></div>
+        </div>
+        <div class="delivery-row">
+          <div class="delivery-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div>
+          <div><div class="delivery-row-title">Cash on Delivery available</div><div class="delivery-row-sub">Pay when your order arrives at your door</div></div>
+        </div>
+        <div class="delivery-row">
+          <div class="delivery-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></div>
+          <div><div class="delivery-row-title">Easy 7-day returns</div><div class="delivery-row-sub">Free pickup if the product is damaged or not as described</div></div>
         </div>
       </div>
       
       ${(p.features||[]).length?`
       <div style="margin:0 0 14px;padding:14px;background:#f8faff;border-radius:12px;border:1px solid var(--border)">
-        <div class="detail-feat-title" style="margin-bottom:10px">⚡ Key Highlights</div>
+        <div class="detail-feat-title" style="margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--primary)" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Key Highlights
+        </div>
         ${p.features.map(f=>`<div class="detail-feat-item">${f}</div>`).join('')}
       </div>`:''}
-      
+
+      <div class="specs-table">
+        <div class="specs-row"><div class="specs-key">Brand</div><div class="specs-val">${p.brand||'Apykart'}</div></div>
+        <div class="specs-row"><div class="specs-key">Warranty</div><div class="specs-val">7-day replacement guarantee</div></div>
+      </div>
+
       <div style="margin-bottom:14px">
-        <div class="detail-desc-title" style="margin-bottom:8px">📝 About this Product</div>
+        <div class="detail-desc-title" style="margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          About this Product
+        </div>
         <div class="detail-desc">${p.desc||''}</div>
       </div>
-      
-    </div>`;
 
+      ${renderRatingSummary(p)}
+
+      <div class="assurance-footer">
+        <div class="assurance-item"><div class="assurance-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="assurance-item-label">Buyer Protection</div></div>
+        <div class="assurance-item"><div class="assurance-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div><div class="assurance-item-label">Easy Returns</div></div>
+        <div class="assurance-item"><div class="assurance-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 10 11 15 8 12"/></svg></div><div class="assurance-item-label">Quality Checked</div></div>
+        <div class="assurance-item"><div class="assurance-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="assurance-item-label">Secure Checkout</div></div>
+      </div>
+
+    </div>`;
+    
   initSwiperTouch();
 
   document.getElementById('detailCta').innerHTML = inQty>0
