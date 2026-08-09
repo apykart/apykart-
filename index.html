@@ -1419,6 +1419,7 @@ a{text-decoration:none;color:inherit}
 </div>
 
 <div class="toast-container" id="toastContainer"></div>
+<input type="file" id="directCreatorFileInput" accept="video/*" style="display:none" onchange="handleDirectVideoSelect(this)">
 <div id="modalPortal"></div>
 <div id="welcomePopupPortal"></div>
 
@@ -4857,32 +4858,82 @@ function showToast(msg,type='success') {
 
 
 /* ─── TOAST ─── */
-function openSellerVerificationModal() {
-  if (!window.currentUser) { showLoginPrompt('seller'); return; }
-  document.getElementById('modalPortal').innerHTML = `
-    <div class="modal-overlay" onclick="closeModal()">
-      <div class="modal-sheet" onclick="event.stopPropagation()">
-        <div class="modal-handle"></div>
-        <div class="modal-header">
-          <div class="modal-title">Seller Verification</div>
-          <div class="modal-close" onclick="closeModal()">✕</div>
-        </div>
-        <div class="modal-body">
-          <select id="docType" class="form-input">
-            <option value="aadhaar">Aadhaar Card</option>
-            <option value="pan">PAN Card</option>
-          </select>
-          <input id="docNumber" placeholder="Document Number (e.g., 1234 5678 9012)" class="form-input" style="margin-top:12px">
-          <label style="display:block; margin-top:12px;">Upload Front Image</label>
-          <input type="file" id="docFrontImage" accept="image/*" class="form-input">
-          <label style="display:block; margin-top:12px;">Upload Back Image (optional)</label>
-          <input type="file" id="docBackImage" accept="image/*" class="form-input">
-          <button onclick="submitSellerVerificationWithFiles()" style="margin-top:16px; width:100%; padding:14px; background:var(--primary); color:#fff; border-radius:12px;">Submit for Verification</button>
-        </div>
-      </div>
-    </div>`;
-}
+async function submitSellerVerificationWithFiles() {
+  const fullName   = document.getElementById('sellerFullName')?.value.trim();
+  const brandName  = document.getElementById('sellerBrandName')?.value.trim();
+  const phone      = document.getElementById('sellerPhoneNum')?.value.trim();
+  const email      = document.getElementById('sellerEmailId')?.value.trim();
+  const address    = document.getElementById('sellerAddress')?.value.trim();
+  const panNumber  = document.getElementById('panNumber')?.value.trim().toUpperCase();
+  const aadharNumber = document.getElementById('aadharNumber')?.value.trim();
+  const panFile      = document.getElementById('panImage').files[0];
+  const aadharFront  = document.getElementById('aadharFrontImage').files[0];
+  const aadharBack   = document.getElementById('aadharBackImage').files[0];
+  const uid = getUid();
 
+  if (!fullName)      { showToast('Naam daalo', 'warn'); return; }
+  if (!brandName)     { showToast('Brand/Shop naam daalo', 'warn'); return; }
+  if (!phone || phone.length!==10) { showToast('Valid 10-digit number daalo', 'warn'); return; }
+  if (!email.includes('@'))  { showToast('Valid email daalo', 'warn'); return; }
+  if (!address)        { showToast('Address daalo', 'warn'); return; }
+  if (!panNumber)       { showToast('PAN number daalo', 'warn'); return; }
+  if (!panFile)          { showToast('PAN card image upload karo', 'warn'); return; }
+  if (!aadharNumber)      { showToast('Aadhar number daalo', 'warn'); return; }
+  if (!aadharFront)        { showToast('Aadhar front image upload karo', 'warn'); return; }
+  if (!aadharBack)          { showToast('Aadhar back image upload karo', 'warn'); return; }
+  if (!uid) { showToast('Login required', 'warn'); return; }
+
+  const btn = document.querySelector('[onclick="submitSellerVerificationWithFiles()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading...'; }
+  showToast('Documents upload ho rahe hain...', 'info');
+
+  let panImageUrl='', aadharFrontUrl='', aadharBackUrl='';
+  try {
+    if (window._uploadToStorage) {
+      panImageUrl = await window._uploadToStorage(panFile, `seller_docs/${uid}/pan_${Date.now()}.${panFile.name.split('.').pop()}`, pct=>{if(btn)btn.textContent=`⏳ PAN: ${pct}%`;});
+      aadharFrontUrl = await window._uploadToStorage(aadharFront, `seller_docs/${uid}/aadhar_front_${Date.now()}.${aadharFront.name.split('.').pop()}`, pct=>{if(btn)btn.textContent=`⏳ Aadhar Front: ${pct}%`;});
+      aadharBackUrl = await window._uploadToStorage(aadharBack, `seller_docs/${uid}/aadhar_back_${Date.now()}.${aadharBack.name.split('.').pop()}`, pct=>{if(btn)btn.textContent=`⏳ Aadhar Back: ${pct}%`;});
+    }
+  } catch(e) {
+    showToast('Upload failed: ' + e.message, 'warn');
+    if (btn) { btn.disabled=false; btn.textContent='Submit for Verification'; }
+    return;
+  }
+
+  sellerVerification = {
+    fullName, brandName, phone, email, address,
+    panNumber, panImageUrl,
+    aadharNumber, aadharFrontUrl, aadharBackUrl,
+    status: 'pending',
+    submittedAt: new Date().toISOString()
+  };
+  userRole = 'seller';
+  saveSellerData();
+
+  if (uid && window._fsHelpers) {
+    const { db, doc, setDoc, serverTimestamp } = window._fsHelpers;
+    setDoc(doc(db, 'sellers', uid), {
+      uid, name: fullName, brandName, phone, email, address,
+      status: 'pending',
+      verification: { panNumber, panImageUrl, aadharNumber, aadharFrontUrl, aadharBackUrl, status:'pending', submittedAt: serverTimestamp() },
+      productCount: 0, totalRevenue: 0, createdAt: serverTimestamp()
+    }, { merge: true }).catch(e=>console.warn('sellers write:', e.message));
+
+    setDoc(doc(db, 'seller_verifications', uid), {
+      userId: uid, userName: fullName, brandName, userPhone: phone, userEmail: email, userAddress: address,
+      panNumber, panImageUrl, aadharNumber, aadharFrontUrl, aadharBackUrl,
+      status: 'pending', submittedAt: serverTimestamp()
+    }, { merge: true }).catch(e=>console.warn('seller_verifications write:', e.message));
+
+    setDoc(doc(db, 'users', uid), { seller_verification: sellerVerification, role:'seller', updatedAt: Date.now() }, { merge:true })
+      .catch(e=>console.warn('KYC Firestore save:', e.message));
+  }
+
+  if (btn) { btn.disabled=false; btn.textContent='Submit for Verification'; }
+  closeModal();
+  showToast('Verification documents submit ho gaye! ✅', 'success');
+  renderProfile();
+}
 async function submitSellerVerificationWithFiles() {
   const docType = document.getElementById('docType').value;
   const docNumber = document.getElementById('docNumber').value.trim();
@@ -5565,7 +5616,7 @@ function _applyTheme(t) {
   const root = document.documentElement;
   if (t.primaryColor)  root.style.setProperty('--primary', t.primaryColor);
   if (t.accentColor)   root.style.setProperty('--accent',  t.accentColor);
-  if (t.bgColor)       root.style.setProperty('--bg',      t.bgColor);
+  // if (t.bgColor)       root.style.setProperty('--bg',      t.bgColor);  // ✅ disabled — bg always white now
   if (t.cardColor)     root.style.setProperty('--card',    t.cardColor);
   if (t.textColor)     root.style.setProperty('--text',    t.textColor);
   if (t.successColor)  root.style.setProperty('--success', t.successColor);
@@ -6140,6 +6191,7 @@ let _uploadVideoDataUrl = null;
 let _uploadSelectedProductId = null;
 let _uploadLinkUrl = '';
 
+
 function openVideoUpload() {
   if (!window.currentUser) { showLoginPrompt('video'); return; }
   _uploadStep = 1;
@@ -6148,9 +6200,18 @@ function openVideoUpload() {
   _uploadSelectedProductId = null;
   _uploadLinkUrl = '';
   window._vTitle=''; window._vDesc=''; window._vTagsArr=[];
-  showPage('upload-video');
+  document.getElementById('directCreatorFileInput').click();   // ✅ direct gallery
 }
-
+function handleDirectVideoSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 100 * 1024 * 1024) { showToast('Video 100MB se chhota hona chahiye', 'warn'); return; }
+  _uploadVideoFile = file;
+  _uploadVideoDataUrl = URL.createObjectURL(file);
+  _uploadStep = 2;              // ✅ seedha details step pe jao
+  showPage('upload-video');
+  input.value = '';             // reset so same file can be reselected next time
+}
 function renderVideoUpload() {
   const cont = document.getElementById('uploadVideoContent');
   if (!cont) return;
