@@ -2512,7 +2512,7 @@ function initHeroCarousel() {
   wrap.innerHTML = HERO_SLIDES.map((s, i) => {
     // ✅ Image-only banner — clean image, no overlay text
     if (s.imageOnly && s.imageUrl) {
-  return `<div class="hero-slide ${i === 0 ? 'active' : ''}" id="heroSlide${i}" style="position:relative;overflow:hidden;padding:0;background:linear-gradient(135deg,#7c3aed,#2563eb)">
+  return `<div class="hero-slide ${i === 0 ? 'active' : ''}" id="heroSlide${i}" style="position:absolute;overflow:hidden;padding:0;background:linear-gradient(135deg,#7c3aed,#2563eb)">
     <img src="${s.imageUrl}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:block" onerror="console.error('Banner image load fail:', this.src); this.style.display='none'; this.parentElement.innerHTML+='<div style=position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700>⚠️ Image load failed</div>'" onclick="${s.action || ''}">
   </div>`;
 }
