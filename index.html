@@ -5002,29 +5002,32 @@ function saveProfile() {
   const name = document.getElementById('edit_name')?.value.trim() || '';
   const email = document.getElementById('edit_email')?.value.trim() || '';
   const phone = document.getElementById('edit_phone')?.value.trim() || '';
-  
+
   if (!name) { showToast('Please enter your name', 'warn'); return; }
   if (!email.includes('@')) { showToast('Enter valid email', 'warn'); return; }
-  
+
   guestUser = { name, email, phone };
   saveGuest();
+
+  const aLine1 = document.getElementById('edit_addr_line1')?.value.trim();
+  const aCity  = document.getElementById('edit_addr_city')?.value.trim();
+  const aPin   = document.getElementById('edit_addr_pin')?.value.trim();
+  const aState = document.getElementById('edit_addr_state')?.value.trim();
+  if (aLine1 && aCity && aPin && aState) {
+    if (addresses[0]) {
+      addresses[0] = {...addresses[0], line1:aLine1, city:aCity, pin:aPin, state:aState, name, phone};
+    } else {
+      addresses.push({id:'addr'+Date.now(), type:'Home', name, phone, line1:aLine1, city:aCity, state:aState, pin:aPin, isDefault:true});
+    }
+    saveAddresses();
+  }
+
+  updateHeaderProfile();
   closeModal();
   renderProfile();
   showToast('Profile updated! ✅', 'success');
-const aLine1 = document.getElementById('edit_addr_line1')?.value.trim();
-const aCity  = document.getElementById('edit_addr_city')?.value.trim();
-const aPin   = document.getElementById('edit_addr_pin')?.value.trim();
-const aState = document.getElementById('edit_addr_state')?.value.trim();
-if (aLine1 && aCity && aPin && aState) {
-  if (addresses[0]) {
-    addresses[0] = {...addresses[0], line1:aLine1, city:aCity, pin:aPin, state:aState, name, phone};
-  } else {
-    addresses.push({id:'addr'+Date.now(), type:'Home', name, phone, line1:aLine1, city:aCity, state:aState, pin:aPin, isDefault:true});
-  }
-  saveAddresses();
 }
-updateHeaderProfile();   // ← header turant refresh ho jayega naye name ke saath
-}
+
 /* ─── HELP & SUPPORT ─── */
 function renderHelp() {
   const faqs = [
