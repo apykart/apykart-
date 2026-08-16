@@ -1988,24 +1988,20 @@ async function fsSaveUserData() {
 // Save a specific field to Firestore user doc
 async function firestoreSetField(field, value) {
   const uid = getUid();
-  if (!uid || !window._db) { showToast('Login karke dobara try karo','warn'); return false; }
-  const { db, doc, updateDoc, setDoc } = window._fsHelpers;
+  if (!uid || !window._db) return;
+  const { db, doc, updateDoc } = window._fsHelpers;
   try {
     const obj = {}; obj[field] = value; obj['updatedAt'] = Date.now();
     await updateDoc(doc(db, 'users', uid), obj);
-    return true;
   } catch(e) {
-    try {
-      const obj2 = {}; obj2[field] = value; obj2['updatedAt'] = Date.now();
-      await setDoc(doc(db, 'users', uid), obj2, { merge: true });
-      return true;
-    } catch(e2) {
-      console.warn('firestoreSetField error:', e2.message);
-      showToast('⚠️ Save fail hua: ' + e2.message, 'warn');
-      return false;
-    }
+    // If doc doesn't exist, create it
+    const { setDoc } = window._fsHelpers;
+    const obj2 = {}; obj2[field] = value; obj2['updatedAt'] = Date.now();
+    try { await setDoc(doc(db, 'users', uid), obj2, { merge: true }); }
+    catch(e2) { console.warn('firestoreSetField error:', e2.message); }
   }
 }
+
 // Alias for backward compat
 const rtdbSetField = firestoreSetField;
 
@@ -2138,7 +2134,7 @@ function saveCart()   { updateCartBadge(); firestoreSetField('cart', cart); }
 function saveWishlist()  { firestoreSetField('wishlist', wishlist); }
 function saveAddresses() { firestoreSetField('addresses', addresses); }
 function saveCoins()     { firestoreSetField('coins', coinData); }
-async function saveGuest()     { return await firestoreSetField('profile', guestUser); }
+function saveGuest()     { firestoreSetField('profile', guestUser); }
 
 // ✅ NEW: Checkout ke fields ab type karte hi save hote hain (debounced)
 // Order complete kiye bina bhi Name/Phone/Email hamesha ke liye fix ho jayega
@@ -2149,10 +2145,7 @@ function updateGuestField(field, value) {
   clearTimeout(_guestFieldSaveTimer);
   _guestFieldSaveTimer = setTimeout(() => { saveGuest(); }, 700);
 }
-function flushGuestSave() {
-  clearTimeout(_guestFieldSaveTimer);
-  saveGuest();
-}
+
 function saveSellerData() {
   const uid = getUid();
   if (!uid || !window._db) return;
@@ -3281,9 +3274,9 @@ function renderCheckout() {
       <div class="checkout-card">
         <div class="checkout-card-header"><div class="checkout-card-icon">👤</div><div><div class="checkout-card-title">Your Details</div><div class="checkout-card-sub">Required for order</div></div></div>
         <div class="checkout-user-form">
-          <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="co_name" value="${guestUser.name}" placeholder="Enter your full name" oninput="updateGuestField('name',this.value)" onblur="flushGuestSave()"><span class="form-error-msg" id="err_name">Please enter your name</span></div>
-<input class="form-input" id="co_phone" type="tel" maxlength="10" value="${guestUser.phone.replace(/\D/g,'').slice(-10)}" placeholder="9876543210" oninput="updateGuestField('phone',this.value)" onblur="flushGuestSave()"><span class="form-error-msg" id="err_phone">Enter valid 10-digit number</span></div>
-<input class="form-input" id="co_email" type="email" value="${guestUser.email}" placeholder="yourname@gmail.com" oninput="updateGuestField('email',this.value)" onblur="flushGuestSave()"><span class="form-error-msg" id="err_email">Enter valid email</span></div>
+          <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="co_name" value="${guestUser.name}" placeholder="Enter your full name" oninput="updateGuestField('name',this.value)"><span class="form-error-msg" id="err_name">Please enter your name</span></div>
+          <div class="form-group"><label class="form-label">Phone Number * (10 digits)</label><input class="form-input" id="co_phone" type="tel" maxlength="10" value="${guestUser.phone.replace(/\D/g,'').slice(-10)}" placeholder="9876543210" oninput="updateGuestField('phone',this.value)"><span class="form-error-msg" id="err_phone">Enter valid 10-digit number</span></div>
+          <div class="form-group"><label class="form-label">Email Address *</label><input class="form-input" id="co_email" type="email" value="${guestUser.email}" placeholder="yourname@gmail.com" oninput="updateGuestField('email',this.value)"><span class="form-error-msg" id="err_email">Enter valid email</span></div>
         </div>
       </div>
       <div class="checkout-card">
