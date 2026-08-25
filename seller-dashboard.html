@@ -27,13 +27,13 @@
   --header-h:0px; --bottomnav-h:64px;
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;min-height:100dvh;background:var(--cloud);color:var(--text);font-family:var(--font-b);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html,body{margin:0;padding:0;height:100%;background:var(--cloud);color:var(--text);font-family:var(--font-b);-webkit-font-smoothing:antialiased;overflow:hidden}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 a{text-decoration:none;color:inherit}
 svg{display:block;flex-shrink:0}
 ::-webkit-scrollbar{width:0;height:0}
 
-#app{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;background:var(--cloud);position:relative}
+#app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;background:var(--cloud);position:relative;overflow:hidden}
 
 /* ============ ACCESS GATE ============ */
 #gate{position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;text-align:center;padding:24px}
@@ -44,9 +44,10 @@ svg{display:block;flex-shrink:0}
 #gate .spin{width:26px;height:26px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--marigold);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ============ HEADER (greeting) ============ */
-.hero{background:linear-gradient(160deg,var(--ink) 0%,var(--ink-2) 60%,#2A2470 100%);padding:18px 18px 46px;position:relative;overflow:hidden;flex-shrink:0}
+/* ============ HEADER (greeting — dashboard only) ============ */
+.hero{background:linear-gradient(160deg,var(--ink) 0%,var(--ink-2) 60%,#2A2470 100%);padding:18px 18px 46px;position:relative;overflow:hidden;flex-shrink:0;transition:opacity .12s ease}
 .hero::before{content:'';position:absolute;top:-40px;right:-30px;width:160px;height:160px;background:rgba(245,166,35,.10);border-radius:50%}
+.hero.is-hidden{display:none}
 .hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative;z-index:1}
 .hero-back{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff}
 .hero-bell{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;position:relative}
@@ -63,6 +64,14 @@ svg{display:block;flex-shrink:0}
 .crumb-trail{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:10.5px;color:rgba(255,255,255,.4);font-weight:600;position:relative;z-index:1}
 .crumb-trail b{color:rgba(255,255,255,.75)}
 
+/* Compact bar shown on every non-dashboard screen instead of the full greeting hero */
+.topbar{display:none;align-items:center;gap:10px;padding:12px 14px;background:var(--ink);flex-shrink:0}
+.topbar.is-visible{display:flex}
+.topbar .tb-back{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.topbar .tb-title{font-family:var(--font-d);font-size:14.5px;font-weight:700;color:#fff;flex:1}
+.topbar .tb-bell{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;position:relative}
+.topbar .tb-bell .dot{position:absolute;top:6px;right:7px;width:6px;height:6px;background:var(--marigold);border-radius:50%}
+
 .hero-card{background:var(--card);border-radius:var(--radius-lg);margin:-30px 14px 0;padding:16px;position:relative;z-index:2;box-shadow:0 14px 30px -12px rgba(20,18,59,.25)}
 .hero-card-top{display:flex;justify-content:space-between;align-items:flex-start}
 .hero-card-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
@@ -73,9 +82,11 @@ svg{display:block;flex-shrink:0}
 .hero-mini{text-align:center;padding:9px 4px;border-radius:12px;background:var(--cloud)}
 .hero-mini b{display:block;font-size:14.5px;font-weight:800;color:var(--text)}
 .hero-mini span{font-size:9.5px;color:var(--muted);font-weight:600}
+#heroCardSlot{flex-shrink:0}
+#heroCardSlot.is-hidden{display:none}
 
-/* ============ CONTENT ============ */
-.content{padding:16px 14px calc(20px + var(--bottomnav-h));flex:1}
+/* ============ CONTENT (the only scrollable region) ============ */
+.content{padding:16px 14px 24px;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .screen{display:none;animation:fadein .18s ease}
 .screen.active{display:block}
 @keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
@@ -144,6 +155,7 @@ svg{display:block;flex-shrink:0}
 .btn-outline{background:var(--card);color:var(--text);border:1px solid var(--border)}
 .btn-success{background:var(--emerald);color:#fff}
 .btn-row{display:flex;gap:9px}
+.btn[disabled]{opacity:.55;pointer-events:none}
 
 .select-field,.text-field{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:11px;font-size:13px;background:var(--card);color:var(--text);margin-bottom:13px;outline:none}
 .select-field:focus,.text-field:focus{border-color:var(--indigo)}
@@ -152,6 +164,8 @@ textarea.text-field{resize:vertical;min-height:74px}
 .field-hint{font-size:10px;color:var(--muted-2);margin:-9px 0 12px}
 .field-row{display:flex;gap:9px}
 .field-row .field-col{flex:1}
+.field-error{font-size:10.5px;color:var(--coral);margin:-9px 0 12px;font-weight:700;display:none}
+.field-error.show{display:block}
 
 .status-step{display:flex;gap:13px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--border)}
 .status-step:last-child{border-bottom:none}
@@ -190,7 +204,7 @@ textarea.text-field{resize:vertical;min-height:74px}
 .modal-box h3{margin:0 0 7px;font-size:15px;font-family:var(--font-d)}
 .modal-box p{margin:0 0 16px;font-size:12px;color:var(--muted)}
 
-.toast{position:fixed;bottom:calc(20px + var(--bottomnav-h));left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:12.5px;display:flex;align-items:center;gap:9px;opacity:0;pointer-events:none;transition:.25s;z-index:300;max-width:92vw}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:12.5px;display:flex;align-items:center;gap:9px;opacity:0;pointer-events:none;transition:.25s;z-index:300;max-width:92vw}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast .ic{color:var(--emerald);flex-shrink:0}
 
@@ -207,7 +221,8 @@ textarea.text-field{resize:vertical;min-height:74px}
 .action-banner button{background:var(--marigold);color:#241300;padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:800;white-space:nowrap}
 
 .profile-head{display:flex;flex-direction:column;align-items:center;text-align:center;padding:6px 0 15px}
-.store-avatar{width:66px;height:66px;border-radius:20px;background:var(--indigo-light);color:var(--indigo-dark);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;margin-bottom:9px;font-family:var(--font-d)}
+.store-avatar{width:66px;height:66px;border-radius:20px;background:var(--indigo-light);color:var(--indigo-dark);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;margin-bottom:9px;font-family:var(--font-d);overflow:hidden}
+.store-avatar img{width:100%;height:100%;object-fit:cover}
 .profile-head h3{margin:2px 0;font-size:15px;font-family:var(--font-d)}
 .verified-tag{font-size:11px;color:var(--emerald);font-weight:700;display:flex;align-items:center;gap:4px}
 .profile-stats{display:flex;justify-content:center;gap:22px;margin-top:11px}
@@ -233,7 +248,8 @@ textarea.text-field{resize:vertical;min-height:74px}
 .doc-row .ok{display:flex;align-items:center;gap:5px;color:var(--emerald);font-weight:700}
 
 .product-tile{display:flex;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:11px;margin-bottom:8px;align-items:center}
-.p-thumb{width:46px;height:46px;border-radius:11px;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.p-thumb{width:46px;height:46px;border-radius:11px;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.p-thumb img{width:100%;height:100%;object-fit:cover}
 .p-body{flex:1;min-width:0}
 .p-body b{font-size:12.5px;display:block}
 .p-body .sku{font-size:10px;color:var(--muted-2)}
@@ -264,10 +280,14 @@ textarea.text-field{resize:vertical;min-height:74px}
 .empty-state p{margin:0 0 16px;font-size:12px;color:var(--muted);max-width:260px}
 .empty-state button{background:var(--indigo);color:#fff;padding:11px 20px;border-radius:10px;font-weight:800;font-size:12.5px}
 
-.bottom-nav{position:sticky;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:100}
+.skeleton{background:linear-gradient(90deg,var(--border) 25%,#f0f1f8 37%,var(--border) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;border-radius:11px}
+@keyframes shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+.bottom-nav{flex-shrink:0;background:#fff;border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:100}
 .bottom-nav-inner{display:flex;justify-content:space-around}
-.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted-2);font-size:9.5px;font-weight:700;padding:5px 8px;border-radius:10px;flex:1}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted-2);font-size:9.5px;font-weight:700;padding:5px 8px;border-radius:10px;flex:1;position:relative}
 .bn-item.active{color:var(--indigo)}
+.bn-item .bn-badge{position:absolute;top:-1px;right:16%;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--coral);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
@@ -283,7 +303,7 @@ textarea.text-field{resize:vertical;min-height:74px}
 </div>
 
 <div id="app" style="display:none">
-  <header class="hero">
+  <header class="hero" id="hero">
     <div class="hero-top">
       <button class="hero-back" onclick="goBack()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -296,12 +316,24 @@ textarea.text-field{resize:vertical;min-height:74px}
       <div class="gicon" id="greetIcon"></div>
       <div class="hero-greet-text">
         <div class="g-line" id="greetLine">Good morning</div>
-        <div class="g-name" id="greetName">Seller</div>
+        <div class="g-name" id="greetName">Loading…</div>
       </div>
     </div>
     <div class="hero-status live" id="heroStatus"><span class="pulse"></span> Store is live</div>
     <div class="crumb-trail" id="crumbTrail">Home</div>
   </header>
+
+  <!-- Compact bar shown on every screen EXCEPT the home dashboard, so the
+       personal greeting never repeats on sub-pages -->
+  <div class="topbar" id="topbar">
+    <button class="tb-back" onclick="goBack()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="tb-title" id="topbarTitle">Apykart Seller Studio</div>
+    <button class="tb-bell" onclick="toast('No new notifications')"><span class="dot"></span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </button>
+  </div>
 
   <div id="heroCardSlot"></div>
 
@@ -333,7 +365,7 @@ textarea.text-field{resize:vertical;min-height:74px}
 ===================================================================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, onSnapshot, collection, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB9wwF-K1AwN8xlrppiKELDXx0NxqJknbc",
@@ -347,7 +379,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 window._db = db; window._auth = auth; window._signOut = () => signOut(auth);
-window._fsHelpers = { db, doc, getDoc, onSnapshot, collection, query, where };
+window._fsHelpers = { db, doc, getDoc, onSnapshot, collection, query, where, orderBy };
 
 onAuthStateChanged(auth, async (user) => {
   const gate = document.getElementById('gate');
@@ -372,8 +404,21 @@ onAuthStateChanged(auth, async (user) => {
       return;
     }
     window.SELLER_UID = user.uid;
-    window.SELLER_NAME = d.seller_verification?.brandName || d.profile?.name || user.displayName || 'Seller';
-    window.SELLER_PHOTO = user.photoURL || '';
+    // Fallback chain: brand name -> profile name -> a bare "name" field ->
+    // Firebase Auth display name -> the part of the email before "@".
+    // We only ever fall back to the literal word "Seller" if NONE of a
+    // real seller's own data is available yet.
+    window.SELLER_NAME = d.seller_verification?.brandName
+      || d.profile?.name
+      || d.name
+      || user.displayName
+      || (user.email ? user.email.split('@')[0] : '')
+      || 'Seller';
+    if (!(d.seller_verification?.brandName || d.profile?.name || d.name || user.displayName)) {
+      console.warn('[Apykart Seller Studio] No name field found on users/' + user.uid +
+        '. Add seller_verification.brandName (or profile.name) in Firestore so the real store name shows here.');
+    }
+    window.SELLER_PHOTO = d.seller_verification?.logoUrl || d.profile?.photoUrl || user.photoURL || '';
     gate.style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     window.dispatchEvent(new Event('seller-ready'));
@@ -474,6 +519,19 @@ let sellerProfile={bankName:'HDFC Bank',accountNumber:'XXXXXXXX1234',ifsc:'HDFC0
 let state={section:'home',screen:'dashboard',ctxId:null};
 let navStack=[]; // every entry the user actually visited, in order
 
+// Human-readable titles for the compact top bar shown on every non-dashboard screen
+const SCREEN_TITLES={
+  'home.dashboard':'Home','home.list':'My products','home.detail':'Product','home.addProduct':'Add product',
+  'home.approvals':'Approval status','home.approvalDetail':'Approval details','home.stock':'Manage stock',
+  'home.videos':'Manage videos','home.uploadVideo':'Upload video','home.earnings':'Earnings','home.withdraw':'Withdraw',
+  'orders.home':'Orders','orders.detail':'Order details','orders.updateStatus':'Update status','orders.cancel':'Cancel order',
+  'orders.search':'Search orders','orders.filter':'Filter orders',
+  'returns.home':'Returns','returns.detail':'Return details','returns.approve':'Approve / reject','returns.pickup':'Track pickup',
+  'returns.inspection':'Inspection','returns.refund':'Refund status',
+  'profile.home':'Profile','profile.edit':'Edit store','profile.preview':'Store preview','profile.bank':'Bank & payouts',
+  'profile.kyc':'KYC & verification','profile.shipping':'Shipping settings'
+};
+
 function badge(status){const map={'Processing':'processing','Pending':'pending','Paid':'paid','Delivered':'delivered','Live':'live','Approved':'approved','Completed':'completed','Active':'active','Shipped':'shipped','New':'new','Cancelled':'cancelled','Rejected':'rejected','Out of Stock':'outofstock','Failed':'failed','Low Stock':'lowstock','Requested':'requested','Picked Up':'pickedup'};const cls=map[status]||'new';return `<span class="badge ${cls}">${status}</span>`;}
 function thumb(p,cls){cls=cls||'row-thumb';return `<div class="${cls}">${icon(p.ic||'box',20)}</div>`;}
 function findOrder(id){return orders.find(o=>o.id===id);}
@@ -481,8 +539,12 @@ function findReturn(id){return returns.find(r=>r.id===id);}
 function findProduct(id){return products.find(p=>p.id===id);}
 
 function renderNav(){
+  const pendingOrders=orders.filter(o=>o.status==='New'||o.status==='Processing').length;
+  const pendingReturns=returns.filter(r=>r.status==='Requested').length;
+  const counts={home:0,orders:pendingOrders,returns:pendingReturns,profile:0};
   document.getElementById('bottomNav').innerHTML=NAV.map(n=>`
     <button class="bn-item ${state.section===n.key?'active':''}" onclick="nav('${n.key}', defaultScreen('${n.key}'))">
+      ${counts[n.key]?`<span class="bn-badge">${counts[n.key]}</span>`:''}
       ${icon(n.ic,19)}${n.label}
     </button>`).join('');
 }
@@ -497,15 +559,15 @@ function nav(section,screen,ctxId,opts){
     if(navStack.length>40) navStack.shift();
   }
   state={section,screen,ctxId:ctxId||null};
-  renderNav(); render(); renderCrumbs();
-  window.scrollTo(0,0);
+  renderNav(); render(); renderCrumbs(); applyChrome();
+  document.getElementById('content').scrollTop=0;
 }
 function goBack(){
   if(navStack.length){
     const prev=navStack.pop();
     state=prev;
-    renderNav(); render(); renderCrumbs();
-    window.scrollTo(0,0);
+    renderNav(); render(); renderCrumbs(); applyChrome();
+    document.getElementById('content').scrollTop=0;
   } else {
     // nothing left in history — this IS the true entry point
     nav('home','dashboard',null,{replace:true});
@@ -517,6 +579,19 @@ function renderCrumbs(){
   const path = navStack.slice(-1).map(s=>titles[s.section]||s.section);
   path.push(`<b>${titles[state.section]||state.section}</b>`);
   el.innerHTML = path.join(' <span style="opacity:.5">›</span> ');
+}
+// The full greeting hero only belongs on the home dashboard — every other
+// screen gets a slim top bar instead, so the seller's name/greeting never
+// repeats on sub-pages (product detail, order detail, settings, etc.)
+function applyChrome(){
+  const isDash = state.section==='home' && state.screen==='dashboard';
+  document.getElementById('hero').classList.toggle('is-hidden', !isDash);
+  document.getElementById('heroCardSlot').classList.toggle('is-hidden', !isDash);
+  document.getElementById('topbar').classList.toggle('is-visible', !isDash);
+  if(!isDash){
+    document.getElementById('topbarTitle').textContent = SCREEN_TITLES[state.section+'.'+state.screen] || 'Apykart Seller Studio';
+  }
+  if(isDash) renderGreeting();
 }
 function screenHeader(title,sub){
   return `<div class="screen-header">
@@ -631,8 +706,8 @@ function productList(){
     <div class="ftab active">All (${products.length})</div><div class="ftab">Live (${products.filter(p=>p.status==='Live').length})</div>
     <div class="ftab">Pending (${products.filter(p=>p.status==='Pending').length})</div><div class="ftab">Out of stock (${products.filter(p=>p.status==='Out of Stock').length})</div>
   </div>
-  ${items}
-  <button class="btn btn-cta" onclick="nav('home','addProduct')" style="margin-top:6px">${icon('plus',15)} Add product</button>`;
+  ${items || `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>No products yet</h3><p>Add your first product to start selling on Apykart.</p><button onclick="nav('home','addProduct')">Add product</button></div>`}
+  ${items?`<button class="btn btn-cta" onclick="nav('home','addProduct')" style="margin-top:6px">${icon('plus',15)} Add product</button>`:''}`;
 }
 function productDetail(id){
   const p=findProduct(id)||products[0];
@@ -745,7 +820,7 @@ function approvalDetail(id){
 function stockManage(id){
   const p=findProduct(id)||products[0];
   if(p.stock===0){
-    return `${screenHeader('My products')}
+    return `${screenHeader('Manage stock')}
     <div class="card stock-alert-card warn"><div class="ic">${icon('package',24)}</div><h3>Out of stock</h3><p>${p.name} is currently out of stock. Update stock to make it live again.</p>
     <button class="btn btn-cta" style="width:auto;padding:11px 22px" onclick="p.stock=20;p.status='Live';toast('Stock updated to 20 units');nav('home','stock','${p.id}',{replace:true})">Update stock</button></div>`;
   }
@@ -812,12 +887,13 @@ function renderOrders(){
 function ordersHome(){
   const rows=orders.map(o=>`<div class="row-card" onclick="nav('orders','detail','${o.id}')"><div class="row-thumb">${icon(o.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${o.id}</span><span class="row-time">${o.time}</span></div><div class="row-mid">${o.product} · Qty: ${o.qty}</div><div class="row-bottom"><span class="row-price">₹${o.price}</span>${badge(o.status)}</div></div></div>`).join('');
   const needProcessing=orders.filter(o=>o.status==='New'||o.status==='Processing').length;
+  const total=orders.reduce((s,o)=>s+o.price*o.qty,0);
   return `
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:16px;font-family:var(--font-d)">Orders</h2><div style="font-size:11.5px;color:var(--muted)">${orders.length} orders · ₹8,450</div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:16px;font-family:var(--font-d)">Orders</h2><div style="font-size:11.5px;color:var(--muted)">${orders.length} orders · ₹${total.toLocaleString()}</div></div>
   ${needProcessing?`<div class="action-banner"><div><b>Action required</b>${needProcessing} orders need processing.</div><button onclick="nav('orders','detail','${orders[0].id}')">Process</button></div>`:''}
   <div class="list-toolbar"><div class="search-box" onclick="nav('orders','search')">${icon('search',15)}<input placeholder="Search order, product, customer" readonly></div><button class="chip-btn" onclick="nav('orders','filter')">${icon('filter',15)}</button></div>
   <div class="filter-tabs"><div class="ftab active">All</div><div class="ftab">New</div><div class="ftab">Processing</div><div class="ftab">Shipped</div><div class="ftab">Delivered</div></div>
-  ${rows}`;
+  ${rows || `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>No orders yet</h3><p>New orders from buyers will show up here.</p></div>`}`;
 }
 function orderDetails(id){
   const o=findOrder(id)||orders[0];
@@ -851,14 +927,19 @@ function cancelOrder(id){
   <div class="detail-block" style="display:flex;gap:11px;align-items:center"><div class="row-thumb">${icon(o.ic,18)}</div><div style="flex:1"><b style="display:block;font-size:12.5px">${o.product}</b><span style="font-size:11px;color:var(--muted)">Qty: ${o.qty}</span></div><b>₹${o.price}</b></div>
   <div class="action-banner" style="background:var(--coral-light);border-color:#F3C7C8"><div><b style="color:var(--coral)">${icon('alertTriangle',13)} Cancel this order?</b>This action cannot be undone.</div></div>
   <label class="field-label">Select reason</label>
-  <select class="select-field"><option>Select a reason</option><option>Customer requested cancellation</option><option>Product unavailable</option><option>Address issue</option><option>Other</option></select>
+  <select class="select-field" id="cancelReason"><option value="">Select a reason</option><option>Customer requested cancellation</option><option>Product unavailable</option><option>Address issue</option><option>Other</option></select>
   <div class="btn-row"><button class="btn btn-outline" onclick="goBack()">Keep order</button><button class="btn btn-danger" onclick="openModal('cancelOrder','${o.id}')">Cancel order</button></div>`;
 }
 function searchOrders(){
   return `${screenHeader('Search orders')}
-  <div class="search-box" style="margin-bottom:15px">${icon('search',15)}<input autofocus placeholder="Search order, product, customer"></div>
+  <div class="search-box" style="margin-bottom:15px">${icon('search',15)}<input id="orderSearchInput" autofocus placeholder="Search order, product, customer" oninput="filterOrderSearch(this.value)"></div>
   <h4 style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;font-weight:800">Recent orders</h4>
-  ${orders.map(o=>`<div class="row-card" onclick="nav('orders','detail','${o.id}')"><div class="row-thumb">${icon(o.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${o.id}</span>${badge(o.status)}</div><div class="row-mid">${o.product} · ${o.customer}</div></div></div>`).join('')}`;
+  <div id="orderSearchResults">${orders.map(o=>`<div class="row-card" onclick="nav('orders','detail','${o.id}')"><div class="row-thumb">${icon(o.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${o.id}</span>${badge(o.status)}</div><div class="row-mid">${o.product} · ${o.customer}</div></div></div>`).join('')}</div>`;
+}
+function filterOrderSearch(q){
+  q=(q||'').toLowerCase().trim();
+  const matches=orders.filter(o=>!q || o.id.toLowerCase().includes(q) || o.product.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q));
+  document.getElementById('orderSearchResults').innerHTML = matches.length ? matches.map(o=>`<div class="row-card" onclick="nav('orders','detail','${o.id}')"><div class="row-thumb">${icon(o.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${o.id}</span>${badge(o.status)}</div><div class="row-mid">${o.product} · ${o.customer}</div></div></div>`).join('') : `<div class="empty-state"><div class="ic">${icon('search',22)}</div><h3>No matches</h3><p>Try a different order ID, product, or customer name.</p></div>`;
 }
 function filterOrders(){
   return `${screenHeader('Filter orders')}
@@ -883,10 +964,11 @@ function renderReturns(){
 function returnsHome(){
   const rows=returns.map(r=>`<div class="row-card" onclick="nav('returns','detail','${r.id}')"><div class="row-thumb">${icon(r.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${r.id}</span><span class="row-time">${r.time||''}</span></div><div class="row-mid">${r.product} · Qty: ${r.qty}</div><div class="row-bottom"><span class="row-price">₹${r.price}</span>${badge(r.status)}</div></div></div>`).join('');
   const needAction=returns.filter(r=>r.status==='Requested').length;
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:16px;font-family:var(--font-d)">Returns</h2><div style="font-size:11.5px;color:var(--muted)">${returns.length} active · ₹2,340</div></div>
+  const total=returns.reduce((s,r)=>s+r.price,0);
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:16px;font-family:var(--font-d)">Returns</h2><div style="font-size:11.5px;color:var(--muted)">${returns.length} active · ₹${total.toLocaleString()}</div></div>
   ${needAction?`<div class="action-banner"><div><b>Action required</b>${needAction} return requests need action.</div><button onclick="nav('returns','detail','${returns[0].id}')">Review</button></div>`:''}
   <div class="filter-tabs"><div class="ftab active">All</div><div class="ftab">Requested</div><div class="ftab">Approved</div><div class="ftab">Picked up</div><div class="ftab">Refunded</div></div>
-  ${rows}`;
+  ${rows || `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>No returns</h3><p>Return requests from buyers will show up here.</p></div>`}`;
 }
 function returnDetails(id){
   const r=findReturn(id)||returns[0];
@@ -948,14 +1030,18 @@ function renderProfile(){
   if(state.screen==='shipping') return shippingSettings();
   return profileHome();
 }
+function avatarHtml(name){
+  const initials=(name||'S').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  return window.SELLER_PHOTO ? `<img src="${window.SELLER_PHOTO}" alt="${name}">` : initials;
+}
 function profileHome(){
   const name=window.SELLER_NAME||'Seller';
-  const initials=name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+e.net_earning,0);
   return `
   <div class="card profile-head">
-    <div class="store-avatar">${initials}</div><h3>${name}</h3>
+    <div class="store-avatar">${avatarHtml(name)}</div><h3>${name}</h3>
     <span class="verified-tag">${icon('checkCircle',13)} Verified seller · ${icon('star',13)} 4.8</span>
-    <div class="profile-stats"><div><b>${products.length*4+6}</b><span>Products</span></div><div><b>182</b><span>Orders</span></div><div><b>₹48.9K</b><span>Sales</span></div></div>
+    <div class="profile-stats"><div><b>${products.length}</b><span>Products</span></div><div><b>${orders.length}</b><span>Orders</span></div><div><b>₹${available.toLocaleString()}</b><span>Available</span></div></div>
   </div>
   <div class="detail-block" style="background:var(--indigo-light);border-color:#DCDEFA;display:flex;gap:10px;align-items:flex-start">
     <div style="color:var(--indigo);flex-shrink:0;margin-top:1px">${icon('shield',16)}</div>
@@ -965,7 +1051,7 @@ function profileHome(){
     <ul class="menu-list">
       <li onclick="nav('profile','edit')"><div class="menu-ic">${icon('store',16)}</div><div><b>Edit store</b><span>Name, logo, description</span></div><span class="chevron">${icon('chevronRight',15)}</span></li>
       <li onclick="nav('profile','preview')"><div class="menu-ic">${icon('eye',16)}</div><div><b>Store preview</b><span>See how buyers view your store</span></div><span class="chevron">${icon('chevronRight',15)}</span></li>
-      <li onclick="nav('profile','bank')"><div class="menu-ic">${icon('bank',16)}</div><div><b>Bank & payouts</b><span>₹12,450 available</span></div><span class="chevron">${icon('chevronRight',15)}</span></li>
+      <li onclick="nav('profile','bank')"><div class="menu-ic">${icon('bank',16)}</div><div><b>Bank & payouts</b><span>₹${available.toLocaleString()} available</span></div><span class="chevron">${icon('chevronRight',15)}</span></li>
       <li onclick="nav('home','earnings')"><div class="menu-ic">${icon('wallet',16)}</div><div><b>Earnings</b><span>Track your income</span></div><span class="chevron">${icon('chevronRight',15)}</span></li>
       <li onclick="nav('profile','kyc')"><div class="menu-ic">${icon('shield',16)}</div><div><b>KYC & verification</b><span>All documents verified</span></div><span class="chevron">${icon('chevronRight',15)}</span></li>
       <li onclick="nav('profile','shipping')"><div class="menu-ic">${icon('truck',16)}</div><div><b>Shipping settings</b><span>Pickup & return address</span></div><span class="chevron">${icon('chevronRight',15)}</span></li>
@@ -975,20 +1061,21 @@ function profileHome(){
 }
 function editStore(){
   return `${screenHeader('Edit store')}
-  <div class="detail-block" style="text-align:center"><div class="store-avatar" style="margin:0 auto 9px">${(window.SELLER_NAME||'S').charAt(0)}</div><button class="btn btn-outline" style="width:auto;padding:9px 18px;font-size:11.5px">Change logo</button></div>
-  <label class="field-label">Store name</label><input class="text-field" value="${window.SELLER_NAME||''}">
-  <label class="field-label">Store description</label><textarea class="text-field">We provide best quality gadgets and accessories.</textarea>
-  <button class="btn btn-cta" onclick="toast('Store details saved');goBack()">Save changes</button>`;
+  <div class="detail-block" style="text-align:center"><div class="store-avatar" style="margin:0 auto 9px">${avatarHtml(window.SELLER_NAME)}</div><button class="btn btn-outline" style="width:auto;padding:9px 18px;font-size:11.5px">Change logo</button></div>
+  <label class="field-label">Store name</label><input class="text-field" id="storeNameInput" value="${window.SELLER_NAME||''}">
+  <label class="field-label">Store description</label><textarea class="text-field" id="storeDescInput">We provide best quality gadgets and accessories.</textarea>
+  <button class="btn btn-cta" onclick="const v=document.getElementById('storeNameInput').value.trim();if(v){window.SELLER_NAME=v;} toast('Store details saved');goBack()">Save changes</button>`;
 }
 function storePreview(){
   const tiles=products.slice(0,4).map(p=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px"><div style="width:100%;height:60px;border-radius:8px;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center">${icon(p.ic,20)}</div><div style="font-size:11px;margin-top:6px">${p.name}</div><b style="font-size:12px">₹${p.price}</b></div>`).join('');
   return `${screenHeader('Store preview')}
-  <div class="detail-block" style="text-align:center"><div style="height:70px;background:linear-gradient(135deg,var(--indigo),#6B5CE0);border-radius:12px;margin-bottom:-32px"></div><div class="store-avatar" style="border:3px solid #fff;margin:0 auto 8px">${(window.SELLER_NAME||'S').charAt(0)}</div><b style="font-size:13px">${window.SELLER_NAME||'Seller'}</b><div style="font-size:11px;color:var(--muted);margin-top:2px">4.8 (182 orders)</div></div>
+  <div class="detail-block" style="text-align:center"><div style="height:70px;background:linear-gradient(135deg,var(--indigo),#6B5CE0);border-radius:12px;margin-bottom:-32px"></div><div class="store-avatar" style="border:3px solid #fff;margin:0 auto 8px">${avatarHtml(window.SELLER_NAME)}</div><b style="font-size:13px">${window.SELLER_NAME||'Seller'}</b><div style="font-size:11px;color:var(--muted);margin-top:2px">4.8 (${orders.length} orders)</div></div>
   <div class="grid-2">${tiles}</div>`;
 }
 function bankPayouts(){
+  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+e.net_earning,0);
   return `${screenHeader('Bank & payouts')}
-  <div class="avail-payout"><span>Available for payout</span><div class="amt">₹12,450</div><button onclick="nav('home','withdraw')">View wallet →</button></div>
+  <div class="avail-payout"><span>Available for payout</span><div class="amt">₹${available.toLocaleString()}</div><button onclick="nav('home','withdraw')">View wallet →</button></div>
   <div class="detail-block"><h4>Payout account</h4>
     <label class="field-label">Bank name</label><input class="text-field" id="bankName" value="${sellerProfile.bankName}">
     <label class="field-label">Account number</label><input class="text-field" id="accountNumber" value="${sellerProfile.accountNumber}">
@@ -1009,7 +1096,7 @@ function kycVerification(){
 }
 function shippingSettings(){
   return `${screenHeader('Shipping settings')}
-  <div class="detail-block"><h4>Pickup address</h4><p style="margin:0 0 10px;font-size:12.5px">Excelclub<br>123, MG Road<br>Prayagraj, Uttar Pradesh 211001</p><button class="btn btn-outline" style="width:auto;padding:8px 15px;font-size:11.5px">Edit address</button></div>
+  <div class="detail-block"><h4>Pickup address</h4><p style="margin:0 0 10px;font-size:12.5px">${window.SELLER_NAME||'Store'}<br>123, MG Road<br>Prayagraj, Uttar Pradesh 211001</p><button class="btn btn-outline" style="width:auto;padding:8px 15px;font-size:11.5px">Edit address</button></div>
   <div class="detail-block"><h4>Shipping preferences</h4><div class="kv-row"><span>Standard delivery</span><b>3–5 days</b></div><div class="kv-row"><span>Returns</span><b>7-day return</b></div></div>`;
 }
 
@@ -1017,9 +1104,9 @@ function shippingSettings(){
 function openModal(type,ctxId){
   const overlay=document.getElementById('modalOverlay');const box=document.getElementById('modalBox');let html='';box.className='modal-box';
   if(type==='logout'){box.className='modal-box center';html=`<div class="ic danger">${icon('logout',22)}</div><h3>Log out of Apykart?</h3><p>You can log back in anytime.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="closeModal();window._signOut&&window._signOut();toast('Logged out')">Log out</button></div>`;}
-  if(type==='cancelOrder'){const o=findOrder(ctxId);box.className='modal-box center';html=`<div class="ic danger">${icon('alertTriangle',22)}</div><h3>Cancel order #${o.id}?</h3><p>This action cannot be undone.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Keep order</button><button class="btn btn-danger" onclick="o.status='Cancelled';closeModal();toast('Order cancelled');nav('orders','home',null,{replace:true})">Confirm</button></div>`;}
-  if(type==='approveReturn'){box.className='modal-box center';html=`<div class="ic success">${icon('checkCircle',22)}</div><h3>Approve this return?</h3><p>The customer will be notified and pickup will be scheduled.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-success" onclick="closeModal();toast('Return approved');nav('returns','pickup','${ctxId}')">Approve</button></div>`;}
-  if(type==='rejectReturn'){box.className='modal-box center';html=`<div class="ic danger">${icon('xCircle',22)}</div><h3>Reject this return?</h3><p>The customer will be notified.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="closeModal();toast('Return rejected');nav('returns','home',null,{replace:true})">Reject</button></div>`;}
+  if(type==='cancelOrder'){const o=findOrder(ctxId);const reason=document.getElementById('cancelReason')?.value;box.className='modal-box center';html=`<div class="ic danger">${icon('alertTriangle',22)}</div><h3>Cancel order #${o.id}?</h3><p>This action cannot be undone.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Keep order</button><button class="btn btn-danger" onclick="o.status='Cancelled';o.cancelReason='${(reason||'').replace(/'/g,"")}';closeModal();toast('Order cancelled');nav('orders','home',null,{replace:true})">Confirm</button></div>`;}
+  if(type==='approveReturn'){box.className='modal-box center';html=`<div class="ic success">${icon('checkCircle',22)}</div><h3>Approve this return?</h3><p>The customer will be notified and pickup will be scheduled.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-success" onclick="const r=findReturn('${ctxId}');if(r)r.status='Approved';closeModal();toast('Return approved');nav('returns','pickup','${ctxId}')">Approve</button></div>`;}
+  if(type==='rejectReturn'){box.className='modal-box center';html=`<div class="ic danger">${icon('xCircle',22)}</div><h3>Reject this return?</h3><p>The customer will be notified.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="const r=findReturn('${ctxId}');if(r)r.status='Rejected';closeModal();toast('Return rejected');nav('returns','home',null,{replace:true})">Reject</button></div>`;}
   if(type==='deleteProduct'){box.className='modal-box center';html=`<div class="ic danger">${icon('trash',22)}</div><h3>Delete this product?</h3><p>This action cannot be undone.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="products=products.filter(p=>p.id!=='${ctxId}');closeModal();toast('Product deleted');nav('home','list',null,{replace:true})">Delete</button></div>`;}
   if(type==='withdraw'){const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+e.net_earning,0);html=`<div class="ic">${icon('wallet',22)}</div><h3>Request withdrawal</h3><p>Available: ₹${available.toFixed(0)}</p><input type="number" id="withdrawAmt" class="text-field" placeholder="Enter amount"><button class="btn btn-cta" onclick="submitWithdraw(${available})">Submit request</button>`;}
   box.innerHTML=html;overlay.classList.add('show');
@@ -1034,12 +1121,11 @@ function toast(msg){const t=document.getElementById('toast');document.getElement
 
 /* ===================== INIT (after seller is verified) ===================== */
 window.addEventListener('seller-ready', function(){
-  renderGreeting();
   renderNav();
   nav('home','dashboard',null,{replace:true});
 });
 // expose functions the inline onclick="" handlers need
-Object.assign(window,{nav,goBack,openModal,closeModal,toast,toggleSizeOptions,autoGenerateSKU,previewImages,removeProdImg,updateProductCalc,submitProduct,submitWithdraw});
+Object.assign(window,{nav,goBack,openModal,closeModal,toast,toggleSizeOptions,autoGenerateSKU,previewImages,removeProdImg,updateProductCalc,submitProduct,submitWithdraw,filterOrderSearch,findReturn,findOrder,findProduct});
 </script>
 </body>
 </html>
