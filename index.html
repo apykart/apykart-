@@ -356,6 +356,21 @@ a{text-decoration:none;color:inherit}
 .products-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ─── SKELETON LOADER ─── */
+.skel{background:linear-gradient(90deg,#eef0f4 25%,#f7f8fa 37%,#eef0f4 63%);background-size:400% 100%;animation:skelShimmer 1.4s ease infinite;border-radius:10px}
+@keyframes skelShimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.skel-hero{height:160px;margin:4px 12px 0;border-radius:var(--radius-lg)}
+.skel-cat-row{display:flex;gap:10px;padding:14px 14px 2px;overflow:hidden}
+.skel-cat{width:54px;height:54px;border-radius:16px;flex-shrink:0}
+.skel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 12px}
+.skel-card{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:#fff}
+.skel-card-img{height:180px}
+.skel-card-line{height:12px;margin:10px 9px}
+.skel-card-line.short{width:60%}
+.offline-bar{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#1a1a1a;color:#fff;padding:14px 16px;display:none;align-items:center;justify-content:space-between;font-size:14px;font-weight:600;z-index:9998}
+.offline-bar.show{display:flex}
+.offline-retry{color:#4da3ff;font-weight:800;cursor:pointer;background:none;border:none;font-size:14px}
+
 /* ─── SEARCH ─── */
 .search-header{padding:12px 12px 8px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
 .search-input-wrap{display:flex;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:11px;padding:0 12px;gap:8px;transition:border-color .2s,box-shadow .2s}
@@ -726,60 +741,6 @@ a{text-decoration:none;color:inherit}
 .wishlist-price{font-size:13px;font-weight:800;color:var(--primary);margin-bottom:7px}
 .wishlist-add-btn{width:100%;background:var(--primary-light);color:var(--primary);font-size:10px;font-weight:800;padding:7px;border-radius:7px;border:none;cursor:pointer}
 
-/* ─── SELLER DASHBOARD ─── */
-.seller-dashboard-container{display:flex;flex-direction:column;height:100%;background:var(--bg);overflow:hidden}
-.seller-header-bar{background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-.seller-header-back{width:34px;height:34px;background:rgba(255,255,255,.12);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:18px;border:none;flex-shrink:0}
-.seller-header-info{flex:1}
-.seller-header-name{font-family:var(--font-head);font-size:15px;font-weight:800;color:#fff}
-.seller-header-status{font-size:10px;color:rgba(255,255,255,.65);font-weight:500;margin-top:2px}
-.seller-status-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700}
-.seller-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:8px}
-.seller-content::-webkit-scrollbar{display:none}
-.seller-bottom-tabs{display:flex;background:#fff;border-top:1px solid var(--border);flex-shrink:0;box-shadow:0 -3px 16px rgba(0,0,0,.05)}
-.seller-tab-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;cursor:pointer;transition:all .15s;position:relative}
-.seller-tab-item:active{background:var(--bg)}
-.seller-tab-icon{font-size:17px;line-height:1}
-.seller-tab-label{font-size:9px;font-weight:700;color:var(--text3)}
-.seller-tab-item.active .seller-tab-label{color:var(--primary)}
-.seller-tab-active-bar{position:absolute;top:0;left:15%;right:15%;height:2px;background:var(--primary);border-radius:0 0 3px 3px;opacity:0}
-.seller-tab-item.active .seller-tab-active-bar{opacity:1}
-.seller-section{padding:12px 10px}
-.seller-page-title{font-family:var(--font-head);font-size:16px;font-weight:800;color:var(--text);margin-bottom:12px}
-.seller-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.stat-card{background:#fff;border-radius:var(--radius-sm);padding:13px;box-shadow:var(--shadow2);border:1px solid var(--border)}
-.stat-card-value{font-family:var(--font-head);font-size:20px;font-weight:900;color:var(--text)}
-.stat-card-label{font-size:11px;color:var(--text3);margin-top:3px;font-weight:500}
-.stat-card-icon{font-size:20px;margin-bottom:5px}
-.seller-card{background:#fff;border-radius:var(--radius-sm);border:1px solid var(--border);box-shadow:var(--shadow2);overflow:hidden;margin-bottom:10px}
-.seller-card-header{padding:11px 13px;border-bottom:1px solid var(--border);font-family:var(--font-head);font-size:13px;font-weight:800;color:var(--text)}
-.seller-prod-item{display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--border)}
-.seller-prod-item:last-child{border-bottom:none}
-.seller-prod-img{width:48px;height:48px;border-radius:9px;background:var(--bg);object-fit:cover;flex-shrink:0}
-.seller-prod-img-placeholder{width:48px;height:48px;border-radius:9px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.seller-prod-info{flex:1;min-width:0}
-.seller-prod-name{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seller-prod-price{font-size:12px;font-weight:800;color:var(--primary);margin-top:2px}
-.seller-prod-status{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:3px}
-.prod-status-pending{background:#fef3c7;color:#92400e}
-.prod-status-approved{background:#dcfce7;color:#166534}
-.prod-status-rejected{background:#fee2e2;color:#b91c1c}
-.seller-prod-del-btn{width:28px;height:28px;background:#fee2e2;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;border:none;flex-shrink:0}
-.seller-tx-item{display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--border)}
-.seller-tx-item:last-child{border-bottom:none}
-.seller-tx-dot{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;background:#dcfce7}
-.seller-tx-info{flex:1;min-width:0}
-.seller-tx-name{font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seller-tx-date{font-size:10px;color:var(--text3);font-weight:500}
-.seller-tx-amount{font-size:12px;font-weight:800;color:#166534}
-.seller-form-section{padding:0 10px 14px;display:flex;flex-direction:column;gap:9px}
-.seller-input-group{display:flex;flex-direction:column;gap:3px}
-.seller-empty{display:flex;flex-direction:column;align-items:center;padding:36px 20px;gap:9px;text-align:center}
-.seller-withdraw-bar{display:flex;align-items:center;justify-content:space-between;background:var(--primary-light);border:1.5px solid var(--primary-mid);border-radius:var(--radius-sm);padding:13px;margin-bottom:12px}
-.seller-withdraw-amount{font-family:var(--font-head);font-size:19px;font-weight:900;color:var(--primary)}
-.btn-withdraw{background:var(--primary);color:#fff;font-size:12px;font-weight:800;padding:9px 16px;border-radius:9px;border:none;cursor:pointer}
-.seller-settings-field{margin-bottom:9px}
-
 /* ─── MODAL ─── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:flex-end;justify-content:center;animation:fadeInBg .2s ease}
 .modal-sheet{background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px);animation:slideUp .28s cubic-bezier(.34,1.2,.64,1)}
@@ -1004,8 +965,6 @@ a{text-decoration:none;color:inherit}
 .nav-active-dot{width:4px;height:4px;border-radius:50%;background:var(--primary);opacity:0;transition:opacity .2s}
 .nav-item.active .nav-active-dot{opacity:1}
 .nav-cart-wrap{position:relative;display:flex;align-items:center;justify-content:center}
-#page-seller-dashboard{height:100%;display:none}
-#page-seller-dashboard.active{display:flex;flex-direction:column}
 .nav-icon svg{display:block}
 .header-logo-icon svg,.header-btn svg{display:block}
 .loading-logo-icon svg{display:block}
@@ -1340,57 +1299,6 @@ a{text-decoration:none;color:inherit}
 
   </div><!-- END page-scroll -->
 
-<!-- SELLER DASHBOARD PAGE (MOBILE REDESIGNED) -->
-<div class="page" id="page-seller-dashboard">
-  <div class="seller-dashboard-container">
-    <!-- Header -->
-    <div class="seller-header-bar">
-      <button class="seller-header-back" onclick="showPage('profile')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-      <div class="seller-header-info">
-        <div class="seller-header-name" id="sellerDisplayName">Seller Dashboard</div>
-        <div class="seller-header-status">
-          <span class="seller-status-badge" id="sellerVerificationStatus" style="background:#fef3c7;color:#92400e">⏳ Pending Verification</span>
-        </div>
-      </div>
-    </div>
-    <!-- Scrollable Content -->
-    <div class="seller-content" id="sellerTabContent"></div>
-    <!-- Bottom Tabs -->
-    <nav class="seller-bottom-tabs">
-      <div class="seller-tab-item active" data-tab="overview">
-        <div class="seller-tab-active-bar"></div>
-        <div class="seller-tab-icon">📊</div>
-        <div class="seller-tab-label">Overview</div>
-      </div>
-      <div class="seller-tab-item" data-tab="products">
-        <div class="seller-tab-active-bar"></div>
-        <div class="seller-tab-icon">📦</div>
-        <div class="seller-tab-label">Products</div>
-      </div>
-      <div class="seller-tab-item" data-tab="add-product">
-        <div class="seller-tab-active-bar"></div>
-        <div class="seller-tab-icon">➕</div>
-        <div class="seller-tab-label">Add</div>
-      </div>
-      <div class="seller-tab-item" data-tab="earnings">
-        <div class="seller-tab-active-bar"></div>
-        <div class="seller-tab-icon">💰</div>
-        <div class="seller-tab-label">Earnings</div>
-      </div>
-      <div class="seller-tab-item" data-tab="withdraw">
-        <div class="seller-tab-active-bar"></div>
-        <div class="seller-tab-icon">🏦</div>
-        <div class="seller-tab-label">Withdraw</div>
-      </div>
-      <div class="seller-tab-item" data-tab="profile">
-        <div class="seller-tab-active-bar"></div>
-        <div class="seller-tab-icon">⚙️</div>
-        <div class="seller-tab-label">Settings</div>
-      </div>
-    </nav>
-  </div>
-</div><!-- END page-seller-dashboard -->
-
   <nav class="bottom-nav">
     <div class="nav-item active" id="nav-home" onclick="showPage('home')">
       <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
@@ -1419,6 +1327,10 @@ a{text-decoration:none;color:inherit}
 </div>
 
 <div class="toast-container" id="toastContainer"></div>
+<div class="offline-bar" id="offlineBar">
+  <span>📡 Not connected</span>
+  <button class="offline-retry" onclick="location.reload()">Retry</button>
+</div>
 <input type="file" id="directCreatorFileInput" accept="video/*" style="display:none" onchange="handleDirectVideoSelect(this)">
 <div id="modalPortal"></div>
 <div id="welcomePopupPortal"></div>
@@ -1447,7 +1359,7 @@ a{text-decoration:none;color:inherit}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged
+  getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore,
@@ -1476,7 +1388,7 @@ const storage  = getStorage(app);
 const provider = new GoogleAuthProvider();
 
 // ─── Expose to global scope ───
-window._fbAuth = { auth, provider, signInWithPopup, signOut, onAuthStateChanged };
+window._fbAuth = { auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged };
 window._db     = db;
 window._storage = storage;
 window._storageRef = storageRef;
@@ -1813,6 +1725,13 @@ function setupBannersListener() {
   }
 }
 setupBannersListener();
+
+// ✅ Redirect login result check
+getRedirectResult(auth).then(result => {
+  if (result && result.user) {
+    console.log('Redirect login success:', result.user.email);
+  }
+}).catch(err => console.warn('Redirect login error:', err.message));
 
 // ─── Dispatch event so non-module script knows Firebase is ready ───
 window._fbReady = true;
@@ -2441,16 +2360,14 @@ function showPage(page, productId) {
 
   // hide bottom-nav on seller-dashboard (has own tab bar)
   const bnav = document.querySelector('.bottom-nav');
-  if (bnav) bnav.style.display = page==='seller-dashboard' ? 'none' : 'flex';
+  if (bnav) bnav.style.display = 'flex';
   // xplor needs a black nav
   if (bnav) bnav.style.background = page==='xplor' ? 'rgba(0,0,0,.85)' : '';
   if (bnav) bnav.style.borderTopColor = page==='xplor' ? 'rgba(255,255,255,.1)' : '';
 
   // hide page-scroll container only when seller-dashboard is active (xplor stays in scroll)
   if (ps) {
-  if (page === 'seller-dashboard') {
-    ps.style.display = 'none';
-  } else if (page === 'xplor') {
+  if (page === 'xplor') {
     ps.style.cssText = 'flex:1;min-height:0;overflow:hidden;position:relative;display:block';
   } else {
     ps.style.cssText = '';
@@ -2478,7 +2395,6 @@ function showPage(page, productId) {
   else if (page==='rate')       renderRate();
   else if (page==='terms')      renderTerms();
   else if (page==='about')      renderAbout();
-  else if (page==='seller-dashboard') renderSellerDashboard();
   else if (page === 'xplor') {
     renderXplor(productId);
     // ✅ FIX 2: Reset mute state visually when xplor reopens
@@ -2540,7 +2456,17 @@ function goHeroSlide(n) {
   document.querySelectorAll('.hero-dot').forEach((d,i)=>d.classList.toggle('active',i===n));
   _heroIdx = n;
 }
-
+function renderSkeletonGrid() {
+  return `
+    <div class="skel-grid">
+      ${Array(6).fill(0).map(()=>`
+        <div class="skel-card">
+          <div class="skel skel-card-img"></div>
+          <div class="skel skel-card-line"></div>
+          <div class="skel skel-card-line short"></div>
+        </div>`).join('')}
+    </div>`;
+}
 function renderHome() {
   // Hero Carousel
   initHeroCarousel();
@@ -2560,7 +2486,7 @@ function renderHome() {
 
   const grid = document.getElementById('homeGrid');
   if (!PRODUCTS.length) {
-    grid.innerHTML = `<div class="products-loading"><div class="products-spinner"></div><div style="font-size:13px;color:var(--text3);font-weight:600;margin-top:8px">Loading products…</div></div>`;
+    grid.innerHTML = renderSkeletonGrid();
     return;
   }
   const approvedProds = PRODUCTS.filter(p => {
@@ -2632,7 +2558,7 @@ function handleBecomeSellerCTA() {
   if (!window.currentUser) { showLoginPrompt('seller'); return; }
   const verSt = sellerVerification?.status || '';
   if (userRole === 'seller' && verSt === 'approved') {
-    showPage('seller-dashboard');
+    window.location.href = 'seller-dashboard.html';
   } else {
     showPage('profile');
     setTimeout(() => openSellerVerificationModal(), 150);
@@ -3810,14 +3736,15 @@ if (verSt === 'pending') {
       <div style="font-size:11px;color:#b45309;margin-top:2px">Admin will verify soon</div>
     </div>
   </div>`;
+  
+
 } else if (verSt === 'approved') {
-  verBannerHTML = `<div style="margin:10px 10px 0;background:#dcfce7;border:1.5px solid #86efac;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+  verBannerHTML = `<div onclick="window.location.href='seller-dashboard.html'" style="margin:10px 10px 0;background:#dcfce7;border:1.5px solid #86efac;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer">
     <div style="font-size:22px">✅</div>
     <div style="flex:1">
       <div style="font-size:13px;font-weight:800;color:#166534">Verified Seller</div>
       <div style="font-size:11px;color:#16a34a;margin-top:2px">You can now list products!</div>
     </div>
-    <button onclick="showPage('seller-dashboard')" style="background:#16a34a;color:#fff;font-size:11px;font-weight:800;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;flex-shrink:0">Dashboard →</button>
   </div>`;
 } else if (verSt === 'rejected') {
   verBannerHTML = `<div style="margin:10px 10px 0;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
@@ -3834,7 +3761,7 @@ let sellerBtnHTML = '';  // ← yeh bhi same
 
   if (!isLoggedIn) {
     sellerBtnHTML = `
-      <div class="profile-menu-item" onclick="showLoginPrompt('seller')">
+      <div class="profile-menu-item" onclick="window.location.href='seller-dashboard.html'">
         <div class="profile-menu-icon" style="background:#f1f5f9"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
         <div class="profile-menu-text">
           <div class="profile-menu-name" style="color:var(--text3)">Become a Seller</div>
@@ -3854,7 +3781,7 @@ let sellerBtnHTML = '';  // ← yeh bhi same
       </div>`;
   } else if (sellerStatus === 'approved') {
     sellerBtnHTML = `
-      <div class="profile-menu-item" onclick="showPage('seller-dashboard')">
+      <div class="profile-menu-item" onclick="window.location.href='seller-dashboard.html'">
         <div class="profile-menu-icon" style="background:#dcfce7"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
         <div class="profile-menu-text">
           <div class="profile-menu-name" style="color:#166534">✅ Seller Dashboard</div>
@@ -4104,736 +4031,6 @@ function showLoginPrompt(reason) {
   </div>`;
 }
 
-function renderSellerDashboard() {
-  if (!window.currentUser) {
-    showLoginPrompt('seller');
-    showPage('profile');
-    return;
-  }
-  // NAYA — yeh lagao
-const verSt = sellerVerification?.status || '';
-if (verSt === 'approved') userRole = 'seller';
-
-if (userRole !== 'seller' && verSt !== 'approved') {
-  showPage('profile');
-  openSellerVerificationModal();
-  return;
-}
-  const sellerStatus = sellerVerification?.status || 'pending';
-  
-  if (sellerStatus === 'rejected') {
-    document.getElementById('sellerDisplayName').textContent = window.currentUser.displayName || 'Seller';
-    const statusEl = document.getElementById('sellerVerificationStatus');
-    statusEl.style.cssText = 'background:#fee2e2;color:#b91c1c;';
-    statusEl.textContent = '❌ Verification Rejected';
-    document.getElementById('sellerTabContent').innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;min-height:300px">
-        <div style="font-size:64px;margin-bottom:16px">❌</div>
-        <div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px">Verification Rejected</div>
-        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Documents accept nahi hue. Sahi documents ke saath dobara apply karo.</div>
-        <button onclick="showPage('profile');openSellerVerificationModal()" style="background:var(--primary);color:#fff;font-size:14px;font-weight:800;padding:13px 28px;border-radius:12px;border:none;cursor:pointer">🔄 Reapply Now</button>
-      </div>`;
-    return;
-  }
-
-  if (sellerStatus === 'pending') {
-    document.getElementById('sellerDisplayName').textContent = window.currentUser.displayName || 'Seller';
-    const statusEl = document.getElementById('sellerVerificationStatus');
-    statusEl.style.cssText = 'background:#fef3c7;color:#92400e;';
-    statusEl.textContent = '⏳ Pending Verification';
-
-    const myProds = sellerProducts.filter(p => p.sellerId === window.currentUser?.uid);
-    const slotsLeft = Math.max(0, 5 - myProds.length);
-
-    document.querySelectorAll('.seller-tab-item').forEach(item => {
-      const allowed = ['overview','products','add-product'].includes(item.dataset.tab);
-      item.style.opacity = allowed ? '1' : '0.35';
-      item.style.pointerEvents = allowed ? 'auto' : 'none';
-      item.classList.toggle('active', item.dataset.tab === (window._sellerActiveTab || 'overview'));
-      item.onclick = allowed ? () => {
-        document.querySelectorAll('.seller-tab-item').forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        window._sellerActiveTab = item.dataset.tab;
-        renderSellerTab(item.dataset.tab);
-      } : null;
-    });
-
-    const tab = window._sellerActiveTab || 'overview';
-    if (tab === 'add-product') {
-      if (slotsLeft <= 0) {
-        document.getElementById('sellerTabContent').innerHTML = `
-          <div style="padding:40px 20px;text-align:center">
-            <div style="font-size:48px;margin-bottom:12px">🔒</div>
-            <div style="font-family:var(--font-head);font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px">Product Limit Reached</div>
-            <div style="font-size:14px;color:var(--text2)">Pending verification mein max 5 products allowed hain. Approval ke baad unlimited list kar sakte ho!</div>
-          </div>`;
-      } else {
-        renderAddProductFormWithLimit(slotsLeft);
-      }
-    } else if (tab === 'products') {
-      renderMyProducts();
-      const el = document.getElementById('sellerTabContent');
-      if (el) el.insertAdjacentHTML('afterbegin', `
-        <div style="margin:12px 10px 0;background:#fef9e7;border:1.5px solid #f7c948;border-radius:10px;padding:10px 14px;font-size:12px;font-weight:700;color:#92400e">
-          ⏳ Verification pending — aap abhi ${5 - myProds.length} aur product add kar sakte ho (max 5). Approval ke baad unlimited!
-        </div>`);
-    } else {
-      renderOverview();
-      const el = document.getElementById('sellerTabContent');
-      if (el) el.insertAdjacentHTML('afterbegin', `
-        <div style="margin:0 0 14px;background:linear-gradient(135deg,#fef9e7,#fef3c7);border:1.5px solid #f7c948;border-radius:12px;padding:14px 16px">
-          <div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:4px">⏳ Verification Under Review</div>
-          <div style="font-size:12px;color:#b45309;line-height:1.6">Documents submit ho gaye hain. Approval milne ke baad earnings, withdrawals aur baaki features unlock honge.<br><strong>Abhi aap 5 products list kar sakte ho!</strong></div>
-        </div>`);
-    }
-    return;
-  }
-
-  // APPROVED seller — full dashboard
-  document.getElementById('sellerDisplayName').textContent = window.currentUser.displayName || 'Seller';
-  const statusEl = document.getElementById('sellerVerificationStatus');
-  statusEl.style.cssText = 'background:#dcfce7;color:#166534;';
-  statusEl.textContent = '✅ Verified Seller';
-
-  const activeTab = window._sellerActiveTab || 'overview';
-  document.querySelectorAll('.seller-tab-item').forEach(item => {
-    item.classList.toggle('active', item.dataset.tab === activeTab);
-    item.onclick = () => {
-      document.querySelectorAll('.seller-tab-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      window._sellerActiveTab = item.dataset.tab;
-      renderSellerTab(item.dataset.tab);
-    };
-  });
-  renderSellerTab(activeTab);
-}
-
-function renderSellerTab(tab) {
-  switch(tab) {
-    case 'overview': renderOverview(); break;
-    case 'products': renderMyProducts(); break;
-    case 'add-product': renderAddProductFormWithLimit(5); break;   // ✅ FIXED: call correct function
-    case 'earnings': renderEarnings(); break;
-    case 'withdraw': renderWithdrawPage(); break;
-    case 'profile': renderSellerSettings(); break;
-  }
-}
-
-function renderOverview() {
-  const myEarnings = sellerEarnings.filter(e => e.sellerId === window.currentUser?.uid);
-  const totalEarnings = myEarnings.reduce((sum, t) => sum + t.net_earning, 0);
-  const available = myEarnings.filter(t => t.status === 'available').reduce((s, t) => s + t.net_earning, 0);
-  const pending = myEarnings.filter(t => t.status === 'pending').reduce((s, t) => s + t.net_earning, 0);
-  const totalProducts = sellerProducts.filter(p => p.sellerId === window.currentUser?.uid).length;
-  const totalOrders = myEarnings.length;
-
-  document.getElementById('sellerTabContent').innerHTML = `
-    <div class="seller-section">
-      <div class="seller-page-title">📊 Overview</div>
-      <div class="seller-stat-grid">
-        <div class="stat-card"><div class="stat-card-icon">💰</div><div class="stat-card-value">₹${totalEarnings.toFixed(0)}</div><div class="stat-card-label">Total Earnings</div></div>
-        <div class="stat-card"><div class="stat-card-icon">✅</div><div class="stat-card-value">₹${available.toFixed(0)}</div><div class="stat-card-label">Available</div></div>
-        <div class="stat-card"><div class="stat-card-icon">⏳</div><div class="stat-card-value">₹${pending.toFixed(0)}</div><div class="stat-card-label">Pending</div></div>
-        <div class="stat-card"><div class="stat-card-icon">📦</div><div class="stat-card-value">${totalProducts}</div><div class="stat-card-label">Products</div></div>
-        <div class="stat-card"><div class="stat-card-icon">🛒</div><div class="stat-card-value">${totalOrders}</div><div class="stat-card-label">Orders</div></div>
-      </div>
-      <div class="seller-card">
-        <div class="seller-card-header">Recent Transactions</div>
-        ${myEarnings.slice(0,5).map(t=>`
-          <div class="seller-tx-item">
-            <div class="seller-tx-dot">🛒</div>
-            <div class="seller-tx-info">
-              <div class="seller-tx-name">${t.product_name}</div>
-              <div class="seller-tx-date">${new Date(t.date||Date.now()).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
-            </div>
-            <div>
-              <div class="seller-tx-amount">₹${t.net_earning}</div>
-              <div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;margin-top:3px;background:${t.status==='available'?'#dcfce7':'#fef3c7'};color:${t.status==='available'?'#166534':'#92400e'}">${t.status}</div>
-            </div>
-          </div>`).join('') || '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">No transactions yet</div>'}
-      </div>
-    </div>`;
-}
-
-function renderMyProducts() {
-  const myProds = sellerProducts.filter(p => p.sellerId === window.currentUser?.uid);
-  document.getElementById('sellerTabContent').innerHTML = `
-    <div class="seller-section">
-      <div class="seller-page-title">📦 My Products</div>
-      <div class="seller-card">
-        ${myProds.length ? myProds.map(p => `
-          <div class="seller-prod-item">
-            ${p.images?.[0] ? `<img src="${p.images[0]}" class="seller-prod-img" onerror="this.outerHTML='<div class=seller-prod-img-placeholder>📦</div>'">` : '<div class="seller-prod-img-placeholder">📦</div>'}
-          <div class="seller-prod-info">
-              <div class="seller-prod-name">${p.name}</div>
-              ${p.sku ? `<div style="font-size:10px;color:var(--text3);font-weight:700;margin-top:1px">SKU: ${p.sku}</div>` : ''}
-              <div class="seller-prod-price">₹${Number(p.price).toLocaleString()}</div>
-              <span class="seller-prod-status prod-status-${p.status}">${p.status}</span>
-            </div>
-            <button class="seller-prod-del-btn" onclick="deleteProduct('${p.id}')">🗑</button>
-          </div>`).join('') : '<div style="padding:30px;text-align:center;color:var(--text3);font-size:13px">No products yet. Add your first product!</div>'}
-      </div>
-    </div>`;
-}
-
-// ✅ NEW: Square crop system with adjustable position slider
-window._prodImgs = [];
-
-function previewImages(e) {
-  const files = Array.from(e.target.files).slice(0, 5);
-  window._prodImgs = [];
-  const previewDiv = document.getElementById('imagePreview');
-  if (!previewDiv) return;
-  previewDiv.innerHTML = '';
-  files.forEach((file, idx) => {
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        window._prodImgs[idx] = { file, img, focus: 50 };
-        renderImgCropCard(idx);
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function renderImgCropCard(idx) {
-  const entry = window._prodImgs[idx];
-  const previewDiv = document.getElementById('imagePreview');
-  if (!entry || !previewDiv) return;
-  let card = document.getElementById('imgCropCard' + idx);
-  if (!card) {
-    card = document.createElement('div');
-    card.id = 'imgCropCard' + idx;
-    card.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px';
-    previewDiv.appendChild(card);
-  }
-  const isSquareAlready = entry.img.width === entry.img.height;
-  card.innerHTML = `
-    <canvas id="imgCanvas${idx}" width="90" height="90" style="border-radius:8px;border:2px solid var(--border);background:#f1f5f9"></canvas>
-    ${!isSquareAlready ? `<input type="range" min="0" max="100" value="50" oninput="updateImgFocus(${idx}, this.value)" style="width:90px;accent-color:var(--primary)">` : `<span style="font-size:9px;color:var(--text3);font-weight:700">✓ Already Square</span>`}
-  `;
-  drawSquareCrop(idx);
-}
-
-function updateImgFocus(idx, val) {
-  window._prodImgs[idx].focus = Number(val);
-  drawSquareCrop(idx);
-}
-
-function drawSquareCrop(idx) {
-  const entry = window._prodImgs[idx];
-  const canvas = document.getElementById('imgCanvas' + idx);
-  if (!entry || !canvas) return;
-  const ctx = canvas.getContext('2d');
-  const img = entry.img;
-  const side = Math.min(img.width, img.height);
-  let sx = 0, sy = 0;
-  if (img.width > img.height) {
-    sx = (entry.focus / 100) * (img.width - side);
-  } else if (img.height > img.width) {
-    sy = (entry.focus / 100) * (img.height - side);
-  }
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, sx, sy, side, side, 0, 0, canvas.width, canvas.height);
-}
-
-// Final upload-quality square image banata hai (900x900)
-function getSquareBlob(idx, outSize = 900) {
-  const entry = window._prodImgs[idx];
-  return new Promise((resolve, reject) => {
-    if (!entry) { reject(new Error('Image data missing')); return; }
-    try {
-      const img = entry.img;
-      const side = Math.min(img.width, img.height);
-      let sx = 0, sy = 0;
-      if (img.width > img.height) sx = (entry.focus / 100) * (img.width - side);
-      else if (img.height > img.width) sy = (entry.focus / 100) * (img.height - side);
-      const c = document.createElement('canvas');
-      c.width = outSize; c.height = outSize;
-      c.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
-      c.toBlob(b => {
-        if (!b) { reject(new Error('Canvas toBlob failed')); return; }
-        resolve(new File([b], entry.file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
-      }, 'image/jpeg', 0.85);
-    } catch(e) { reject(e); }
-  });
-}
-// ✅ FIX: Single deleteProduct function (removed duplicate)
-function deleteProduct(id) {
-  sellerProducts = sellerProducts.filter(p => p.id !== id);
-  PRODUCTS = PRODUCTS.filter(p => p.id !== id);
-  saveSellerData();
-  renderMyProducts();
-  showToast('Product deleted', 'info');
-}
-
-function renderAddProductFormWithLimit(slotsLeft) {
-  document.getElementById('sellerTabContent').innerHTML = `
-    <div class="seller-section">
-      <div style="background:#fef9e7;border:1.5px solid #f7c948;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:700;color:#92400e">
-        ⚡ ${slotsLeft} product slot${slotsLeft!==1?'s':''} remaining
-      </div>
-      <div class="seller-page-title">➕ Add Product</div>
-      <div class="seller-card" style="padding:14px">
-
-        <!-- 📦 PRODUCT DETAILS -->
-        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase">📦 Product Details</div>
-        <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">Product Name *</label>
-          <input type="text" id="prodName" placeholder="e.g. Nike Air Max 270" class="form-input">
-        </div>
-        <div class="seller-input-group" style="margin-bottom:10px">
-        <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">SKU / Product Code</label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="prodSKU" placeholder="e.g. NIKE-AM270-BLK-9" class="form-input" style="flex:1" oninput="this.value=this.value.toUpperCase();checkSKUUnique(this.value)">
-            <button type="button" onclick="autoGenerateSKU()" style="flex-shrink:0;background:var(--primary-light);color:var(--primary);font-size:12px;font-weight:800;padding:0 14px;border-radius:9px;border:1.5px solid var(--primary-mid);cursor:pointer">🔄 Auto</button>
-          </div>
-          <div id="skuError" style="font-size:10px;color:var(--danger);font-weight:600;margin-top:4px;display:none">Yeh SKU already use ho raha hai — dusra likho</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:4px">Apna internal stock code — inventory track karne mein help karega (optional but recommended)</div>
-        </div>
-        <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">Category</label>
-<select id="prodCategory" class="form-input" onchange="toggleSizeOptions()">
-            <option value="mobiles">📱 Mobiles</option>
-            <option value="fashion">👗 Fashion</option>
-            <option value="shoes">👟 Shoes</option>
-            <option value="electronics">💻 Electronics</option>
-            <option value="audio">🎧 Audio</option>
-            <option value="home">🏠 Home</option>
-            <option value="beauty">💄 Beauty</option>
-            <option value="sports">⚽ Sports</option>
-          </select>
-        </div>
-        <div class="seller-input-group" id="sizeGroupWrap" style="margin-bottom:10px;display:none">
-          <label class="form-label">Available Sizes</label>
-          <div id="sizeOptionsRow" style="display:flex;flex-wrap:wrap;gap:8px"></div>
-          <div style="font-size:10px;color:var(--text3);margin-top:4px">Stock me jo sizes available hain unhe select karo</div>
-        </div>
-      <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">Key Features (ek line me ek feature likho)</label>
-          <textarea id="prodFeatures" placeholder="100% Cotton&#10;Machine Washable&#10;Slim Fit" class="form-input" style="height:80px;resize:none"></textarea>
-          <div style="font-size:10px;color:var(--text3);margin-top:4px">Har feature naye line par — product page par "Key Highlights" me dikhega</div>
-        </div>
-        <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">Description</label>
-          <textarea id="prodDesc" placeholder="Describe your product..." class="form-input" style="height:80px;resize:none"></textarea>
-        </div>
-    <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">Product Images (up to 5) — <span id="imgCountLabel" style="color:var(--primary);font-weight:800">0/5 selected</span></label>
-          <input type="file" id="prodImages" accept="image/*" multiple class="form-input">
-          <div style="font-size:10px;color:var(--text3);margin-top:4px">Ek baar mein multiple select karo, ya baar-baar tap karke ek-ek jodo — dono chalega ✅</div>
-        </div>
-        <div id="imagePreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
-        <div class="seller-input-group" style="margin-bottom:16px">
-          <label class="form-label">Stock Quantity *</label>
-          <input type="number" id="prodStock" placeholder="10" value="10" class="form-input">
-        </div>
-
-        <!-- 💰 PRICING -->
-        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">💰 Pricing</div>
-        <div style="display:flex;gap:8px;margin-bottom:16px">
-          <div class="seller-input-group" style="flex:1">
-            <label class="form-label">MRP (₹) *</label>
-            <input type="number" id="prodMRP" placeholder="1200" class="form-input" oninput="updateProductCalc()">
-          </div>
-          <div class="seller-input-group" style="flex:1">
-            <label class="form-label">Selling Price (₹) *</label>
-            <input type="number" id="prodPrice" placeholder="1000" class="form-input" oninput="updateProductCalc()">
-          </div>
-        </div>
-
-        <!-- 🤝 AFFILIATE -->
-        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🤝 Affiliate</div>
-        <div class="seller-input-group" style="margin-bottom:16px">
-          <label class="form-label">Affiliate Commission (%)</label>
-          <input type="number" id="prodAffiliateCommission" placeholder="5" value="5" min="0" max="50" class="form-input" oninput="updateProductCalc()">
-        </div>
-
-        <!-- 🪙 BUYER REWARDS -->
-        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🪙 Buyer Rewards</div>
-        <div class="seller-input-group" style="margin-bottom:16px">
-          <label class="form-label">Buyer Coin Reward</label>
-          <input type="number" id="prodCoinReward" placeholder="50" value="50" min="0" class="form-input" oninput="updateProductCalc()">
-        </div>
-
-        <!-- 🚚 SHIPPING -->
-        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🚚 Shipping</div>
-        <div class="seller-input-group" style="margin-bottom:16px">
-          <label class="form-label">Weight (grams)</label>
-          <input type="number" id="prodWeight" placeholder="500" class="form-input">
-        </div>
-
-        <!-- 🏪 STATUS -->
-        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🏪 Product Status</div>
-        <div class="seller-input-group" style="margin-bottom:16px">
-          <select id="prodAvailability" class="form-input">
-            <option value="active">✅ Active</option>
-            <option value="out_of_stock">🚫 Out of Stock</option>
-          </select>
-        </div>
-
-        <!-- 🏢 PLATFORM FEE (read-only) -->
-        <div style="background:#f1f5f9;border-radius:10px;padding:12px 14px;margin-bottom:16px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:12px;font-weight:800;color:var(--text)">🏢 Platform Fee</span>
-            <span style="font-size:13px;font-weight:800;color:var(--text3)">Fixed 10% 🔒</span>
-          </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">Apykart charges a fixed 10% platform fee on every successful order.</div>
-        </div>
-
-        <!-- 💡 AUTO CALCULATION -->
-        <div id="calcBox" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #bfdbfe;border-radius:12px;padding:14px;margin-bottom:16px">
-          <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px">💡 Earnings Breakdown</div>
-          <div style="font-size:12px;color:var(--text3)">Enter Selling Price to see calculation</div>
-        </div>
-
-        <button onclick="submitNewProductBtn()" class="form-submit-btn">🚀 Submit for Approval</button>
-      </div>
-    </div>`;
-  document.getElementById('prodImages').addEventListener('change', previewImages);
-  toggleSizeOptions();
-}
-// ✅ NEW: Auto SKU generate karo product name + category + random suffix se
-function autoGenerateSKU() {
-  const name = (document.getElementById('prodName')?.value || 'PROD').trim();
-  const cat = (document.getElementById('prodCategory')?.value || 'GEN').toUpperCase();
-  const namePart = name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'ITEM';
-  const catPart = cat.slice(0, 4);
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  const sku = `${catPart}-${namePart}-${rand}`;
-  const skuInput = document.getElementById('prodSKU');
-  if (skuInput) {
-    skuInput.value = sku;
-    checkSKUUnique(sku);
-  }
-}
-
-// ✅ NEW: Isi seller ke andar SKU duplicate na ho, check karo
-function checkSKUUnique(sku) {
-  const errEl = document.getElementById('skuError');
-  if (!errEl) return true;
-  const uid = getUid();
-  const trimmed = (sku || '').trim().toUpperCase();
-  if (!trimmed) { errEl.style.display = 'none'; return true; }
-  const clash = sellerProducts.some(p => p.sellerId === uid && (p.sku || '').toUpperCase() === trimmed);
-  errEl.style.display = clash ? 'block' : 'none';
-  return !clash;
-}
-const SIZE_SETS = {
-  fashion: ['XS','S','M','L','XL','XXL'],
-  shoes:   ['6','7','8','9','10','11','12']
-};
-function toggleSizeOptions() {
-  const cat = document.getElementById('prodCategory')?.value;
-  const wrap = document.getElementById('sizeGroupWrap');
-  const row = document.getElementById('sizeOptionsRow');
-  if (!wrap || !row) return;
-  const sizes = SIZE_SETS[cat];
-  if (!sizes) { wrap.style.display='none'; row.innerHTML=''; return; }
-  wrap.style.display='block';
-  row.innerHTML = sizes.map(s=>`
-    <label style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">
-      <input type="checkbox" value="${s}" class="prodSizeChk" style="accent-color:var(--primary)"> ${s}
-    </label>`).join('');
-}
-function updateProductCalc() {
-  const price = parseFloat(document.getElementById('prodPrice')?.value) || 0;
-  const commissionPct = parseFloat(document.getElementById('prodAffiliateCommission')?.value) || 0;
-  const coins = parseFloat(document.getElementById('prodCoinReward')?.value) || 0;
-  const box = document.getElementById('calcBox');
-  if (!box) return;
-
-  if (price <= 0) {
-    box.innerHTML = `<div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px">💡 Earnings Breakdown</div><div style="font-size:12px;color:var(--text3)">Enter Selling Price to see calculation</div>`;
-    return;
-  }
-
-  const platformFee   = price * 0.10;
-  const affiliateAmt  = price * (commissionPct / 100);
-  const coinRate      = window.COIN_TO_RUPEE || 0.10;
-  const coinValue     = coins * coinRate;
-  const sellerReceives = Math.max(0, price - platformFee - affiliateAmt - coinValue);
-
-  box.innerHTML = `
-    <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:10px">💡 Earnings Breakdown</div>
-    <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Selling Price</span><span style="font-weight:700">₹${price.toFixed(0)}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Platform Fee (10%)</span><span style="font-weight:700;color:var(--danger)">−₹${platformFee.toFixed(0)}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Affiliate Commission (${commissionPct}%)</span><span style="font-weight:700;color:var(--danger)">−₹${affiliateAmt.toFixed(0)}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Buyer Reward (${coins} coins)</span><span style="font-weight:700;color:var(--danger)">−₹${coinValue.toFixed(0)}</span></div>
-      <div style="border-top:1px solid #bfdbfe;margin-top:4px;padding-top:8px;display:flex;justify-content:space-between">
-        <span style="font-weight:800;color:var(--text)">Estimated You Receive</span>
-        <span style="font-weight:900;color:#166534;font-size:14px">₹${sellerReceives.toFixed(0)}</span>
-      </div>
-    </div>`;
-}
-async function submitNewProductBtn() {
-  if (!window.currentUser) { showToast('Pehle login karo bhai', 'warn'); return; }
-
-const name = (document.getElementById('prodName')?.value || '').trim();
-  const sku = (document.getElementById('prodSKU')?.value || '').trim().toUpperCase();
-  const mrp = parseFloat(document.getElementById('prodMRP')?.value || 0);
-  const price = parseFloat(document.getElementById('prodPrice')?.value || 0);
-  const desc = document.getElementById('prodDesc')?.value || '';
-  const featuresRaw = document.getElementById('prodFeatures')?.value || '';
-  const features = featuresRaw.split('\n').map(f=>f.trim()).filter(Boolean).slice(0,10);
-  const keywordsRaw = document.getElementById('prodKeywords')?.value || '';
-  const keywords = keywordsRaw.split(',').map(k=>k.trim().toLowerCase()).filter(Boolean).slice(0,15);
-  const sizes = Array.from(document.querySelectorAll('.prodSizeChk:checked')).map(c=>c.value);
-  const category = document.getElementById('prodCategory')?.value || 'all';
-  const stock = parseInt(document.getElementById('prodStock')?.value) || 10;
-  const affiliateCommission = parseFloat(document.getElementById('prodAffiliateCommission')?.value) || 0;
-  const buyerCoinReward = parseInt(document.getElementById('prodCoinReward')?.value) || 0;
-  const weightGrams = parseFloat(document.getElementById('prodWeight')?.value) || 0;
-  const availabilityStatus = document.getElementById('prodAvailability')?.value || 'active';
-
-  if (!name) { showToast('Product name dalo', 'warn'); return; }
-  if (sku && !checkSKUUnique(sku)) { showToast('Yeh SKU already use ho raha hai, dusra likho', 'warn'); return; }
-  if (!mrp || mrp <= 0) { showToast('Valid MRP dalo', 'warn'); return; }
-  if (!price || price <= 0) { showToast('Valid Selling Price dalo', 'warn'); return; }
-  if (price > mrp) { showToast('Selling Price, MRP se zyada nahi ho sakti', 'warn'); return; }
-
-  const discount = Math.round(((mrp - price) / mrp) * 100);
-
-  const imageFiles = Array.from(document.getElementById('prodImages')?.files || []).slice(0, 5);
-  const uid = getUid();
-
-  const btn = document.querySelector('[onclick="submitNewProductBtn()"]');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading images...'; }
-  showToast('Images upload ho rahi hain...', 'info');
-
-  let imageUrls = [];
-  const totalImgs = window._prodImgs.filter(Boolean).length;
-  let failedCount = 0;
-
-  for (let i = 0; i < window._prodImgs.length; i++) {
-    if (!window._prodImgs[i]) continue;
-
-    // ✅ FIX: Har image apna alag try/catch — ek image fail hone se
-    // baaki images ka upload RUKEGA NAHI. Pehle poora loop ek hi try/catch
-    // mein tha, isliye ek image fail hote hi baaki sab skip ho jaate the
-    // aur sirf 1 image (jo pehle upload ho chuki thi) save hoti thi.
-    try {
-      const squareFile = await getSquareBlob(i); // har image square crop hokar jayegi
-      const path = `images/${uid}/products/${Date.now()}_${i}_sq.jpg`;
-      if (window._uploadToStorage) {
-        const url = await window._uploadToStorage(squareFile, path, (pct) => {
-          if (btn) btn.textContent = `⏳ Image ${i+1}/${totalImgs}: ${pct}%`;
-        });
-        if (url) {
-          imageUrls.push(url);
-        } else {
-          failedCount++;
-        }
-      }
-    } catch(e) {
-      failedCount++;
-      console.warn(`Image ${i+1} upload failed:`, e.message);
-      showToast(`Image ${i+1} upload fail hua, agli image try kar raha hoon...`, 'warn');
-      // loop yahan aage badhega — agli image try hogi
-    }
-  }
-
-  if (failedCount > 0 && imageUrls.length > 0) {
-    showToast(`${imageUrls.length} images upload ho gayi, ${failedCount} fail hui`, 'warn');
-  } else if (imageUrls.length === 0 && totalImgs > 0) {
-    showToast('Koi bhi image upload nahi ho payi. Dobara try karo.', 'warn');
-  }
-
-  if (btn) { btn.disabled = false; btn.textContent = '🚀 Submit for Approval'; }
-
-  const prodId = 'sp_' + Date.now();
-  const sellerNameResolved = window.currentUser?.displayName
-    || guestUser?.name
-    || window.currentUser?.email?.split('@')[0]
-    || 'Seller';
-
-  const newProduct = {
-    id: prodId, name, sku: sku || '',
-    ogPrice: mrp,
-    price,
-    discount,
-    category, images: imageUrls, img: imageUrls[0] || '', desc, features, keywords, sizes, stock,
-    affiliateCommission,
-    buyerCoinReward,
-    weightGrams,
-    availabilityStatus,
-    platformFeePct: 10,
-    status: 'pending',
-    approvalStatus: 'pending',
-    submittedAt: new Date().toISOString(),
-    sellerId: uid,
-    sellerName: sellerNameResolved,
-    sellerEmail: window.currentUser?.email || '',
-    rating: 0, reviews: '0', coinsEarned: buyerCoinReward || 10,
-    createdAt: new Date().toISOString()
-  };
-
-  if (uid && window._fsHelpers) {
-    try {
-      const { db, addDoc, collection, serverTimestamp } = window._fsHelpers;
-      const ref = await addDoc(collection(db, 'products'), {
-        ...newProduct,
-        createdAt: serverTimestamp(),
-        submittedAt: serverTimestamp()
-      });
-      newProduct._fsId = ref.id;
-      newProduct.id = ref.id;
-    } catch(e) { console.warn('Firestore product add error:', e.message); }
-  }
-
-  sellerProducts.push(newProduct);
-  saveSellerData();
-  showToast('Product submit ho gaya! Approval ka wait karo ✅', 'success');
-  document.querySelectorAll('.seller-tab-item').forEach(i => i.classList.toggle('active', i.dataset.tab === 'products'));
-  window._sellerActiveTab = 'products';
-  renderMyProducts();
-}
-async function submitNewProduct(e) {
-  e.preventDefault();
-  submitNewProductBtn();
-}
-
-function renderEarnings() {
-  const myEarnings = sellerEarnings.filter(e => e.sellerId === window.currentUser?.uid);
-  const available = myEarnings.filter(t => t.status === 'available').reduce((s, t) => s + t.net_earning, 0);
-  const pending = myEarnings.filter(t => t.status === 'pending').reduce((s, t) => s + t.net_earning, 0);
-  document.getElementById('sellerTabContent').innerHTML = `
-    <div class="seller-section">
-      <div class="seller-page-title">💰 Earnings</div>
-      <div class="seller-stat-grid" style="margin-bottom:14px">
-        <div class="stat-card"><div class="stat-card-icon">✅</div><div class="stat-card-value">₹${available.toFixed(0)}</div><div class="stat-card-label">Available</div></div>
-        <div class="stat-card"><div class="stat-card-icon">⏳</div><div class="stat-card-value">₹${pending.toFixed(0)}</div><div class="stat-card-label">Pending</div></div>
-      </div>
-      <div class="seller-card">
-        <div class="seller-card-header">Transaction History</div>
-        ${myEarnings.length ? myEarnings.map(t => `
-          <div class="seller-tx-item">
-            <div class="seller-tx-dot">💸</div>
-            <div class="seller-tx-info">
-              <div class="seller-tx-name">${t.product_name}</div>
-              <div class="seller-tx-date">Order: ${t.order_id || '—'} · ${new Date(t.date||Date.now()).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
-            </div>
-            <div style="text-align:right">
-              <div class="seller-tx-amount">₹${t.net_earning}</div>
-              <div style="font-size:10px;margin-top:2px;font-weight:700;padding:2px 6px;border-radius:8px;background:${t.status==='available'?'#dcfce7':'#fef3c7'};color:${t.status==='available'?'#166534':'#92400e'}">${t.status}</div>
-            </div>
-          </div>`).join('') : '<div style="padding:30px;text-align:center;color:var(--text3);font-size:13px">No earnings yet</div>'}
-      </div>
-    </div>`;
-}
-
-function renderWithdrawPage() {
-  const myEarnings = sellerEarnings.filter(e => e.sellerId === window.currentUser?.uid && e.status === 'available');
-  const available = myEarnings.reduce((s, t) => s + t.net_earning, 0);
-  const myWithdrawals = withdrawalRequests.filter(w => w.sellerId === window.currentUser?.uid);
-  document.getElementById('sellerTabContent').innerHTML = `
-    <div class="seller-section">
-      <div class="seller-page-title">🏦 Withdraw</div>
-      <div class="seller-withdraw-bar">
-        <div>
-          <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:2px">Available Balance</div>
-          <div class="seller-withdraw-amount">₹${available.toFixed(2)}</div>
-        </div>
-        <button class="btn-withdraw" onclick="openWithdrawModal()">Withdraw →</button>
-      </div>
-      <div class="seller-card">
-        <div class="seller-card-header">Withdrawal History</div>
-        ${myWithdrawals.length ? myWithdrawals.map(w => `
-          <div class="seller-tx-item">
-            <div class="seller-tx-dot" style="background:#e8f0fe">🏦</div>
-            <div class="seller-tx-info">
-              <div class="seller-tx-name">₹${w.amount} Withdrawal</div>
-              <div class="seller-tx-date">${new Date(w.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
-            </div>
-            <div style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:${w.status==='completed'?'#dcfce7':w.status==='rejected'?'#fee2e2':'#fef3c7'};color:${w.status==='completed'?'#166534':w.status==='rejected'?'#b91c1c':'#92400e'}">${w.status}</div>
-          </div>`).join('') : '<div style="padding:30px;text-align:center;color:var(--text3);font-size:13px">No withdrawal requests yet</div>'}
-      </div>
-    </div>`;
-}
-
-function openWithdrawModal() {
-  const available = sellerEarnings.filter(e => e.sellerId === window.currentUser?.uid && e.status === 'available')
-                    .reduce((s, t) => s + t.net_earning, 0);
-  document.getElementById('modalPortal').innerHTML = `
-    <div class="modal-overlay" onclick="closeModal()">
-      <div class="modal-sheet" onclick="event.stopPropagation()">
-        <div class="modal-handle"></div>
-        <div class="modal-header"><div class="modal-title">Request Withdrawal</div><div class="modal-close" onclick="closeModal()">✕</div></div>
-        <div class="modal-body">
-          <p>Available: ₹${available.toFixed(2)}</p>
-          <input type="number" id="withdrawAmount" placeholder="Enter amount" class="form-input">
-          <button class="form-submit-btn" onclick="submitWithdrawal()">Submit Request</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function submitWithdrawal() {
-  const amount = parseFloat(document.getElementById('withdrawAmount').value);
-  const available = sellerEarnings.filter(e => e.sellerId === window.currentUser?.uid && e.status === 'available')
-                    .reduce((s, t) => s + t.net_earning, 0);
-  if (isNaN(amount) || amount <= 0 || amount > available) {
-    showToast('Invalid amount', 'warn');
-    return;
-  }
-  withdrawalRequests.push({
-    id: 'wd_' + Date.now(),
-    amount,
-    status: 'pending',
-    sellerId: window.currentUser.uid,
-    date: new Date().toISOString()
-  });
-  saveWithdrawals();
-  closeModal();
-  showToast('Withdrawal request submitted!', 'success');
-  renderWithdrawPage();
-}
-
-function renderSellerSettings() {
-  document.getElementById('sellerTabContent').innerHTML = `
-    <div class="seller-section">
-      <div class="seller-page-title">⚙️ Settings</div>
-      <div class="seller-card" style="padding:14px">
-        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px">🏦 Bank Details</div>
-        <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">Bank Name</label>
-          <input type="text" id="bankName" value="${sellerProfile.bankName || ''}" placeholder="e.g. SBI, HDFC" class="form-input">
-        </div>
-        <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">Account Number</label>
-          <input type="text" id="accountNumber" value="${sellerProfile.accountNumber || ''}" placeholder="Account number" class="form-input">
-        </div>
-        <div class="seller-input-group" style="margin-bottom:10px">
-          <label class="form-label">IFSC Code</label>
-          <input type="text" id="ifsc" value="${sellerProfile.ifsc || ''}" placeholder="e.g. SBIN0001234" class="form-input">
-        </div>
-        <div class="seller-input-group" style="margin-bottom:14px">
-          <label class="form-label">UPI ID</label>
-          <input type="text" id="upi" value="${sellerProfile.upi || ''}" placeholder="yourname@upi" class="form-input">
-        </div>
-        <button onclick="saveSellerSettingsBtn()" class="form-submit-btn">💾 Save Settings</button>
-      </div>
-      <div style="height:16px"></div>
-    </div>`;
-}
-
-function saveSellerSettingsBtn() {
-  sellerProfile = {
-    bankName: document.getElementById('bankName')?.value || '',
-    accountNumber: document.getElementById('accountNumber')?.value || '',
-    ifsc: document.getElementById('ifsc')?.value || '',
-    upi: document.getElementById('upi')?.value || ''
-  };
-  saveSellerProfile();
-  showToast('Settings saved! ✅', 'success');
-}
 /* ─── FLASH TIMER ─── */
 let _flashSec=5*3600+42*60+18;
 function startTimer() {
@@ -5446,15 +4643,25 @@ function closeWelcomePopup() {
   const portal = document.getElementById('welcomePopupPortal');
   if (portal) portal.innerHTML = '';
 }
-
-
 function signInWithGoogle() {
   if (!window._fbAuth) { showToast('Please wait, loading...', 'info'); return; }
-  const { signInWithPopup, auth, provider } = window._fbAuth;
+  const { signInWithPopup, signInWithRedirect, auth, provider } = window._fbAuth;
   signInWithPopup(auth, provider)
     .then(() => showToast('Welcome!', 'success'))
-    .catch(err => showToast('Login failed: ' + err.message, 'warn'));
+    .catch(err => {
+      console.error('Login error code:', err.code, err.message);
+      const fallbackCodes = ['auth/popup-blocked','auth/popup-closed-by-user','auth/operation-not-supported-in-this-environment','auth/cancelled-popup-request'];
+      if (fallbackCodes.includes(err.code)) {
+        showToast('Redirecting to login...', 'info');
+        signInWithRedirect(auth, provider);
+      } else if (err.code === 'auth/unauthorized-domain') {
+        showToast('This domain is not authorized. Contact support.', 'warn');
+      } else {
+        showToast('Login failed: ' + err.message, 'warn');
+      }
+    });
 }
+
 
 function logoutUser() {
   if (!window._fbAuth) return;
@@ -5545,12 +4752,9 @@ function setupAuthListener() {
   }
   window._fbAuth.onAuthStateChanged(window._fbAuth.auth, (user) => {
     if (user) {
-      window.currentUser = {
-        uid: user.uid,
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL
-      };
+      // ✅ FIX: window.currentUser yahan overwrite mat karo —
+      // module script ka onAuthStateChanged already isse set kar chuka hai.
+      // Dubara set karne se race condition banti hai jo login glitch dikhati hai.
       /* user data loaded via Firestore onSnapshot */
       // ✅ FIX: Login hone ke baad us user ka data load karo (uid-based keys se)
       reloadUserData();
@@ -6624,6 +5828,19 @@ function init() {
   }
   checkDeepLink();
 }
+// ─── OFFLINE / ONLINE DETECTION ───
+function updateOfflineBar() {
+  const bar = document.getElementById('offlineBar');
+  if (!bar) return;
+  bar.classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('offline', updateOfflineBar);
+window.addEventListener('online', () => {
+  updateOfflineBar();
+  showToast('Back online ✅', 'success');
+  location.reload(); // fresh data reload jab net wapas aaye
+});
+updateOfflineBar(); // page load pe bhi check karo
 
 init();
 </script>
