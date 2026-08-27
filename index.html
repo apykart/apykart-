@@ -4048,6 +4048,68 @@ function showToast(msg,type='success') {
 
 
 /* ─── TOAST ─── */
+function openSellerVerificationModal() {
+  document.getElementById('modalPortal').innerHTML = `
+  <div class="modal-overlay" onclick="closeModal()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title">🏪 Seller Verification</div>
+        <div class="modal-close" onclick="closeModal()">✕</div>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5">Seller banne ke liye apni details aur documents submit karo. Admin verify karne ke baad tum products list kar paoge.</div>
+
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Full Name *</label>
+          <input class="form-input" id="sellerFullName" value="${guestUser.name||''}" placeholder="Your full name">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Brand / Shop Name *</label>
+          <input class="form-input" id="sellerBrandName" placeholder="e.g. Rahul Fashion Store">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Phone Number * (10 digits)</label>
+          <input class="form-input" id="sellerPhoneNum" type="tel" maxlength="10" value="${guestUser.phone||''}" placeholder="9876543210">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Email *</label>
+          <input class="form-input" id="sellerEmailId" type="email" value="${guestUser.email||''}" placeholder="you@email.com">
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">Business Address *</label>
+          <textarea class="form-input" id="sellerAddress" placeholder="Full address" style="height:70px;resize:none"></textarea>
+        </div>
+
+        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🪪 PAN Card</div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">PAN Number *</label>
+          <input class="form-input" id="panNumber" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">Upload PAN Card Image *</label>
+          <input type="file" id="panImage" accept="image/*" class="form-input">
+        </div>
+
+        <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">🪪 Aadhar Card</div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Aadhar Number *</label>
+          <input class="form-input" id="aadharNumber" placeholder="1234 5678 9012" maxlength="12">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Upload Aadhar Front *</label>
+          <input type="file" id="aadharFrontImage" accept="image/*" class="form-input">
+        </div>
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label">Upload Aadhar Back *</label>
+          <input type="file" id="aadharBackImage" accept="image/*" class="form-input">
+        </div>
+
+        <button class="form-submit-btn" onclick="submitSellerVerificationWithFiles()">Submit for Verification</button>
+      </div>
+    </div>
+  </div>`;
+}
 async function submitSellerVerificationWithFiles() {
   const fullName   = document.getElementById('sellerFullName')?.value.trim();
   const brandName  = document.getElementById('sellerBrandName')?.value.trim();
