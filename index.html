@@ -1359,7 +1359,7 @@ a{text-decoration:none;color:inherit}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged
+  getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore,
@@ -1388,7 +1388,7 @@ const storage  = getStorage(app);
 const provider = new GoogleAuthProvider();
 
 // ─── Expose to global scope ───
-window._fbAuth = { auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged };
+window._fbAuth = { auth, provider, signInWithPopup, signOut, onAuthStateChanged };
 window._db     = db;
 window._storage = storage;
 window._storageRef = storageRef;
@@ -1725,13 +1725,6 @@ function setupBannersListener() {
   }
 }
 setupBannersListener();
-
-// ✅ Redirect login result check
-getRedirectResult(auth).then(result => {
-  if (result && result.user) {
-    console.log('Redirect login success:', result.user.email);
-  }
-}).catch(err => console.warn('Redirect login error:', err.message));
 
 // ─── Dispatch event so non-module script knows Firebase is ready ───
 window._fbReady = true;
@@ -4645,21 +4638,10 @@ function closeWelcomePopup() {
 }
 function signInWithGoogle() {
   if (!window._fbAuth) { showToast('Please wait, loading...', 'info'); return; }
-  const { signInWithPopup, signInWithRedirect, auth, provider } = window._fbAuth;
+  const { signInWithPopup, auth, provider } = window._fbAuth;
   signInWithPopup(auth, provider)
     .then(() => showToast('Welcome!', 'success'))
-    .catch(err => {
-      console.error('Login error code:', err.code, err.message);
-      const fallbackCodes = ['auth/popup-blocked','auth/popup-closed-by-user','auth/operation-not-supported-in-this-environment','auth/cancelled-popup-request'];
-      if (fallbackCodes.includes(err.code)) {
-        showToast('Redirecting to login...', 'info');
-        signInWithRedirect(auth, provider);
-      } else if (err.code === 'auth/unauthorized-domain') {
-        showToast('This domain is not authorized. Contact support.', 'warn');
-      } else {
-        showToast('Login failed: ' + err.message, 'warn');
-      }
-    });
+    .catch(err => showToast('Login failed: ' + err.message, 'warn'));
 }
 
 
