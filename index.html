@@ -1392,7 +1392,12 @@ window._fbAuth = { auth, provider, signInWithPopup, signInWithRedirect, getRedir
 
 getRedirectResult(auth).then(result => {
   if (result && result.user) console.log('Redirect login success:', result.user.uid);
-}).catch(err => console.error('Redirect login error:', err.code, err.message));
+}).catch(err => {
+  console.error('Redirect login error:', err.code, err.message);
+  setTimeout(() => {
+    if (typeof showToast === 'function') showToast('Sign-in failed: ' + err.code, 'warn');
+  }, 500);
+});
 window._db     = db;
 window._storage = storage;
 window._storageRef = storageRef;
@@ -4709,7 +4714,7 @@ function signInWithGoogle() {
     .then(() => showToast('Welcome!', 'success'))
     .catch(err => {
       console.error('LOGIN ERROR:', err.code, err.message);
-      const fallbackCodes = ['auth/popup-blocked','auth/popup-closed-by-user','auth/operation-not-supported-in-this-environment','auth/cancelled-popup-request'];
+      const fallbackCodes = ['auth/popup-blocked','auth/operation-not-supported-in-this-environment'];
       if (fallbackCodes.includes(err.code)) {
         showToast('Redirecting to sign-in…', 'info');
         signInWithRedirect(auth, provider);
