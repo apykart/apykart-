@@ -1359,7 +1359,7 @@ a{text-decoration:none;color:inherit}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged
+  getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore,
@@ -1388,7 +1388,11 @@ const storage  = getStorage(app);
 const provider = new GoogleAuthProvider();
 
 // ─── Expose to global scope ───
-window._fbAuth = { auth, provider, signInWithPopup, signOut, onAuthStateChanged };
+window._fbAuth = { auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged };
+
+getRedirectResult(auth).then(result => {
+  if (result && result.user) console.log('Redirect login success:', result.user.uid);
+}).catch(err => console.error('Redirect login error:', err.code, err.message));
 window._db     = db;
 window._storage = storage;
 window._storageRef = storageRef;
@@ -4700,13 +4704,20 @@ function closeWelcomePopup() {
 }
 function signInWithGoogle() {
   if (!window._fbAuth) { showToast('Please wait, loading...', 'info'); return; }
-  const { signInWithPopup, auth, provider } = window._fbAuth;
+  const { signInWithPopup, signInWithRedirect, auth, provider } = window._fbAuth;
   signInWithPopup(auth, provider)
     .then(() => showToast('Welcome!', 'success'))
-    .catch(err => showToast('Login failed: ' + err.message, 'warn'));
+    .catch(err => {
+      console.error('LOGIN ERROR:', err.code, err.message);
+      const fallbackCodes = ['auth/popup-blocked','auth/popup-closed-by-user','auth/operation-not-supported-in-this-environment','auth/cancelled-popup-request'];
+      if (fallbackCodes.includes(err.code)) {
+        showToast('Redirecting to sign-in…', 'info');
+        signInWithRedirect(auth, provider);
+      } else {
+        showToast('Login failed (' + err.code + ')', 'warn');
+      }
+    });
 }
-
-
 function logoutUser() {
   if (!window._fbAuth) return;
   const { signOut, auth } = window._fbAuth;
