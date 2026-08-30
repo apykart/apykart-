@@ -8,13 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* ---- Color system ----
-     Ink      : deep indigo-navy — trust, authority, "after-hours founder desk"
-     Indigo   : primary action color — calm confidence, not another generic blue
-     Marigold : the one warm accent — Indian retail energy, used ONLY for money/CTA highlights
-     Emerald  : growth / earnings — every rupee the seller makes is green, deliberately
-     Coral    : reserved strictly for destructive / urgent states
-  */
   --ink:#14123B; --ink-2:#1D1A52;
   --indigo:#4338CA; --indigo-dark:#332C9E; --indigo-light:#EEF0FE;
   --marigold:#F5A623; --marigold-dark:#DA8A0A; --marigold-light:#FFF4E0;
@@ -35,7 +28,6 @@ svg{display:block;flex-shrink:0}
 
 #app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;background:var(--cloud);position:relative;overflow:hidden}
 
-/* ============ ACCESS GATE ============ */
 #gate{position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;text-align:center;padding:24px}
 #gate .mark{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--marigold),var(--indigo));display:flex;align-items:center;justify-content:center}
 #gate h1{font-family:var(--font-d);font-size:18px;font-weight:700;margin:6px 0 0}
@@ -44,7 +36,6 @@ svg{display:block;flex-shrink:0}
 #gate .spin{width:26px;height:26px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--marigold);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ============ HEADER (greeting — dashboard only) ============ */
 .hero{background:linear-gradient(160deg,var(--ink) 0%,var(--ink-2) 60%,#2A2470 100%);padding:18px 18px 46px;position:relative;overflow:hidden;flex-shrink:0;transition:opacity .12s ease}
 .hero::before{content:'';position:absolute;top:-40px;right:-30px;width:160px;height:160px;background:rgba(245,166,35,.10);border-radius:50%}
 .hero.is-hidden{display:none}
@@ -61,14 +52,14 @@ svg{display:block;flex-shrink:0}
 .hero-status.pending{background:rgba(245,166,35,.18);color:var(--marigold)}
 .hero-status .pulse{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.crumb-trail{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:10.5px;color:rgba(255,255,255,.4);font-weight:600;position:relative;z-index:1}
-.crumb-trail b{color:rgba(255,255,255,.75)}
 
-/* Compact bar shown on every non-dashboard screen instead of the full greeting hero */
+/* Compact bar shown on every non-dashboard screen — this is the ONLY
+   back button + title for those screens (the old per-screen header that
+   duplicated this was removed, see screenHeader() in JS). */
 .topbar{display:none;align-items:center;gap:10px;padding:12px 14px;background:var(--ink);flex-shrink:0}
 .topbar.is-visible{display:flex}
 .topbar .tb-back{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
-.topbar .tb-title{font-family:var(--font-d);font-size:14.5px;font-weight:700;color:#fff;flex:1}
+.topbar .tb-title{font-family:var(--font-d);font-size:14.5px;font-weight:700;color:#fff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .topbar .tb-bell{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;position:relative}
 .topbar .tb-bell .dot{position:absolute;top:6px;right:7px;width:6px;height:6px;background:var(--marigold);border-radius:50%}
 
@@ -85,16 +76,10 @@ svg{display:block;flex-shrink:0}
 #heroCardSlot{flex-shrink:0}
 #heroCardSlot.is-hidden{display:none}
 
-/* ============ CONTENT (the only scrollable region) ============ */
 .content{padding:16px 14px 24px;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .screen{display:none;animation:fadein .18s ease}
 .screen.active{display:block}
 @keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-
-.screen-header{display:flex;align-items:center;gap:11px;margin-bottom:14px}
-.back-btn{width:34px;height:34px;border-radius:10px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text);flex-shrink:0}
-.screen-header h2{font-family:var(--font-d);font-size:16.5px;font-weight:700;margin:0}
-.screen-header .id-tag{font-size:11px;color:var(--muted);margin-top:1px;font-weight:600}
 
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -305,7 +290,7 @@ textarea.text-field{resize:vertical;min-height:74px}
 <div id="app" style="display:none">
   <header class="hero" id="hero">
     <div class="hero-top">
-      <button class="hero-back" onclick="goBack()">
+      <button class="hero-back" onclick="handleHomeBack()" title="Back to Apykart">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <button class="hero-bell" onclick="toast('No new notifications')"><span class="dot"></span>
@@ -320,11 +305,11 @@ textarea.text-field{resize:vertical;min-height:74px}
       </div>
     </div>
     <div class="hero-status live" id="heroStatus"><span class="pulse"></span> Store is live</div>
-    <div class="crumb-trail" id="crumbTrail">Home</div>
   </header>
 
-  <!-- Compact bar shown on every screen EXCEPT the home dashboard, so the
-       personal greeting never repeats on sub-pages -->
+  <!-- Compact bar shown on every screen EXCEPT the home dashboard.
+       This is the ONLY back button + title shown on those screens — no
+       screen ever shows a second, duplicate back button or title below it. -->
   <div class="topbar" id="topbar">
     <button class="tb-back" onclick="goBack()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -381,6 +366,45 @@ const db = getFirestore(app);
 window._db = db; window._auth = auth; window._signOut = () => signOut(auth);
 window._fsHelpers = { db, doc, getDoc, onSnapshot, collection, query, where, orderBy };
 
+/* ---------------------------------------------------------------------
+   REAL-TIME SELLER DATA
+   Every list on this dashboard (products, orders, returns, earnings,
+   withdrawals) is now a live Firestore listener scoped to this seller's
+   uid — no more static demo arrays. If your actual collection or field
+   names differ from the ones below, just change the strings here; the
+   rest of the app (renderers, badges, totals) works off whatever lands
+   in `products` / `orders` / `returns` / `sellerEarnings` /
+   `withdrawalRequests`, so nothing else needs to change.
+--------------------------------------------------------------------- */
+let _unsubscribers = [];
+function attachSellerListeners(uid){
+  _unsubscribers.forEach(u => { try{ u(); }catch(e){} });
+  _unsubscribers = [];
+
+  const specs = [
+    { key:'products',    collectionName:'products' },
+    { key:'orders',      collectionName:'orders' },
+    { key:'returns',     collectionName:'returns' },
+    { key:'earnings',    collectionName:'seller_earnings' },
+    { key:'withdrawals', collectionName:'withdrawal_requests' }
+  ];
+
+  specs.forEach(spec => {
+    try{
+      const q = query(collection(db, spec.collectionName), where('sellerId','==',uid));
+      const unsub = onSnapshot(q, snap => {
+        const rows = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+        if (window._setSellerData) window._setSellerData(spec.key, rows);
+      }, err => {
+        console.warn('[Apykart Seller Studio] live data error for "'+spec.collectionName+'":', err.message);
+      });
+      _unsubscribers.push(unsub);
+    }catch(e){
+      console.warn('[Apykart Seller Studio] could not attach listener for "'+spec.collectionName+'"', e);
+    }
+  });
+}
+
 onAuthStateChanged(auth, async (user) => {
   const gate = document.getElementById('gate');
   if (!user) {
@@ -404,10 +428,6 @@ onAuthStateChanged(auth, async (user) => {
       return;
     }
     window.SELLER_UID = user.uid;
-    // Fallback chain: brand name -> profile name -> a bare "name" field ->
-    // Firebase Auth display name -> the part of the email before "@".
-    // We only ever fall back to the literal word "Seller" if NONE of a
-    // real seller's own data is available yet.
     window.SELLER_NAME = d.seller_verification?.brandName
       || d.profile?.name
       || d.name
@@ -421,6 +441,7 @@ onAuthStateChanged(auth, async (user) => {
     window.SELLER_PHOTO = d.seller_verification?.logoUrl || d.profile?.photoUrl || user.photoURL || '';
     gate.style.display = 'none';
     document.getElementById('app').style.display = 'flex';
+    attachSellerListeners(user.uid);
     window.dispatchEvent(new Event('seller-ready'));
   } catch (e) {
     document.getElementById('gateTitle').textContent = 'Could not verify your account';
@@ -486,38 +507,32 @@ const CATEGORY_OPTIONS=[{v:'mobiles',label:'Mobiles'},{v:'fashion',label:'Fashio
 const SIZE_SETS={fashion:['XS','S','M','L','XL','XXL'],shoes:['6','7','8','9','10','11','12']};
 const COIN_TO_RUPEE=0.10;
 
-/* Demo data — replace with the same Firestore reads used elsewhere in the app,
-   scoped by `where('sellerId','==',window.SELLER_UID)` */
-let orders=[
- {id:'APY10245',time:'Today, 10:42 AM',product:'Phone Cooler',sku:'PC-001',qty:1,price:599,mrp:799,ic:'package',customer:'Rahul Sharma',phone:'+91 98XXXXXX21',address:'Prayagraj, Uttar Pradesh',status:'Processing',pay:'Paid',deliveryFee:40,discount:-50,platformFee:-59,earning:530},
- {id:'APY10244',time:'Today, 09:15 AM',product:'RGB Strip Light',sku:'RGB-002',qty:2,price:1198,mrp:1398,ic:'zap',customer:'Aman Verma',phone:'+91 97XXXXXX10',address:'Varanasi, Uttar Pradesh',status:'New',pay:'Paid',deliveryFee:0,discount:-40,platformFee:-79,earning:1079},
- {id:'APY10243',time:'Yesterday, 08:30 PM',product:'Wireless Earbuds',sku:'WE-003',qty:1,price:899,mrp:999,ic:'droplet',customer:'Neha Singh',phone:'+91 99XXXXXX55',address:'Lucknow, Uttar Pradesh',status:'Shipped',pay:'Paid',deliveryFee:0,discount:-20,platformFee:-59,earning:820},
- {id:'APY10242',time:'2 days ago',product:'Mobile Stand',sku:'MS-004',qty:1,price:299,mrp:349,ic:'layers',customer:'Rahul Gupta',phone:'+91 96XXXXXX30',address:'Kanpur, Uttar Pradesh',status:'Delivered',pay:'Paid',deliveryFee:0,discount:-10,platformFee:-19,earning:270},
-];
-let returns=[
- {id:'APY30221',time:'Today, 11:32 AM',product:'Phone Cooler',sku:'PC-001',qty:1,price:599,ic:'package',customer:'Rahul Sharma',phone:'+91 98XXXXXX21',address:'Prayagraj, Uttar Pradesh',reason:'Product not working',status:'Requested',refundAmt:549,discount:-50},
- {id:'APY30220',time:'Yesterday, 09:20 PM',product:'RGB Strip Light',sku:'RGB-002',qty:1,price:1198,ic:'zap',customer:'Aman Verma',status:'Approved',reason:'Wrong product'},
- {id:'APY30219',time:'07:10 PM',product:'Wireless Earbuds',sku:'WE-003',qty:1,price:899,ic:'droplet',customer:'Neha Singh',status:'Picked Up',reason:'Sound issue'},
-];
-let products=[
- {id:'PC-001',sku:'PC-001',name:'Phone Cooler',category:'mobiles',price:599,mrp:799,discount:25,stock:48,status:'Live',ic:'package',desc:'Keep your phone cool while gaming.',affiliateCommission:5,buyerCoinReward:50,weight:250},
- {id:'RGB-002',sku:'RGB-002',name:'RGB Strip Light',category:'home',price:1198,mrp:1398,discount:15,stock:32,status:'Live',ic:'zap'},
- {id:'WE-003',sku:'WE-003',name:'Wireless Earbuds',category:'audio',price:899,mrp:999,discount:10,stock:26,status:'Live',ic:'droplet'},
- {id:'MS-004',sku:'MS-004',name:'Mobile Stand',category:'mobiles',price:299,mrp:349,discount:14,stock:5,status:'Low Stock',ic:'layers'},
- {id:'SW-005',sku:'SW-005',name:'Smart Watch',category:'electronics',price:1499,mrp:1799,discount:17,stock:0,status:'Pending',ic:'clock'},
- {id:'PB-006',sku:'PB-006',name:'Portable Blender',category:'home',price:1099,mrp:1299,discount:15,stock:0,status:'Out of Stock',ic:'droplet'},
-];
-let sellerEarnings=[
- {id:'e1',order_id:'APY10242',product_name:'Mobile Stand',net_earning:243,status:'available',date:'2025-05-10'},
- {id:'e2',order_id:'APY10243',product_name:'Wireless Earbuds',net_earning:738,status:'available',date:'2025-05-12'},
- {id:'e3',order_id:'APY10244',product_name:'RGB Strip Light',net_earning:971,status:'pending',date:'2025-05-16'},
-];
+/* Live data — populated entirely by the Firestore listeners in the module
+   script above via window._setSellerData(). Nothing here is hard-coded
+   demo data anymore; every screen renders whatever is currently in these
+   arrays and re-renders automatically the moment Firestore pushes an
+   update. */
+let orders=[];
+let returns=[];
+let products=[];
+let sellerEarnings=[];
 let withdrawalRequests=[];
-let sellerProfile={bankName:'HDFC Bank',accountNumber:'XXXXXXXX1234',ifsc:'HDFC0001234',upi:''};
+let sellerProfile={bankName:'',accountNumber:'',ifsc:'',upi:''};
 
-/* ===================== NAV HISTORY STACK (fixes back button) ===================== */
+window._setSellerData = function(key, data){
+  if(key==='products') products=data;
+  else if(key==='orders') orders=data;
+  else if(key==='returns') returns=data;
+  else if(key==='earnings') sellerEarnings=data;
+  else if(key==='withdrawals') withdrawalRequests=data;
+  // Re-render whatever is currently on screen so live updates show up
+  // immediately without the seller needing to navigate away and back.
+  renderNav(); render(); applyChrome();
+};
+
+/* ===================== NAV HISTORY STACK ===================== */
 let state={section:'home',screen:'dashboard',ctxId:null};
-let navStack=[]; // every entry the user actually visited, in order
+let navStack=[]; // every screen the seller actually drilled into, in order
 
 // Human-readable titles for the compact top bar shown on every non-dashboard screen
 const SCREEN_TITLES={
@@ -543,7 +558,7 @@ function renderNav(){
   const pendingReturns=returns.filter(r=>r.status==='Requested').length;
   const counts={home:0,orders:pendingOrders,returns:pendingReturns,profile:0};
   document.getElementById('bottomNav').innerHTML=NAV.map(n=>`
-    <button class="bn-item ${state.section===n.key?'active':''}" onclick="nav('${n.key}', defaultScreen('${n.key}'))">
+    <button class="bn-item ${state.section===n.key?'active':''}" onclick="navTab('${n.key}')">
       ${counts[n.key]?`<span class="bn-badge">${counts[n.key]}</span>`:''}
       ${icon(n.ic,19)}${n.label}
     </button>`).join('');
@@ -559,45 +574,59 @@ function nav(section,screen,ctxId,opts){
     if(navStack.length>40) navStack.shift();
   }
   state={section,screen,ctxId:ctxId||null};
-  renderNav(); render(); renderCrumbs(); applyChrome();
+  renderNav(); render(); applyChrome();
   document.getElementById('content').scrollTop=0;
 }
 function goBack(){
   if(navStack.length){
     const prev=navStack.pop();
     state=prev;
-    renderNav(); render(); renderCrumbs(); applyChrome();
+    renderNav(); render(); applyChrome();
     document.getElementById('content').scrollTop=0;
   } else {
-    // nothing left in history — this IS the true entry point
-    nav('home','dashboard',null,{replace:true});
+    // nothing left in history — this IS the true entry point for this tab
+    nav(state.section,defaultScreen(state.section),null,{replace:true});
   }
 }
-function renderCrumbs(){
-  const el=document.getElementById('crumbTrail'); if(!el) return;
-  const titles={home:'Home',orders:'Orders',returns:'Returns',profile:'Profile'};
-  const path = navStack.slice(-1).map(s=>titles[s.section]||s.section);
-  path.push(`<b>${titles[state.section]||state.section}</b>`);
-  el.innerHTML = path.join(' <span style="opacity:.5">›</span> ');
+// Bottom-nav taps are top-level jumps, not drill-downs — each tab always
+// opens fresh at its own home screen, and the history stack is cleared so
+// Back never has to climb back through a pile-up of unrelated screens
+// from other tabs. This is what keeps navigation predictable no matter
+// how many things the seller has tapped into.
+function navTab(section){
+  navStack=[];
+  nav(section, defaultScreen(section), null, {replace:true});
 }
+// The hero back button only exists on the true home root (dashboard with
+// no history behind it). From there, "back" means leaving the seller
+// dashboard and returning to the main Apykart app — not looping back to
+// the same dashboard screen.
+function handleHomeBack(){
+  if(navStack.length){ goBack(); return; }
+  window.location.href='index.html';
+}
+
 // The full greeting hero only belongs on the home dashboard — every other
-// screen gets a slim top bar instead, so the seller's name/greeting never
-// repeats on sub-pages (product detail, order detail, settings, etc.)
+// screen gets a single slim top bar (back button + title) instead, so no
+// screen ever shows two titles or two back buttons stacked on top of
+// each other.
 function applyChrome(){
   const isDash = state.section==='home' && state.screen==='dashboard';
   document.getElementById('hero').classList.toggle('is-hidden', !isDash);
   document.getElementById('heroCardSlot').classList.toggle('is-hidden', !isDash);
   document.getElementById('topbar').classList.toggle('is-visible', !isDash);
   if(!isDash){
-    document.getElementById('topbarTitle').textContent = SCREEN_TITLES[state.section+'.'+state.screen] || 'Apykart Seller Studio';
+    let title = SCREEN_TITLES[state.section+'.'+state.screen] || 'Apykart Seller Studio';
+    if(state.section==='home' && state.screen==='addProduct' && state.ctxId) title='Edit product';
+    document.getElementById('topbarTitle').textContent = title;
   }
   if(isDash) renderGreeting();
 }
+// Only renders a small contextual subtitle line (SKU, order id, product
+// name, etc). The screen's actual title + back button live in the top
+// bar only — this never duplicates them.
 function screenHeader(title,sub){
-  return `<div class="screen-header">
-    <button class="back-btn" onclick="goBack()">${icon('chevronLeft',17)}</button>
-    <div><h2>${title}</h2>${sub?`<div class="id-tag">${sub}</div>`:''}</div>
-  </div>`;
+  return sub ? `<div style="font-size:11.5px;color:var(--muted);font-weight:700;margin:-2px 0 14px">${sub}</div>` : '';
 }
 
 function render(){
@@ -636,8 +665,8 @@ function renderGreeting(){
 function updateHeroCard(){
   const slot=document.getElementById('heroCardSlot');
   if(state.section!=='home' || state.screen!=='dashboard'){ slot.innerHTML=''; return; }
-  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+e.net_earning,0);
-  const pending=sellerEarnings.filter(e=>e.status==='pending').reduce((s,e)=>s+e.net_earning,0);
+  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+(e.net_earning||0),0);
+  const pending=sellerEarnings.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.net_earning||0),0);
   const live=products.filter(p=>p.status==='Live').length;
   slot.innerHTML=`
   <div class="hero-card">
@@ -676,8 +705,8 @@ function homeDashboard(){
   return `
   <div class="grid-4" style="margin-bottom:14px">
     <div class="qa-tile" onclick="nav('home','addProduct')"><div class="ic" style="background:var(--indigo-light);color:var(--indigo)">${icon('plus',16)}</div><b>Add</b><span>Product</span></div>
-    <div class="qa-tile" onclick="nav('home','videos','PC-001')"><div class="ic" style="background:var(--marigold-light);color:var(--marigold-dark)">${icon('video',16)}</div><b>Video</b><span>Upload</span></div>
-    <div class="qa-tile" onclick="nav('home','stock','MS-004')"><div class="ic" style="background:var(--emerald-light);color:var(--emerald)">${icon('barchart',16)}</div><b>Stock</b><span>Update</span></div>
+    <div class="qa-tile" onclick="nav('home','videos', products[0]?products[0].id:null)"><div class="ic" style="background:var(--marigold-light);color:var(--marigold-dark)">${icon('video',16)}</div><b>Video</b><span>Upload</span></div>
+    <div class="qa-tile" onclick="nav('home','stock', products[0]?products[0].id:null)"><div class="ic" style="background:var(--emerald-light);color:var(--emerald)">${icon('barchart',16)}</div><b>Stock</b><span>Update</span></div>
     <div class="qa-tile" onclick="nav('home','earnings')"><div class="ic" style="background:var(--indigo-light);color:var(--indigo)">${icon('wallet',16)}</div><b>Earnings</b><span>View</span></div>
   </div>
   <div class="detail-block">
@@ -700,7 +729,7 @@ function productList(){
       </div>
       <button class="dots-btn" onclick="event.stopPropagation();nav('home','detail','${p.id}')">${icon('dots',17)}</button>
     </div>`).join('');
-  return `${screenHeader('My products')}
+  return `
   <div class="list-toolbar"><div class="search-box">${icon('search',15)}<input placeholder="Search products…"></div><button class="chip-btn">${icon('filter',15)}</button></div>
   <div class="filter-tabs">
     <div class="ftab active">All (${products.length})</div><div class="ftab">Live (${products.filter(p=>p.status==='Live').length})</div>
@@ -710,8 +739,9 @@ function productList(){
   ${items?`<button class="btn btn-cta" onclick="nav('home','addProduct')" style="margin-top:6px">${icon('plus',15)} Add product</button>`:''}`;
 }
 function productDetail(id){
-  const p=findProduct(id)||products[0];
-  return `${screenHeader(p.name,'SKU: '+(p.sku||p.id))}
+  const p=findProduct(id);
+  if(!p) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Product not found</h3><p>It may have been removed.</p><button onclick="nav('home','list',null,{replace:true})">Back to products</button></div>`;
+  return `${screenHeader('', p.name+' · SKU: '+(p.sku||p.id))}
   <div class="detail-block" style="text-align:center">
     <div style="width:68px;height:68px;border-radius:16px;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;margin:0 auto 9px">${icon(p.ic||'box',28)}</div>
     ${badge(p.status)}
@@ -730,7 +760,7 @@ function productDetail(id){
 function addProductForm(editId){
   const p=editId?findProduct(editId):null;
   const cat=p?p.category:'mobiles';
-  return `${screenHeader(p?'Edit product':'Add product')}
+  return `${screenHeader('', p ? 'Editing '+p.name : 'Create a new listing')}
   <div class="detail-block">
     <label class="field-label">Product name *</label>
     <input class="text-field" id="prodName" value="${p?p.name:''}" placeholder="e.g. Nike Air Max 270">
@@ -801,11 +831,12 @@ function submitProduct(editId){
 function approvalList(){
   const pend=products.filter(p=>p.status==='Pending');
   const rows=pend.map(p=>`<div class="row-card" onclick="nav('home','approvalDetail','${p.id}')">${thumb(p)}<div class="row-body"><div class="row-top"><span class="row-id">${p.name}</span>${badge('Pending')}</div><div class="row-mid">₹${p.price}</div></div></div>`).join('')||`<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>No products pending</h3><p>New submissions appear here for review.</p></div>`;
-  return `${screenHeader('Approval status')}${rows}`;
+  return rows;
 }
 function approvalDetail(id){
-  const p=findProduct(id)||products.find(x=>x.status==='Pending')||products[0];
-  return `${screenHeader('Approval details')}
+  const p=findProduct(id);
+  if(!p) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Not found</h3></div>`;
+  return `${screenHeader('', p.name)}
   <div class="detail-block" style="text-align:center">${thumb(p,'p-thumb')}<b style="display:block;margin-top:8px">${p.name}</b><div style="font-size:12px;color:var(--muted)">₹${p.price}</div>${badge('Pending')}</div>
   <div class="detail-block"><h4>Status</h4>
     <ul class="timeline">
@@ -818,13 +849,14 @@ function approvalDetail(id){
   <button class="btn btn-outline" onclick="nav('home','addProduct','${p.id}')">${icon('edit',14)} Edit product</button>`;
 }
 function stockManage(id){
-  const p=findProduct(id)||products[0];
+  const p=findProduct(id);
+  if(!p) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>No product selected</h3><p>Pick a product from your list to manage its stock.</p><button onclick="nav('home','list',null,{replace:true})">View products</button></div>`;
   if(p.stock===0){
-    return `${screenHeader('Manage stock')}
+    return `${screenHeader('', p.name+' · SKU: '+(p.sku||p.id))}
     <div class="card stock-alert-card warn"><div class="ic">${icon('package',24)}</div><h3>Out of stock</h3><p>${p.name} is currently out of stock. Update stock to make it live again.</p>
     <button class="btn btn-cta" style="width:auto;padding:11px 22px" onclick="p.stock=20;p.status='Live';toast('Stock updated to 20 units');nav('home','stock','${p.id}',{replace:true})">Update stock</button></div>`;
   }
-  return `${screenHeader('Manage stock','SKU: '+(p.sku||p.id))}
+  return `${screenHeader('', p.name+' · SKU: '+(p.sku||p.id))}
   <div class="detail-block" style="text-align:center">${thumb(p,'p-thumb')}<b style="display:block;margin-top:8px">${p.name}</b><div style="font-size:12px;color:var(--muted)">Stock: ${p.stock}</div>${badge(p.status)}</div>
   <div class="detail-block">
     <label class="field-label">Update stock</label><input class="text-field" id="stockInput" value="${p.stock}">
@@ -834,16 +866,16 @@ function stockManage(id){
   <button class="btn btn-cta" onclick="const v=parseInt(document.getElementById('stockInput').value)||0;p.stock=v;p.status=v<=0?'Out of Stock':(v<10?'Low Stock':'Live');toast('Stock changes saved');nav('home','stock','${p.id}',{replace:true})">Save changes</button>`;
 }
 function manageVideos(id){
-  const p=findProduct(id)||products[0];
-  return `${screenHeader('Manage videos',p.name)}
-  <div class="filter-tabs"><div class="ftab active">All (2)</div><div class="ftab">Active (1)</div><div class="ftab">Inactive (1)</div></div>
-  <div class="row-card"><div class="row-thumb">${icon('play',18)}</div><div class="row-body"><div class="row-top"><span class="row-id">${p.name} – How it works</span>${badge('Live')}</div><div class="row-mid">0:15 · 1.2K views</div></div></div>
-  <div class="row-card"><div class="row-thumb">${icon('play',18)}</div><div class="row-body"><div class="row-top"><span class="row-id">Cooling test</span><span class="badge pending">Inactive</span></div><div class="row-mid">0:20 · 886 views</div></div></div>
+  const p=findProduct(id);
+  if(!p) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>No product selected</h3><p>Pick a product from your list to manage its videos.</p><button onclick="nav('home','list',null,{replace:true})">View products</button></div>`;
+  return `${screenHeader('', p.name)}
+  <div class="filter-tabs"><div class="ftab active">All</div><div class="ftab">Active</div><div class="ftab">Inactive</div></div>
+  <div class="empty-state"><div class="ic">${icon('play',24)}</div><h3>No videos yet</h3><p>Upload a short clip so buyers can see ${p.name} in action.</p></div>
   <button class="btn btn-cta" onclick="nav('home','uploadVideo','${p.id}')">${icon('plus',15)} Upload new video</button>
   <p style="font-size:10.5px;color:var(--muted-2);text-align:center;margin-top:10px">Recommended: 9:16, max 30 sec</p>`;
 }
 function uploadVideo(id){
-  return `${screenHeader('Upload video')}
+  return `${screenHeader('','')}
   <div class="detail-block" style="text-align:center;padding:30px 16px;border:2px dashed var(--border)">
     <div style="width:50px;height:50px;border-radius:14px;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;margin:0 auto 9px">${icon('upload',22)}</div>
     <b>Tap to upload video</b><div style="font-size:11px;color:var(--muted);margin-top:4px">max 30 sec · 9:16 · MP4</div>
@@ -853,21 +885,21 @@ function uploadVideo(id){
   <button class="btn btn-cta" onclick="toast('Video uploaded');nav('home','videos','${id}',{replace:true})">Upload video</button>`;
 }
 function earningsScreen(){
-  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+e.net_earning,0);
-  const pending=sellerEarnings.filter(e=>e.status==='pending').reduce((s,e)=>s+e.net_earning,0);
-  return `${screenHeader('Earnings')}
+  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+(e.net_earning||0),0);
+  const pending=sellerEarnings.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.net_earning||0),0);
+  return `
   <div class="grid-2" style="margin-bottom:13px">
     <div class="card stat-card"><div class="ic" style="background:var(--emerald-light);color:var(--emerald)">${icon('checkCircle',16)}</div><div class="num">₹${available.toFixed(0)}</div><div class="lbl">Available</div></div>
     <div class="card stat-card"><div class="ic" style="background:var(--marigold-light);color:var(--marigold-dark)">${icon('clock',16)}</div><div class="num">₹${pending.toFixed(0)}</div><div class="lbl">Pending</div></div>
   </div>
   <div class="detail-block"><h4>Transaction history</h4>
-    ${sellerEarnings.map(t=>`<div class="kv-row"><span>${t.product_name}<br><span style="font-size:10px;color:var(--muted-2)">Order ${t.order_id}</span></span><b style="color:${t.status==='available'?'var(--emerald)':'var(--marigold-dark)'}">₹${t.net_earning}</b></div>`).join('')}
+    ${sellerEarnings.length ? sellerEarnings.map(t=>`<div class="kv-row"><span>${t.product_name||'—'}<br><span style="font-size:10px;color:var(--muted-2)">Order ${t.order_id||'—'}</span></span><b style="color:${t.status==='available'?'var(--emerald)':'var(--marigold-dark)'}">₹${t.net_earning||0}</b></div>`).join('') : `<p style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0">No earnings yet</p>`}
   </div>
   <button class="btn btn-cta" onclick="nav('home','withdraw')">${icon('wallet',15)} Withdraw funds</button>`;
 }
 function withdrawScreen(){
-  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+e.net_earning,0);
-  return `${screenHeader('Withdraw')}
+  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+(e.net_earning||0),0);
+  return `
   <div class="avail-payout"><span>Available balance</span><div class="amt">₹${available.toFixed(0)}</div><button onclick="openModal('withdraw')">Withdraw →</button></div>
   <div class="detail-block"><h4>Withdrawal history</h4>
     ${withdrawalRequests.length?withdrawalRequests.map(w=>`<div class="kv-row"><span>₹${w.amount}</span><b>${badge(w.status==='completed'?'Completed':w.status==='rejected'?'Rejected':'Pending')}</b></div>`).join(''):`<p style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0">No withdrawal requests yet</p>`}
@@ -885,19 +917,20 @@ function renderOrders(){
   return ordersHome();
 }
 function ordersHome(){
-  const rows=orders.map(o=>`<div class="row-card" onclick="nav('orders','detail','${o.id}')"><div class="row-thumb">${icon(o.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${o.id}</span><span class="row-time">${o.time}</span></div><div class="row-mid">${o.product} · Qty: ${o.qty}</div><div class="row-bottom"><span class="row-price">₹${o.price}</span>${badge(o.status)}</div></div></div>`).join('');
+  const rows=orders.map(o=>`<div class="row-card" onclick="nav('orders','detail','${o.id}')"><div class="row-thumb">${icon(o.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${o.id}</span><span class="row-time">${o.time||''}</span></div><div class="row-mid">${o.product} · Qty: ${o.qty}</div><div class="row-bottom"><span class="row-price">₹${o.price}</span>${badge(o.status)}</div></div></div>`).join('');
   const needProcessing=orders.filter(o=>o.status==='New'||o.status==='Processing').length;
-  const total=orders.reduce((s,o)=>s+o.price*o.qty,0);
+  const total=orders.reduce((s,o)=>s+(o.price||0)*(o.qty||1),0);
   return `
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:16px;font-family:var(--font-d)">Orders</h2><div style="font-size:11.5px;color:var(--muted)">${orders.length} orders · ₹${total.toLocaleString()}</div></div>
+  <div style="font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:10px">${orders.length} order${orders.length===1?'':'s'} · ₹${total.toLocaleString()}</div>
   ${needProcessing?`<div class="action-banner"><div><b>Action required</b>${needProcessing} orders need processing.</div><button onclick="nav('orders','detail','${orders[0].id}')">Process</button></div>`:''}
   <div class="list-toolbar"><div class="search-box" onclick="nav('orders','search')">${icon('search',15)}<input placeholder="Search order, product, customer" readonly></div><button class="chip-btn" onclick="nav('orders','filter')">${icon('filter',15)}</button></div>
   <div class="filter-tabs"><div class="ftab active">All</div><div class="ftab">New</div><div class="ftab">Processing</div><div class="ftab">Shipped</div><div class="ftab">Delivered</div></div>
   ${rows || `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>No orders yet</h3><p>New orders from buyers will show up here.</p></div>`}`;
 }
 function orderDetails(id){
-  const o=findOrder(id)||orders[0];
-  return `${screenHeader('Order details','#'+o.id+' · '+o.time)}
+  const o=findOrder(id);
+  if(!o) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Order not found</h3><button onclick="nav('orders','home',null,{replace:true})">Back to orders</button></div>`;
+  return `${screenHeader('', '#'+o.id+' · '+(o.time||''))}
   ${badge(o.status)} ${badge(o.pay)}
   <div class="detail-block" style="margin-top:11px;display:flex;gap:11px;align-items:center">
     <div class="row-thumb">${icon(o.ic,18)}</div><div style="flex:1"><b style="display:block;font-size:12.5px">${o.product}</b><span style="font-size:11px;color:var(--muted)">Qty: ${o.qty} · SKU: ${o.sku}</span></div><b>₹${o.price}</b>
@@ -911,19 +944,21 @@ function orderDetails(id){
   <div class="btn-row"><button class="btn btn-outline" onclick="nav('orders','cancel','${o.id}')">Cancel order</button><button class="btn btn-primary" onclick="nav('orders','updateStatus','${o.id}')">Update status</button></div>`;
 }
 function updateOrderStatus(id){
-  const o=findOrder(id)||orders[0];
+  const o=findOrder(id);
+  if(!o) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Order not found</h3></div>`;
   const steps=['Confirm order','Mark as packed','Mark as shipped','Out for delivery','Mark as delivered'];
   const doneIdx={'New':-1,'Processing':0,'Shipped':2,'Delivered':4}[o.status]??0;
   const descs=['Mark as confirmed','Order packed and ready','Order shipped to customer','Order is out for delivery','Order delivered successfully'];
-  return `${screenHeader('Update order status','#'+o.id)}
+  return `${screenHeader('', '#'+o.id)}
   <div class="detail-block">
     ${steps.map((s,i)=>`<div class="status-step ${i<=doneIdx?'done':''}"><div class="step-check">${i<=doneIdx?icon('check',11):i+1}</div><div><b>${s}</b><span>${descs[i]}</span>${i===doneIdx+1?`<br><button onclick="o.status='${['New','Processing','Shipped','Shipped','Delivered'][i]}';toast('Status updated');nav('orders','detail','${o.id}',{replace:true})">Mark as ${s.replace('Mark as ','').replace('Confirm order','Confirmed')}</button>`:''}</div></div>`).join('')}
   </div>
   <button class="btn btn-cta" onclick="toast('Order status updated');nav('orders','detail','${o.id}',{replace:true})">Update order status</button>`;
 }
 function cancelOrder(id){
-  const o=findOrder(id)||orders[0];
-  return `${screenHeader('Cancel order','#'+o.id)}
+  const o=findOrder(id);
+  if(!o) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Order not found</h3></div>`;
+  return `${screenHeader('', '#'+o.id)}
   <div class="detail-block" style="display:flex;gap:11px;align-items:center"><div class="row-thumb">${icon(o.ic,18)}</div><div style="flex:1"><b style="display:block;font-size:12.5px">${o.product}</b><span style="font-size:11px;color:var(--muted)">Qty: ${o.qty}</span></div><b>₹${o.price}</b></div>
   <div class="action-banner" style="background:var(--coral-light);border-color:#F3C7C8"><div><b style="color:var(--coral)">${icon('alertTriangle',13)} Cancel this order?</b>This action cannot be undone.</div></div>
   <label class="field-label">Select reason</label>
@@ -931,18 +966,18 @@ function cancelOrder(id){
   <div class="btn-row"><button class="btn btn-outline" onclick="goBack()">Keep order</button><button class="btn btn-danger" onclick="openModal('cancelOrder','${o.id}')">Cancel order</button></div>`;
 }
 function searchOrders(){
-  return `${screenHeader('Search orders')}
+  return `
   <div class="search-box" style="margin-bottom:15px">${icon('search',15)}<input id="orderSearchInput" autofocus placeholder="Search order, product, customer" oninput="filterOrderSearch(this.value)"></div>
   <h4 style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;font-weight:800">Recent orders</h4>
   <div id="orderSearchResults">${orders.map(o=>`<div class="row-card" onclick="nav('orders','detail','${o.id}')"><div class="row-thumb">${icon(o.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${o.id}</span>${badge(o.status)}</div><div class="row-mid">${o.product} · ${o.customer}</div></div></div>`).join('')}</div>`;
 }
 function filterOrderSearch(q){
   q=(q||'').toLowerCase().trim();
-  const matches=orders.filter(o=>!q || o.id.toLowerCase().includes(q) || o.product.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q));
+  const matches=orders.filter(o=>!q || o.id.toLowerCase().includes(q) || (o.product||'').toLowerCase().includes(q) || (o.customer||'').toLowerCase().includes(q));
   document.getElementById('orderSearchResults').innerHTML = matches.length ? matches.map(o=>`<div class="row-card" onclick="nav('orders','detail','${o.id}')"><div class="row-thumb">${icon(o.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${o.id}</span>${badge(o.status)}</div><div class="row-mid">${o.product} · ${o.customer}</div></div></div>`).join('') : `<div class="empty-state"><div class="ic">${icon('search',22)}</div><h3>No matches</h3><p>Try a different order ID, product, or customer name.</p></div>`;
 }
 function filterOrders(){
-  return `${screenHeader('Filter orders')}
+  return `
   <div class="detail-block"><h4>Status</h4>
     <div style="display:flex;flex-direction:column;gap:4px">
     ${['All','New','Processing','Shipped','Delivered','Cancelled'].map((s,i)=>`<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px"><input type="radio" name="fst" ${i===0?'checked':''}>${s}</label>`).join('')}
@@ -964,15 +999,16 @@ function renderReturns(){
 function returnsHome(){
   const rows=returns.map(r=>`<div class="row-card" onclick="nav('returns','detail','${r.id}')"><div class="row-thumb">${icon(r.ic,18)}</div><div class="row-body"><div class="row-top"><span class="row-id">#${r.id}</span><span class="row-time">${r.time||''}</span></div><div class="row-mid">${r.product} · Qty: ${r.qty}</div><div class="row-bottom"><span class="row-price">₹${r.price}</span>${badge(r.status)}</div></div></div>`).join('');
   const needAction=returns.filter(r=>r.status==='Requested').length;
-  const total=returns.reduce((s,r)=>s+r.price,0);
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:16px;font-family:var(--font-d)">Returns</h2><div style="font-size:11.5px;color:var(--muted)">${returns.length} active · ₹${total.toLocaleString()}</div></div>
+  const total=returns.reduce((s,r)=>s+(r.price||0),0);
+  return `<div style="font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:10px">${returns.length} active · ₹${total.toLocaleString()}</div>
   ${needAction?`<div class="action-banner"><div><b>Action required</b>${needAction} return requests need action.</div><button onclick="nav('returns','detail','${returns[0].id}')">Review</button></div>`:''}
   <div class="filter-tabs"><div class="ftab active">All</div><div class="ftab">Requested</div><div class="ftab">Approved</div><div class="ftab">Picked up</div><div class="ftab">Refunded</div></div>
   ${rows || `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>No returns</h3><p>Return requests from buyers will show up here.</p></div>`}`;
 }
 function returnDetails(id){
-  const r=findReturn(id)||returns[0];
-  return `${screenHeader('Return details','#'+r.id+' · '+(r.time||''))}
+  const r=findReturn(id);
+  if(!r) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Return not found</h3><button onclick="nav('returns','home',null,{replace:true})">Back to returns</button></div>`;
+  return `${screenHeader('', '#'+r.id+' · '+(r.time||''))}
   ${badge(r.status)}
   <div class="detail-block" style="margin-top:11px;display:flex;gap:11px;align-items:center"><div class="row-thumb">${icon(r.ic,18)}</div><div style="flex:1"><b style="display:block;font-size:12.5px">${r.product}</b><span style="font-size:11px;color:var(--muted)">Qty: ${r.qty}</span></div><b>₹${r.price}</b></div>
   <div class="detail-block"><h4>Refund amount</h4><div class="kv-row"><span>Product price</span><b>₹${r.price}</b></div><div class="kv-row total"><span>Refund amount</span><b>₹${r.refundAmt||r.price}</b></div></div>
@@ -980,29 +1016,32 @@ function returnDetails(id){
   <div class="btn-row"><button class="btn btn-outline" onclick="nav('returns','pickup','${r.id}')">Track pickup</button><button class="btn btn-primary" onclick="nav('returns','approve','${r.id}')">Approve / reject</button></div>`;
 }
 function approveReject(id){
-  const r=findReturn(id)||returns[0];
-  return `${screenHeader('Approve / reject','#'+r.id)}
+  const r=findReturn(id);
+  if(!r) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Return not found</h3></div>`;
+  return `${screenHeader('', '#'+r.id)}
   ${badge(r.status)}
   <div class="detail-block" style="margin-top:11px"><div class="kv-row"><span>Product</span><b>${r.product}</b></div><div class="kv-row"><span>Reason</span><b>${r.reason||'—'}</b></div><div class="kv-row"><span>Refund amount</span><b>₹${r.refundAmt||r.price}</b></div></div>
   <div class="btn-row"><button class="btn btn-outline" onclick="openModal('rejectReturn','${r.id}')">Reject</button><button class="btn btn-success" onclick="openModal('approveReturn','${r.id}')">Approve</button></div>`;
 }
 function pickupStatus(id){
-  const r=findReturn(id)||returns[0];
-  return `${screenHeader('Return tracking','#'+r.id)}
-  <div class="detail-block"><h4>Pickup details</h4><div class="kv-row"><span>Pickup scheduled</span><b>Tomorrow, 10:00 AM</b></div><div class="kv-row"><span>Courier partner</span><b>APY Express</b></div></div>
+  const r=findReturn(id);
+  if(!r) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Return not found</h3></div>`;
+  return `${screenHeader('', '#'+r.id)}
+  <div class="detail-block"><h4>Pickup details</h4><div class="kv-row"><span>Pickup scheduled</span><b>${r.pickupTime||'—'}</b></div><div class="kv-row"><span>Courier partner</span><b>${r.courier||'APY Express'}</b></div></div>
   <div class="detail-block"><h4>Timeline</h4>
     <ul class="timeline">
       <li class="done"><div class="t-dot">${icon('check',10)}</div><div class="t-body"><b>Return requested</b></div></li>
-      <li class="done"><div class="t-dot">${icon('check',10)}</div><div class="t-body"><b>Approved by seller</b></div></li>
-      <li class="current"><div class="t-dot"></div><div class="t-body"><b>Pickup scheduled</b></div></li>
+      <li class="${r.status!=='Requested'?'done':'current'}"><div class="t-dot">${r.status!=='Requested'?icon('check',10):''}</div><div class="t-body"><b>Approved by seller</b></div></li>
+      <li class="${r.status==='Picked Up'?'done':(r.status==='Approved'?'current':'')}"><div class="t-dot">${r.status==='Picked Up'?icon('check',10):''}</div><div class="t-body"><b>Pickup scheduled</b></div></li>
       <li><div class="t-dot"></div><div class="t-body" style="opacity:.5"><b>Refund processed</b></div></li>
     </ul>
   </div>
   <button class="btn btn-cta" onclick="nav('returns','inspection','${r.id}')">View tracking</button>`;
 }
 function productInspection(id){
-  const r=findReturn(id)||returns[0];
-  return `${screenHeader('Product inspection','#'+r.id)}
+  const r=findReturn(id);
+  if(!r) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Return not found</h3></div>`;
+  return `${screenHeader('', '#'+r.id)}
   <div class="detail-block"><h4>Inspect product condition</h4>
     <div style="display:flex;flex-direction:column;gap:2px">
       ${['Good','Damaged','Used'].map((s,i)=>`<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px"><input type="radio" name="cond" ${i===0?'checked':''}>${s}</label>`).join('')}
@@ -1011,8 +1050,9 @@ function productInspection(id){
   <button class="btn btn-cta" onclick="toast('Inspection submitted');nav('returns','refund','${r.id}')">Submit inspection</button>`;
 }
 function refundStatus(id){
-  const r=findReturn(id)||returns[0];
-  return `${screenHeader('Refund status','#'+r.id)}
+  const r=findReturn(id);
+  if(!r) return `<div class="empty-state"><div class="ic">${icon('inbox',24)}</div><h3>Return not found</h3></div>`;
+  return `${screenHeader('', '#'+r.id)}
   <div class="card" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:22px 16px">
     <div style="width:52px;height:52px;border-radius:50%;background:var(--emerald);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:12px">${icon('check',22)}</div>
     <h3 style="margin:0 0 6px;font-family:var(--font-d);font-size:15px">Refund completed</h3><p style="margin:0;font-size:12px;color:var(--muted)">The refund has been successfully processed.</p>
@@ -1036,11 +1076,11 @@ function avatarHtml(name){
 }
 function profileHome(){
   const name=window.SELLER_NAME||'Seller';
-  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+e.net_earning,0);
+  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+(e.net_earning||0),0);
   return `
   <div class="card profile-head">
     <div class="store-avatar">${avatarHtml(name)}</div><h3>${name}</h3>
-    <span class="verified-tag">${icon('checkCircle',13)} Verified seller · ${icon('star',13)} 4.8</span>
+    <span class="verified-tag">${icon('checkCircle',13)} Verified seller</span>
     <div class="profile-stats"><div><b>${products.length}</b><span>Products</span></div><div><b>${orders.length}</b><span>Orders</span></div><div><b>₹${available.toLocaleString()}</b><span>Available</span></div></div>
   </div>
   <div class="detail-block" style="background:var(--indigo-light);border-color:#DCDEFA;display:flex;gap:10px;align-items:flex-start">
@@ -1060,21 +1100,21 @@ function profileHome(){
   <button class="btn btn-outline" onclick="openModal('logout')">${icon('logout',15)} Log out</button>`;
 }
 function editStore(){
-  return `${screenHeader('Edit store')}
+  return `
   <div class="detail-block" style="text-align:center"><div class="store-avatar" style="margin:0 auto 9px">${avatarHtml(window.SELLER_NAME)}</div><button class="btn btn-outline" style="width:auto;padding:9px 18px;font-size:11.5px">Change logo</button></div>
   <label class="field-label">Store name</label><input class="text-field" id="storeNameInput" value="${window.SELLER_NAME||''}">
-  <label class="field-label">Store description</label><textarea class="text-field" id="storeDescInput">We provide best quality gadgets and accessories.</textarea>
+  <label class="field-label">Store description</label><textarea class="text-field" id="storeDescInput"></textarea>
   <button class="btn btn-cta" onclick="const v=document.getElementById('storeNameInput').value.trim();if(v){window.SELLER_NAME=v;} toast('Store details saved');goBack()">Save changes</button>`;
 }
 function storePreview(){
   const tiles=products.slice(0,4).map(p=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px"><div style="width:100%;height:60px;border-radius:8px;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center">${icon(p.ic,20)}</div><div style="font-size:11px;margin-top:6px">${p.name}</div><b style="font-size:12px">₹${p.price}</b></div>`).join('');
-  return `${screenHeader('Store preview')}
-  <div class="detail-block" style="text-align:center"><div style="height:70px;background:linear-gradient(135deg,var(--indigo),#6B5CE0);border-radius:12px;margin-bottom:-32px"></div><div class="store-avatar" style="border:3px solid #fff;margin:0 auto 8px">${avatarHtml(window.SELLER_NAME)}</div><b style="font-size:13px">${window.SELLER_NAME||'Seller'}</b><div style="font-size:11px;color:var(--muted);margin-top:2px">4.8 (${orders.length} orders)</div></div>
-  <div class="grid-2">${tiles}</div>`;
+  return `
+  <div class="detail-block" style="text-align:center"><div style="height:70px;background:linear-gradient(135deg,var(--indigo),#6B5CE0);border-radius:12px;margin-bottom:-32px"></div><div class="store-avatar" style="border:3px solid #fff;margin:0 auto 8px">${avatarHtml(window.SELLER_NAME)}</div><b style="font-size:13px">${window.SELLER_NAME||'Seller'}</b><div style="font-size:11px;color:var(--muted);margin-top:2px">${orders.length} orders</div></div>
+  <div class="grid-2">${tiles || `<div class="empty-state" style="grid-column:1/-1"><div class="ic">${icon('inbox',24)}</div><h3>No products to preview</h3></div>`}</div>`;
 }
 function bankPayouts(){
-  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+e.net_earning,0);
-  return `${screenHeader('Bank & payouts')}
+  const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+(e.net_earning||0),0);
+  return `
   <div class="avail-payout"><span>Available for payout</span><div class="amt">₹${available.toLocaleString()}</div><button onclick="nav('home','withdraw')">View wallet →</button></div>
   <div class="detail-block"><h4>Payout account</h4>
     <label class="field-label">Bank name</label><input class="text-field" id="bankName" value="${sellerProfile.bankName}">
@@ -1085,7 +1125,7 @@ function bankPayouts(){
   <button class="btn btn-cta" onclick="sellerProfile={bankName:document.getElementById('bankName').value,accountNumber:document.getElementById('accountNumber').value,ifsc:document.getElementById('ifsc').value,upi:document.getElementById('upi').value};toast('Bank details saved')">${icon('check',14)} Save details</button>`;
 }
 function kycVerification(){
-  return `${screenHeader('KYC & verification')}
+  return `
   <div class="detail-block" style="text-align:center"><span class="badge approved" style="font-size:11px;padding:6px 13px">${icon('check',11)} Verified</span><p style="margin:8px 0 0;font-size:11.5px;color:var(--muted)">Your seller account is verified.</p></div>
   <div class="detail-block">
     <div class="doc-row"><span>Identity verification</span><span class="ok">${icon('check',13)} Verified</span></div>
@@ -1095,8 +1135,8 @@ function kycVerification(){
   </div>`;
 }
 function shippingSettings(){
-  return `${screenHeader('Shipping settings')}
-  <div class="detail-block"><h4>Pickup address</h4><p style="margin:0 0 10px;font-size:12.5px">${window.SELLER_NAME||'Store'}<br>123, MG Road<br>Prayagraj, Uttar Pradesh 211001</p><button class="btn btn-outline" style="width:auto;padding:8px 15px;font-size:11.5px">Edit address</button></div>
+  return `
+  <div class="detail-block"><h4>Pickup address</h4><p style="margin:0 0 10px;font-size:12.5px">${window.SELLER_NAME||'Store'}</p><button class="btn btn-outline" style="width:auto;padding:8px 15px;font-size:11.5px">Edit address</button></div>
   <div class="detail-block"><h4>Shipping preferences</h4><div class="kv-row"><span>Standard delivery</span><b>3–5 days</b></div><div class="kv-row"><span>Returns</span><b>7-day return</b></div></div>`;
 }
 
@@ -1108,7 +1148,7 @@ function openModal(type,ctxId){
   if(type==='approveReturn'){box.className='modal-box center';html=`<div class="ic success">${icon('checkCircle',22)}</div><h3>Approve this return?</h3><p>The customer will be notified and pickup will be scheduled.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-success" onclick="const r=findReturn('${ctxId}');if(r)r.status='Approved';closeModal();toast('Return approved');nav('returns','pickup','${ctxId}')">Approve</button></div>`;}
   if(type==='rejectReturn'){box.className='modal-box center';html=`<div class="ic danger">${icon('xCircle',22)}</div><h3>Reject this return?</h3><p>The customer will be notified.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="const r=findReturn('${ctxId}');if(r)r.status='Rejected';closeModal();toast('Return rejected');nav('returns','home',null,{replace:true})">Reject</button></div>`;}
   if(type==='deleteProduct'){box.className='modal-box center';html=`<div class="ic danger">${icon('trash',22)}</div><h3>Delete this product?</h3><p>This action cannot be undone.</p><div class="btn-row"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="products=products.filter(p=>p.id!=='${ctxId}');closeModal();toast('Product deleted');nav('home','list',null,{replace:true})">Delete</button></div>`;}
-  if(type==='withdraw'){const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+e.net_earning,0);html=`<div class="ic">${icon('wallet',22)}</div><h3>Request withdrawal</h3><p>Available: ₹${available.toFixed(0)}</p><input type="number" id="withdrawAmt" class="text-field" placeholder="Enter amount"><button class="btn btn-cta" onclick="submitWithdraw(${available})">Submit request</button>`;}
+  if(type==='withdraw'){const available=sellerEarnings.filter(e=>e.status==='available').reduce((s,e)=>s+(e.net_earning||0),0);html=`<div class="ic">${icon('wallet',22)}</div><h3>Request withdrawal</h3><p>Available: ₹${available.toFixed(0)}</p><input type="number" id="withdrawAmt" class="text-field" placeholder="Enter amount"><button class="btn btn-cta" onclick="submitWithdraw(${available})">Submit request</button>`;}
   box.innerHTML=html;overlay.classList.add('show');
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('show');}
@@ -1125,7 +1165,7 @@ window.addEventListener('seller-ready', function(){
   nav('home','dashboard',null,{replace:true});
 });
 // expose functions the inline onclick="" handlers need
-Object.assign(window,{nav,goBack,openModal,closeModal,toast,toggleSizeOptions,autoGenerateSKU,previewImages,removeProdImg,updateProductCalc,submitProduct,submitWithdraw,filterOrderSearch,findReturn,findOrder,findProduct});
+Object.assign(window,{nav,goBack,navTab,handleHomeBack,openModal,closeModal,toast,toggleSizeOptions,autoGenerateSKU,previewImages,removeProdImg,updateProductCalc,submitProduct,submitWithdraw,filterOrderSearch,findReturn,findOrder,findProduct});
 </script>
 </body>
 </html>
