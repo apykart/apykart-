@@ -84,6 +84,21 @@ match /banners/{bannerId} {
   allow read: if true;        // Public — user panel needs to read active banners
   allow write: if isManager(); // Only admin can add/edit banners
 }
+match /affiliates/{uid} {
+  allow read, write: if request.auth.uid == uid || isManager();
+}
+match /affiliate_clicks/{clickId} {
+  allow read: if isManager();
+  allow create: if true;
+}
+match /affiliate_earnings/{earnId} {
+  allow read: if isManager() || (isLoggedIn() && request.auth.uid == resource.data.affiliateUid);
+  allow create: if true;
+}
+match /affiliate_withdrawals/{wId} {
+  allow read, create: if isLoggedIn() && (request.auth.uid == request.resource.data.affiliateUid || isManager());
+  allow update: if isManager();
+}
 ════════════════════════════════════════════════════════════════════════
 
 FIREBASE STORAGE RULES — Copy to Firebase Console → Storage → Rules:
@@ -1059,6 +1074,12 @@ a{text-decoration:none;color:inherit}
     </div>
   </div>
 </div>
+<script>
+(function(){try{
+  const p = new URLSearchParams(location.search), aff = p.get('aff');
+  if (aff) { localStorage.setItem('apykart_aff_ref', aff); localStorage.setItem('apykart_aff_ts', Date.now()); }
+}catch(e){}})();
+</script>
 <div id="app">
  <header class="app-header" id="appHeader">
   <div class="header-profile-btn" onclick="handleHeaderProfileClick()" id="headerProfileBtn">
@@ -1096,7 +1117,7 @@ a{text-decoration:none;color:inherit}
             <div class="earn-hub-icon" style="background:linear-gradient(135deg,#f97316,#ec4899)">🎥</div>
             <div class="earn-hub-label">Create Content & Earn</div>
           </div>
-          <div class="earn-hub-item" onclick="event.stopPropagation();showPage('profile')">
+<div class="earn-hub-item" onclick="event.stopPropagation();window.location.href='affiliate.html'">
             <div class="earn-hub-icon" style="background:linear-gradient(135deg,#10b981,#059669)">🤝</div>
             <div class="earn-hub-label">Affiliate Marketing</div>
           </div>
@@ -1735,10 +1756,23 @@ function setupBannersListener() {
 }
 setupBannersListener();
 
+// ─── AFFILIATE CLICK LOGGING ───
+(function logAffiliateClick(){
+  try {
+    const aff = localStorage.getItem('apykart_aff_ref');
+    if (!aff || localStorage.getItem('apykart_aff_click_logged')===aff) return;
+    const p = new URLSearchParams(location.search);
+    addDoc(collection(db, 'affiliate_clicks'), {
+      affiliateUid: aff, productId: p.get('product') || '', createdAt: serverTimestamp()
+    }).catch(()=>{});
+    updateDoc(doc(db, 'affiliates', aff), { totalClicks: increment(1) }).catch(()=>{});
+    localStorage.setItem('apykart_aff_click_logged', aff);
+  } catch(e) { console.warn('Affiliate click log failed:', e.message); }
+})();
+
 // ─── Dispatch event so non-module script knows Firebase is ready ───
 window._fbReady = true;
 window.dispatchEvent(new Event('firebase-ready'));
-
 // ─── VIEW COUNT: Video dekha toh Firestore mein view increment karo ───
 async function incrementVideoView(videoFsId) {
   if (!videoFsId || !window._fsHelpers) return;
@@ -3316,6 +3350,24 @@ async function placeOrder() {
   if(btn) btn.disabled=false; if(txt) txt.textContent='✅ Place Order Securely'; if(spin) spin.classList.add('hide');
 }
 
+const AFFILIATE_COMMISSION_RATE = 0.05; // 5% commission per sale
+async function recordAffiliateCommission(affUid, order) {
+  if (!affUid || !window._fsHelpers) return;
+  const { db, doc, addDoc, collection, updateDoc, increment, serverTimestamp, getDoc } = window._fsHelpers;
+  try {
+    const s = await getDoc(doc(db, 'affiliates', affUid));
+    if (!s.exists()) return; // registered affiliate hi commission paayega
+    const commission = Math.round(order.total * AFFILIATE_COMMISSION_RATE);
+    await addDoc(collection(db, 'affiliate_earnings'), {
+      affiliateUid: affUid, orderId: order.id, orderTotal: order.total,
+      commission, status: 'pending', date: new Date().toISOString(), createdAt: serverTimestamp()
+    });
+    await updateDoc(doc(db, 'affiliates', affUid), {
+      totalSales: increment(1), totalEarnings: increment(commission), availableBalance: increment(commission)
+    });
+  } catch(e) { console.warn('Affiliate commission error:', e.message); }
+  finally { localStorage.removeItem('apykart_aff_ref'); localStorage.removeItem('apykart_aff_click_logged'); }
+}
 async function finalizeOrder() {
   const total=getCheckoutTotal(), coinDisc=coinDiscountAmount(total), finalAmt=total-coinDisc;
   const orderId='APK'+Date.now().toString().slice(-8).toUpperCase();
@@ -3370,6 +3422,10 @@ saveSellerEarnings();
 saveOrders();
 
   await saveOrderToFirestore(newOrder);
+
+  const _affRef = localStorage.getItem('apykart_aff_ref');
+  if (_affRef && _affRef !== getUid()) await recordAffiliateCommission(_affRef, newOrder);
+
   window._lastOrder = newOrder;
 
   if (!buyNowProduct) { cart=[]; saveCart(); }
@@ -3865,7 +3921,12 @@ ${verBannerHTML}
         ${mi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>','My Orders','Track & reorder','orders',orders.length>0?`<span class="profile-menu-badge">${orders.length}</span>`:'')}
         ${mi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>','My Wishlist','Saved products','wishlist',wishlist.length>0?`<span class="profile-menu-badge">${wishlist.length}</span>`:'')}
         ${mi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>','My Videos',`${userVideos.length} videos uploaded`,'my-videos',userVideos.length>0?`<span class="profile-menu-badge">${userVideos.length}</span>`:'')}
-        ${mi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>','ApyCoins Wallet','Earn & redeem coins','wallet',`<span style="font-size:12px;font-weight:800;color:#92400e">${coinData.balance} 🪙</span>`)}
+        ${mi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>','ApyCoins Wallet','Earn & redeem coins','wallet',`<span style="font-size:12px;font-weight:800;color:#92400e">${coinData.balance} 🪙</span>`)}
+        <div class="profile-menu-item" onclick="window.location.href='affiliate.html'">
+          <div class="profile-menu-icon" style="background:#f0fdf4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <div class="profile-menu-text"><div class="profile-menu-name">Affiliate Program</div><div class="profile-menu-sub">Share links, track clicks & commission</div></div>
+          <div class="profile-menu-arrow">›</div>
+        </div>
       </div>
     </div>
     <div class="profile-menu-group">
