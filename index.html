@@ -1407,12 +1407,17 @@ const auth     = getAuth(app);
 const db       = getFirestore(app);
 const storage  = getStorage(app);
 const provider = new GoogleAuthProvider();
+const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: 'select_account' }); // ← YE LINE ADD KARO
 
 // ─── Expose to global scope ───
 window._fbAuth = { auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged };
 
 getRedirectResult(auth).then(result => {
-  if (result && result.user) console.log('Redirect login success:', result.user.uid);
+  if (result && result.user) {
+    console.log('Redirect login success:', result.user.uid);
+    setTimeout(() => { if (typeof showToast === 'function') showToast('Welcome!', 'success'); }, 600);
+  }
 }).catch(err => {
   console.error('Redirect login error:', err.code, err.message);
   setTimeout(() => {
@@ -4768,21 +4773,44 @@ function closeWelcomePopup() {
   const portal = document.getElementById('welcomePopupPortal');
   if (portal) portal.innerHTML = '';
 }
+let _signInInProgress = false;
+function isStandalonePWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
 function signInWithGoogle() {
   if (!window._fbAuth) { showToast('Please wait, loading...', 'info'); return; }
+  if (_signInInProgress) { showToast('Please wait…', 'info'); return; } // double-tap guard
+  _signInInProgress = true;
+
   const { signInWithPopup, signInWithRedirect, auth, provider } = window._fbAuth;
+
+  // PWA/standalone/webview me popup fail hota hai -> seedha redirect
+  if (isStandalonePWA()) {
+    showToast('Redirecting to sign-in…', 'info');
+    signInWithRedirect(auth, provider).finally(() => { _signInInProgress = false; });
+    return;
+  }
+
   signInWithPopup(auth, provider)
     .then(() => showToast('Welcome!', 'success'))
     .catch(err => {
       console.error('LOGIN ERROR:', err.code, err.message);
-      const fallbackCodes = ['auth/popup-blocked','auth/operation-not-supported-in-this-environment'];
+      const fallbackCodes = [
+        'auth/popup-blocked',
+        'auth/operation-not-supported-in-this-environment',
+        'auth/cancelled-popup-request',
+        'auth/popup-closed-by-user',
+        'auth/web-storage-unsupported',
+        'auth/network-request-failed'
+      ];
       if (fallbackCodes.includes(err.code)) {
         showToast('Redirecting to sign-in…', 'info');
         signInWithRedirect(auth, provider);
       } else {
-        showToast('Login failed (' + err.code + ')', 'warn');
+        showToast('Login failed (' + err.code + '). Try again.', 'warn');
       }
-    });
+    })
+    .finally(() => { _signInInProgress = false; });
 }
 function logoutUser() {
   if (!window._fbAuth) return;
