@@ -267,7 +267,7 @@ a{text-decoration:none;color:inherit}
 .home-notif-dot{position:absolute;top:8px;right:8px;width:7px;height:7px;background:var(--accent);border-radius:50%;border:1.5px solid #fff}
 
 /* ─── HERO CAROUSEL ─── */
-.hero-carousel{margin:4px 12px 0;border-radius:var(--radius-lg);overflow:hidden;position:relative;height:160px}
+.hero-carousel{margin:4px 12px 0;border-radius:var(--radius-lg);overflow:hidden;position:relative;height:auto;aspect-ratio:2.2/1}
 .hero-slide{position:absolute;inset:0;border-radius:var(--radius-lg);padding:22px 20px;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;transition:opacity .5s ease;pointer-events:none}
 .hero-slide.active{opacity:1;pointer-events:all}
 .hero-slide-1{background:linear-gradient(135deg,#7c3aed 0%,#2563eb 100%)}
@@ -2468,8 +2468,8 @@ function initHeroCarousel() {
   wrap.innerHTML = HERO_SLIDES.map((s, i) => {
     // ✅ Image-only banner — clean image, no overlay text
     if (s.imageOnly && s.imageUrl) {
-  return `<div class="hero-slide ${i === 0 ? 'active' : ''}" id="heroSlide${i}" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;padding:0;margin:0;border-radius:var(--radius-lg);background:#0f172a;display:flex;align-items:center;justify-content:center">
-    <img src="${s.imageUrl}" alt="" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;margin:auto" onerror="console.error('Banner image load fail:', this.src); this.style.display='none'; this.parentElement.innerHTML+='<div style=position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700>⚠️ Image load failed</div>'" onclick="${s.action || ''}">
+  return `<div class="hero-slide ${i === 0 ? 'active' : ''}" id="heroSlide${i}" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;padding:0;margin:0;border-radius:var(--radius-lg)">
+    <img src="${s.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">
   </div>`;
 }
     
